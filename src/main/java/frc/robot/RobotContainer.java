@@ -15,6 +15,7 @@ import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FindApriltag;
 import frc.robot.Commands.IntakeAndRetract;
 import frc.robot.Commands.IntakeFuel;
@@ -98,6 +99,8 @@ public class RobotContainer {
     ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
     ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret, TurretConstants.turretSpeed));
     ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret, -TurretConstants.turretSpeed));
+    ControllerConstants.operatorController.leftBumper().whileTrue(new ConveyToTurret(m_conveyor, 0.5));
+    ControllerConstants.operatorController.rightBumper().whileTrue(new ConveyToTurret(m_conveyor, -0.5));
   }
 
   /*
