@@ -22,6 +22,7 @@ import frc.robot.Commands.ManualClimbDown;
 import frc.robot.Commands.ManualClimbUp;
 import frc.robot.Commands.Shoot;
 import frc.robot.Commands.TransferFuel;
+import frc.robot.Commands.TurretManual;
 import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
@@ -94,8 +95,9 @@ public class RobotContainer {
     ControllerConstants.operatorController.pov(180).whileTrue(new ManualClimbDown(m_climb, ClimbConstants.climbSpeed));
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.linearSlideSpeed, IntakeConstants.rollerSpeed));
     ControllerConstants.operatorController.y().whileTrue(new Shoot(m_turret));
-    ControllerConstants.operatorController.b().whileTrue(new FindApriltag(m_turret, TurretConstants.turretSpeed));
-    ControllerConstants.operatorController.x().whileTrue(new FindApriltag(m_turret, -TurretConstants.turretSpeed));
+    ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
+    ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret, TurretConstants.turretSpeed));
+    ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret, -TurretConstants.turretSpeed));
   }
 
   /*
