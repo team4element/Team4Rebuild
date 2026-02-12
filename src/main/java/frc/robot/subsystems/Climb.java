@@ -57,13 +57,13 @@ public class Climb extends SubsystemBase{
     }
 
     // Constantly gets the motor's rotation while testing.
-    public void periodic(){
-        if(debug == true){
-        double currentRotation = m_motor.getPosition().getValueAsDouble();
-        System.out.println("CLIMB POSITION: " + currentRotation); 
+   // public void periodic(){
+    //    if(debug == true){
+    //    double currentRotation = m_motor.getPosition().getValueAsDouble();
+   //     //System.out.println("CLIMB POSITION: " + currentRotation); 
 
-        }
-    }
+   //     }
+   // }
 
     /*
      * Initiates motor starting position.
