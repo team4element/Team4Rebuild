@@ -33,7 +33,7 @@ public class Spinster extends SubsystemBase{
         m_positionRequest = new PositionVoltage(0);
         m_currentLimit = new CurrentLimitsConfigs();
     
-        m_currentLimit.StatorCurrentLimit = ConveyorConstants.currentLimit;
+        m_currentLimit.StatorCurrentLimit = 100;
         m_currentLimit.StatorCurrentLimitEnable = true;
     }
 

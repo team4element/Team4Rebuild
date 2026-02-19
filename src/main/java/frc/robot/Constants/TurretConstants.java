@@ -6,17 +6,20 @@ public class TurretConstants {
     public static final int shooterID = 18;
 
     public static final double leftLimit = 90;
-    public static final double rightLimit = -25;
+    public static final double rightLimit = -32;
 
     public static final double dutyCycleTurret = 0.5;
     public static final double dutyCycleShooter = 1;
 
-    public static final double currentLimitTurret = 80;
-    public static final double currentLimitShooter = 80;
+    public static final double turretStatorLimit = 100;
+    public static final double shooterStatorLimit = 100;
 
-    public static final double KPTurret = 0.18; // Think of this as the power value
-    public static final double KITurret = 0;
-    public static final double KDTurret = 0; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
+    public static final double turretSupplyLimit = 20;
+    public static final double shooterSupplyLimit = 20;
+
+    public static final double KPTurret = 0.105; // Think of this as the power value
+    public static final double KITurret = 0.002;
+    public static final double KDTurret = 0.0; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
 
     public static final double KPShooter = 0.01; 
     public static final double KIShooter = 0;

@@ -5,7 +5,11 @@
 
 package frc.robot.Subsystems;
 
+import static edu.wpi.first.units.Units.Degrees;
+
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -14,11 +18,15 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
+import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 
@@ -35,6 +43,8 @@ public class Turret extends SubsystemBase{
 
     // Used to control speed of motors
     private DutyCycleOut m_dutyCycleTurret, m_dutyCycleShooter;
+    private CurrentLimitsConfigs m_limitConfigTurret = new CurrentLimitsConfigs();
+    private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
     private PositionVoltage m_positionRequest;
     private PIDController m_pidControl;
     private VelocityVoltage m_voltage;
@@ -42,6 +52,8 @@ public class Turret extends SubsystemBase{
     NetworkTable table;
 
     TalonFXConfiguration shooterConfig;
+
+    private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
 
     // Variables used to update values
     double lastRPM;
@@ -89,6 +101,20 @@ public class Turret extends SubsystemBase{
 
         shooterConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
         m_shooter.getConfigurator().apply(shooterConfig);
+
+        // TalonFXConfigurator configuratorTurret = m_turret.getConfigurator();
+        // m_limitConfigTurret.StatorCurrentLimit = TurretConstants.turretStatorLimit;
+        // m_limitConfigTurret.StatorCurrentLimitEnable = true;
+        // m_limitConfigShooter.SupplyCurrentLimit = TurretConstants.turretSupplyLimit;
+        // m_limitConfigShooter.SupplyCurrentLimitEnable = true;
+        // configuratorTurret.apply(m_limitConfigTurret);
+
+        // TalonFXConfigurator configuratorShooter = m_turret.getConfigurator();
+        // m_limitConfigShooter.StatorCurrentLimit = TurretConstants.shooterStatorLimit;
+        // m_limitConfigShooter.StatorCurrentLimitEnable = true;
+        // m_limitConfigShooter.SupplyCurrentLimit = TurretConstants.shooterSupplyLimit;
+        // m_limitConfigShooter.SupplyCurrentLimitEnable = true;
+        // configuratorShooter.apply(m_limitConfigShooter);
 
         // Puts the constants onto the shuffleboard which will update periodically.
         SmartDashboard.putNumber("Shooter RPM", TurretConstants.shooterSpeed);
@@ -188,7 +214,7 @@ public class Turret extends SubsystemBase{
 
         }
 
-        return distance;
+        return distance-15;
     }
 
     /**
@@ -274,10 +300,35 @@ public class Turret extends SubsystemBase{
      * @param speedPercentage as a percetage from -1 to 1.
      */
     public void turnUntilApriltag(){
+        if(TV){
         m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
         double angle = (findAngleToTarget()*(11.273/(2*Math.PI)));
-        m_turret.set((-m_pidControl.calculate(getLimelightYaw(), getLimelightYaw()+angle)));
-        System.out.println(angle);
+            if(getLimelightYaw() >= TurretConstants.leftLimit || getLimelightYaw() <= TurretConstants.rightLimit){
+                m_turret.set(0);
+            } else{
+                m_turret.set((-m_pidControl.calculate(getLimelightYaw(), getLimelightYaw()+angle))*1.5);
+            }
+        }
+        else{
+            m_turret.set(0);
+        }
+    }
+
+    public void turnWithGyro(){
+            Rotation2d currentAngle = m_drivetrain.getState().Pose.getRotation();
+            double goalAngle = currentAngle.getDegrees() - getLimelightYaw();
+
+            m_turret.set(m_pidControl.calculate(getLimelightYaw(), goalAngle));
+    }
+
+    public void trackApriltag(){
+        if(m_drivetrain.getPigeon2().getAngularVelocityZDevice().getValueAsDouble() > 360){
+            turnWithGyro();
+            startShooter();
+        } else{
+            turnUntilApriltag();
+            startShooter();
+        }
     }
 
     /**
