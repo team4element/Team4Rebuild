@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.333245033112583,
-        "y": 2.190976821192054
+        "x": 3.3615295540513093,
+        "y": 2.2018120448865806
       },
       "isLocked": false,
       "linkedName": null
@@ -20,8 +20,8 @@
         "y": 2.198236754966887
       },
       "prevControl": {
-        "x": 0.9038715943564732,
-        "y": 2.183112989866415
+        "x": 0.9550613354061347,
+        "y": 2.1983994540149814
       },
       "nextControl": null,
       "isLocked": false,
@@ -37,7 +37,7 @@
     "maxAcceleration": 3.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
-    "nominalVoltage": 12.0,
+    "nominalVoltage": 11.5,
     "unlimited": false
   },
   "goalEndState": {
@@ -48,7 +48,7 @@
   "folder": "Taxi",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 179.6308126815831
+    "rotation": 179.63081268158314
   },
-  "useDefaultConstraints": true
+  "useDefaultConstraints": false
 }

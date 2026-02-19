@@ -11,17 +11,30 @@ import static edu.wpi.first.units.Units.*;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.jni.SwerveJNI.ModuleState;
+import com.ctre.phoenix6.swerve.utility.WheelForceCalculator.Feedforwards;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.util.DriveFeedforwards;
+
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.controller.HolonomicDriveController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -31,6 +44,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
 
 /** Add your docs here. */
@@ -56,6 +70,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // Variables for pathplanner configuration
     public static SwerveRequest.ApplyRobotSpeeds m_request = new SwerveRequest.ApplyRobotSpeeds();
+    public static SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(0.1, 0.0);
 
     // Swerve requests to apply during SysId characterization
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
@@ -129,6 +144,24 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
+    public static final SwerveDriveKinematics kKinematics = new SwerveDriveKinematics(
+        new Translation2d(0.273, 0.273), // The location of the front left module from center of robot in meters.
+        new Translation2d(0.273, -0.273), // The location of the front right module from center of robot in meters.
+        new Translation2d(-0.273, 0.273), // The location of the back left module from center of robot in meters.
+        new Translation2d(-0.273, 0.273) // The location of the back right module from center of robot in meters.
+    );
+
+    // This is meant to apply a feedforward to the drivetrain during auto
+    public void autoDrive(ChassisSpeeds speeds){
+        SwerveModuleState[] moduleStates = kKinematics.toSwerveModuleStates(this.getState().Speeds);
+        SwerveDriveKinematics.desaturateWheelSpeeds(moduleStates, TunerConstants.kSpeedAt12Volts.in(MetersPerSecond));
+
+        //SwerveRequest.ApplyRobotSpeeds drive = new SwerveRequest.ApplyRobotSpeeds();
+
+       // for (int module = 0; module < 4; module++){
+       // }
+     }
+
     /*
      * This creates the drivetrain within Pathplanner and allows for the coordinates to be mirrored based on alliance.
      * Returns "Pathplanner failed to work" message if function fails.
@@ -143,10 +176,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 ()-> {
                     return this.getState().Speeds;
                 },// ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds).withDesaturateWheelSpeeds(true)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(1.0, 0.0, 0.0), // Translation PID constants (most likely will need tuning)
-                        new PIDConstants(1.0, 0.0, 0.0) // Rotation PID constants (most likely would need tuning)
+                        new PIDConstants(5.2, 0.0, 0.8), // Translation PID constants (most likely will need tuning)
+                        new PIDConstants(5.2, 0.0, 0.8) // Rotation PID constants (most likely would need tuning)
                 ),
                 m_config, // The robot configuration
                 () -> {
