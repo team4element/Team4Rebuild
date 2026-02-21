@@ -26,7 +26,6 @@ public class Robot extends TimedRobot {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
-    m_robotContainer.onEnable();
   }
 
   /**
@@ -59,7 +58,6 @@ public class Robot extends TimedRobot {
     m_robotContainer.c_fieldRelative();
     m_robotContainer.onEnable();
 
-    // schedule the autonomous command (example)
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
@@ -75,10 +73,12 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
+
+     m_robotContainer.onEnable();
+     
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    m_robotContainer.onEnable();
   }
 
   /** This function is called periodically during operator control. */

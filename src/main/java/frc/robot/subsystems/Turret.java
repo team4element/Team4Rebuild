@@ -5,8 +5,6 @@
 
 package frc.robot.Subsystems;
 
-import static edu.wpi.first.units.Units.Degrees;
-
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
@@ -18,9 +16,8 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -47,6 +44,7 @@ public class Turret extends SubsystemBase{
     private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
     private PositionVoltage m_positionRequest;
     private PIDController m_pidControl;
+    private SimpleMotorFeedforward m_feedForward;
     private VelocityVoltage m_voltage;
 
     NetworkTable table;
@@ -74,6 +72,7 @@ public class Turret extends SubsystemBase{
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
         m_dutyCycleShooter = new DutyCycleOut(TurretConstants.dutyCycleShooter);
         m_pidControl = new PIDController(TurretConstants.KPTurret, TurretConstants.KITurret, TurretConstants.KDTurret);
+        m_feedForward = new SimpleMotorFeedforward(TurretConstants.KSTurret, TurretConstants.KVTurret);
 
         m_positionRequest = new PositionVoltage(0);
         m_voltage = new VelocityVoltage(0).withSlot(0);
@@ -135,7 +134,6 @@ public class Turret extends SubsystemBase{
      */
     public void resetTurret(){
         m_turret.setPosition(0);
-        LimelightHelpers.SetIMUMode(getName(), 1);
     }
 
     /**
@@ -152,6 +150,7 @@ public class Turret extends SubsystemBase{
      */
     public void returnToStartPosition(){
         m_turret.setControl(m_positionRequest.withPosition(0));
+        LimelightHelpers.SetIMUMode("limelight-four",1);
     }
 
     /**
@@ -159,6 +158,7 @@ public class Turret extends SubsystemBase{
      * @return yaw in degrees.
      */
     public double getLimelightYaw(){
+        LimelightHelpers.SetIMUMode("limelight-four",4);
         return LimelightHelpers.getIMUData("limelight-four").robotYaw;
     }
 
@@ -209,7 +209,7 @@ public class Turret extends SubsystemBase{
 
         double distance = (VisionConstants.hubApriltagHeight - VisionConstants.altitude)/Math.tan(radiansToGoal);
 
-        if(distance>TurretConstants.distanceUpperLimit || distance<TurretConstants.distanceLowerLimit){
+        if(distance>=TurretConstants.distanceUpperLimit || distance<=TurretConstants.distanceLowerLimit){
             distance = 0;
 
         }
@@ -301,13 +301,13 @@ public class Turret extends SubsystemBase{
      */
     public void turnUntilApriltag(){
         if(TV){
-        m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
-        double angle = (findAngleToTarget()*(11.273/(2*Math.PI)));
-            if(getLimelightYaw() >= TurretConstants.leftLimit || getLimelightYaw() <= TurretConstants.rightLimit){
-                m_turret.set(0);
-            } else{
-                m_turret.set((-m_pidControl.calculate(getLimelightYaw(), getLimelightYaw()+angle))*1.5);
-            }
+            m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
+            double angle = (findAngleToTarget()*(11.273/(2*Math.PI)));
+                if(getLimelightYaw() >= TurretConstants.leftLimit || getLimelightYaw() <= TurretConstants.rightLimit){
+                    m_turret.set(0);
+                } else{
+                    m_turret.set((m_feedForward.calculate(getLimelightYaw()+angle)+(-m_pidControl.calculate(getLimelightYaw(), getLimelightYaw()+angle))));
+                }
         }
         else{
             m_turret.set(0);
@@ -322,13 +322,13 @@ public class Turret extends SubsystemBase{
     }
 
     public void trackApriltag(){
-        if(m_drivetrain.getPigeon2().getAngularVelocityZDevice().getValueAsDouble() > 360){
-            turnWithGyro();
-            startShooter();
-        } else{
+       // if(m_drivetrain.getPigeon2().getAngularVelocityZDevice().getValueAsDouble() > 360){
+            //turnWithGyro();
+          //  startShooter();
+        //} else{
             turnUntilApriltag();
-            startShooter();
-        }
+          //  startShooter();
+       // }
     }
 
     /**
@@ -360,17 +360,27 @@ public class Turret extends SubsystemBase{
         }
     }
 
+    public void doPeriodically(){
+        double xPosition = m_drivetrain.getState().Pose.getX();
+        if(xPosition < 3.8 || xPosition > 12.9){
+            turnUntilApriltag();            
+        }
+        else{
+            stopMotors();
+        }
+    }
+
     public void periodic(){
         TX = LimelightHelpers.getTX("limelight-four");
         TY = LimelightHelpers.getTY("limelight-four");
         TV = LimelightHelpers.getTV("limelight-four");
 
-        double shooterRPM = SmartDashboard.getNumber("Shooter RPM", TurretConstants.shooterSpeed);
-        double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
-        double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
+        // double shooterRPM = SmartDashboard.getNumber("Shooter RPM", TurretConstants.shooterSpeed);
+        // double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
+        // double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
         SmartDashboard.putNumber("speed", m_shooter.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("distance", findDistance());
+        SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
 
-        updateValues(shooterP, shooterV, shooterRPM);
     }
 }

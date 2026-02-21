@@ -11,24 +11,17 @@ import static edu.wpi.first.units.Units.*;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
-import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
-import com.ctre.phoenix6.swerve.jni.SwerveJNI.ModuleState;
-import com.ctre.phoenix6.swerve.utility.WheelForceCalculator.Feedforwards;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import com.pathplanner.lib.util.DriveFeedforwards;
 
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -37,8 +30,11 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -67,7 +63,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // Keep track if we've ever applied the operator perspective before or not.
     private boolean m_hasAppliedOperatorPerspective = false;
 
-
     // Variables for pathplanner configuration
     public static SwerveRequest.ApplyRobotSpeeds m_request = new SwerveRequest.ApplyRobotSpeeds();
     public static SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(0.1, 0.0);
@@ -76,6 +71,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+
+    private Field2d field;
+
+    public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
+            .withDeadband(.6).withRotationalDeadband(.6)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     // Defines the field forward direction
     public final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle = new SwerveRequest.FieldCentricFacingAngle()
@@ -151,16 +152,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         new Translation2d(-0.273, 0.273) // The location of the back right module from center of robot in meters.
     );
 
-    // This is meant to apply a feedforward to the drivetrain during auto
-    public void autoDrive(ChassisSpeeds speeds){
-        SwerveModuleState[] moduleStates = kKinematics.toSwerveModuleStates(this.getState().Speeds);
-        SwerveDriveKinematics.desaturateWheelSpeeds(moduleStates, TunerConstants.kSpeedAt12Volts.in(MetersPerSecond));
-
-        //SwerveRequest.ApplyRobotSpeeds drive = new SwerveRequest.ApplyRobotSpeeds();
-
-       // for (int module = 0; module < 4; module++){
-       // }
-     }
+    public void defaultDrive(){
+       this.applyRequest(() ->
+        drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
+             .withVelocityY(ControllerConstants.xTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
+             .withRotationalRate(ControllerConstants.zRotationModifier.apply(
+                ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
+        )   
+    }
 
     /*
      * This creates the drivetrain within Pathplanner and allows for the coordinates to be mirrored based on alliance.
@@ -169,6 +170,18 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public void pathplanner(){
         try{
             RobotConfig m_config = RobotConfig.fromGUISettings();
+            // use if weight doesn't work
+            // RobotConfig m_config = new RobotConfig(
+            //     0.0,
+            //     0.0, 
+            //     new ModuleConfig(
+            //             0.0508d,
+            //             0.0,
+            //             1.2,
+            //             new ,
+            //             70,
+            //             kNumConfigAttempts),
+            //     new Translation2d(0.24765, 0.24765));
 
             AutoBuilder.configure(
                 () -> this.getState().Pose,// Robot pose supplier
@@ -176,10 +189,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 ()-> {
                     return this.getState().Speeds;
                 },// ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds).withDesaturateWheelSpeeds(true)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                // This is is where I think the feedforward should go into!
+                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(5.2, 0.0, 0.8), // Translation PID constants (most likely will need tuning)
-                        new PIDConstants(5.2, 0.0, 0.8) // Rotation PID constants (most likely would need tuning)
+                        new PIDConstants(6, 0.0, 0), // Translation PID constants (most likely will need tuning)
+                        new PIDConstants(5, 0.0, 0) // Rotation PID constants (most likely would need tuning)
                 ),
                 m_config, // The robot configuration
                 () -> {
@@ -221,6 +235,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
+
+        field = new Field2d();
+        SmartDashboard.putData("Field", field);
     }
 
     /**
@@ -247,6 +264,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
+
+        field = new Field2d();
+        SmartDashboard.putData("Field", field);
     }
 
     /**
@@ -287,6 +307,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
+
+        field = new Field2d();
+        SmartDashboard.putData("Field", field);
     }
 
     /**
@@ -347,6 +370,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 m_hasAppliedOperatorPerspective = true;
             });
         }
+
+        field.setRobotPose(getState().Pose);
     }
 
     private void startSimThread(){

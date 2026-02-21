@@ -8,6 +8,7 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest.ForwardPerspectiveValue;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -18,11 +19,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FindApriltag;
 import frc.robot.Commands.IntakeAndRetract;
-import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.ManualClimbDown;
 import frc.robot.Commands.ManualClimbUp;
 import frc.robot.Commands.Shoot;
-import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.ControllerConstants;
@@ -54,6 +53,10 @@ public class RobotContainer {
   private final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
             .withDeadband(.6).withRotationalDeadband(.6)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
+
+  private final SwerveRequest.FieldCentric fcDrive = new SwerveRequest.FieldCentric()
+            .withDeadband(.6).withRotationalDeadband(.6)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage).withForwardPerspective(ForwardPerspectiveValue.OperatorPerspective);
 
   public final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   public final Climb m_climb = new Climb();
@@ -87,8 +90,10 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
              .withRotationalRate(ControllerConstants.zRotationModifier.apply(
                 ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-            )
-       );    
+        )
+      );    
+    
+    //m_turret.setDefaultCommand(new FindApriltag(m_turret));
 
     //ControllerConstants.driverController.leftBumper().whileTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
 
@@ -114,7 +119,7 @@ public class RobotContainer {
    * Switches the drivetrain's forward to be relative to the field (toward the opposing alliance).
    */
   public Command c_fieldRelative(){
-     return m_drivetrain.applyRequest(() -> drive);
+     return m_drivetrain.applyRequest(() -> fcDrive);
   }
 
   /**
