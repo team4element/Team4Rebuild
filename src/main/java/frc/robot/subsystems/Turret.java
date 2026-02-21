@@ -301,16 +301,18 @@ public class Turret extends SubsystemBase{
      */
     public void turnUntilApriltag(){
         if(TV){
-            m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
+           // m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
+            m_pidControl.setSetpoint(-TX);
             double angle = (findAngleToTarget()*(11.273/(2*Math.PI)));
                 if(getLimelightYaw() >= TurretConstants.leftLimit || getLimelightYaw() <= TurretConstants.rightLimit){
-                    m_turret.set(0);
+                    m_turret.setControl(m_dutyCycleTurret.withOutput(0));
+                    System.out.println("hello");
                 } else{
-                    m_turret.set((m_feedForward.calculate(getLimelightYaw()+angle)+(-m_pidControl.calculate(getLimelightYaw(), getLimelightYaw()+angle))));
+                    m_turret.set(m_pidControl.calculate(getLimelightYaw(), TX));
                 }
         }
         else{
-            m_turret.set(0);
+            m_turret.setControl(m_dutyCycleTurret.withOutput(0));
         }
     }
 
@@ -381,6 +383,5 @@ public class Turret extends SubsystemBase{
         SmartDashboard.putNumber("speed", m_shooter.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("distance", findDistance());
         SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
-
     }
 }
