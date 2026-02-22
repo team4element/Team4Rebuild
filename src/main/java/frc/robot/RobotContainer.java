@@ -92,8 +92,7 @@ public class RobotContainer {
                 ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
         )
       );    
-    
-    //m_turret.setDefaultCommand(new FindApriltag(m_turret));
+   // m_turret.setDefaultCommand(new FindApriltag(m_turret));
 
     //ControllerConstants.driverController.leftBumper().whileTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
 

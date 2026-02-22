@@ -5,6 +5,7 @@
 
 package frc.robot.Subsystems;
 
+import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
@@ -43,20 +44,23 @@ public class Turret extends SubsystemBase{
     private CurrentLimitsConfigs m_limitConfigTurret = new CurrentLimitsConfigs();
     private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
     private PositionVoltage m_positionRequest;
-    private PIDController m_pidControl;
     private SimpleMotorFeedforward m_feedForward;
     private VelocityVoltage m_voltage;
 
     NetworkTable table;
 
     TalonFXConfiguration shooterConfig;
+    TalonFXConfiguration turretConfig;
+
+    ClosedLoopGeneralConfigs generalConfigs;
 
     private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
 
     // Variables used to update values
     double lastRPM;
     double lastP;
-    double lastV;
+    double lastD;
+    double lastS;
 
     // Declares x and y offsets from limelight
     private double TX, TY;
@@ -71,20 +75,20 @@ public class Turret extends SubsystemBase{
         // The turret and shooter motor will start with half speed
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
         m_dutyCycleShooter = new DutyCycleOut(TurretConstants.dutyCycleShooter);
-        m_pidControl = new PIDController(TurretConstants.KPTurret, TurretConstants.KITurret, TurretConstants.KDTurret);
         m_feedForward = new SimpleMotorFeedforward(TurretConstants.KSTurret, TurretConstants.KVTurret);
 
-        m_positionRequest = new PositionVoltage(0);
+        m_positionRequest = new PositionVoltage(0).withSlot(0);
         m_voltage = new VelocityVoltage(0).withSlot(0);
 
-        TalonFXConfiguration turretConfig = new TalonFXConfiguration();
+        turretConfig = new TalonFXConfiguration();
         shooterConfig = new TalonFXConfiguration();
+      //  generalConfigs = new ClosedLoopGeneralConfigs().withContinuousWrap(true);
 
         // Assigns PID values to the turret for precise speed 
-        turretConfig.Slot0.kP = 0; // Controls position error
+        turretConfig.Slot0.kP = TurretConstants.KPTurret; // Controls position error
         turretConfig.Slot0.kI = 0; // Controls integral error using kP and kD (don't change)
-        turretConfig.Slot0.kD = 0; // Controls derivative error 
-        turretConfig.Slot0.kS = 1;
+        turretConfig.Slot0.kD = TurretConstants.KDTurret; // Controls derivative error 
+        turretConfig.Slot0.kS = TurretConstants.KSTurret;
 
         // Assigns PID values to the shooter for precise speed 
         shooterConfig.Slot0.kP = TurretConstants.KPShooter; // Controls position error
@@ -93,8 +97,9 @@ public class Turret extends SubsystemBase{
         shooterConfig.Slot0.kV = TurretConstants.KVShooter;
 
         lastRPM = TurretConstants.shooterSpeed;
-        lastP = TurretConstants.KPShooter;
-        lastV = TurretConstants.KVShooter;
+        lastP = TurretConstants.KPTurret;
+        lastD = TurretConstants.KDTurret;
+        lastS = TurretConstants.KSTurret;
 
         m_turret.getConfigurator().apply(turretConfig);
 
@@ -116,9 +121,11 @@ public class Turret extends SubsystemBase{
         // configuratorShooter.apply(m_limitConfigShooter);
 
         // Puts the constants onto the shuffleboard which will update periodically.
-        SmartDashboard.putNumber("Shooter RPM", TurretConstants.shooterSpeed);
-        SmartDashboard.putNumber("Shooter kP", TurretConstants.KPShooter);
-        SmartDashboard.putNumber("Shooter kV", TurretConstants.KVShooter);
+       // SmartDashboard.putNumber("Shooter RPM", TurretConstants.shooterSpeed);
+        SmartDashboard.putNumber("Turret kP", TurretConstants.KPTurret);
+        SmartDashboard.putNumber("Turret kD", TurretConstants.KDTurret);
+        SmartDashboard.putNumber("Turret kS", TurretConstants.KSTurret);
+       LimelightHelpers.SetIMUMode("limelight-four",1);
     }
 
     /**
@@ -150,16 +157,22 @@ public class Turret extends SubsystemBase{
      */
     public void returnToStartPosition(){
         m_turret.setControl(m_positionRequest.withPosition(0));
-        LimelightHelpers.SetIMUMode("limelight-four",1);
+       // LimelightHelpers.SetIMUMode("limelight-four",1);
     }
 
+    public double getMotorRotations(){
+        return m_turret.getPosition().getValueAsDouble();
+    }
+
+    public double getLimelightYaw(){
+        return LimelightHelpers.getIMUData("limelight-four").Yaw;
+    }
     /**
      * Grabs the data for yaw from the stored limelight networktable values.
      * @return yaw in degrees.
      */
-    public double getLimelightYaw(){
-        LimelightHelpers.SetIMUMode("limelight-four",4);
-        return LimelightHelpers.getIMUData("limelight-four").robotYaw;
+    public double getLimelightYawRotations(){
+        return (getLimelightYaw()/360)*11.273;
     }
 
     /**
@@ -171,10 +184,10 @@ public class Turret extends SubsystemBase{
          if(ControllerConstants.operatorController.b().getAsBoolean()){
              double limit = TurretConstants.leftLimit;
 
-             if(getLimelightYaw() <= limit){
+             if(getLimelightYaw() >= limit){
                  spinTurret(speedPercentage);
 
-             } else if(getLimelightYaw() >= limit){
+             } else if(getLimelightYaw() <= limit){
 
                 m_turret.set(0);
 
@@ -182,10 +195,10 @@ public class Turret extends SubsystemBase{
          } else if(ControllerConstants.operatorController.x().getAsBoolean()){
              double limit = TurretConstants.rightLimit;
 
-             if(getLimelightYaw() <= limit){
+             if(getLimelightYaw() >= limit){
                 m_turret.set(0);
 
-             } else if(getLimelightYaw() >= limit){
+             } else if(getLimelightYaw() <= limit){
                  spinTurret(speedPercentage);
 
              }
@@ -300,19 +313,7 @@ public class Turret extends SubsystemBase{
      * @param speedPercentage as a percetage from -1 to 1.
      */
     public void turnUntilApriltag(){
-        if(TV){
-           // m_pidControl.setSetpoint(getLimelightYaw()+findAngleToTarget()*(11.27272727/(2*Math.PI)));
-            m_pidControl.setSetpoint(-TX);
-            double angle = (findAngleToTarget()*(11.273/(2*Math.PI)));
-                if(getLimelightYaw() >= TurretConstants.leftLimit || getLimelightYaw() <= TurretConstants.rightLimit){
-                    m_turret.setControl(m_dutyCycleTurret.withOutput(0));
-                    System.out.println("hello");
-                } else{
-                    m_turret.set(m_pidControl.calculate(getLimelightYaw(), TX));
-                }
-        }
-        else{
-            m_turret.setControl(m_dutyCycleTurret.withOutput(0));
+        if(TV) {
         }
     }
 
@@ -320,7 +321,7 @@ public class Turret extends SubsystemBase{
             Rotation2d currentAngle = m_drivetrain.getState().Pose.getRotation();
             double goalAngle = currentAngle.getDegrees() - getLimelightYaw();
 
-            m_turret.set(m_pidControl.calculate(getLimelightYaw(), goalAngle));
+           // m_turret.set(m_pidControl.calculate(getLimelightYaw(), goalAngle));
     }
 
     public void trackApriltag(){
@@ -347,41 +348,50 @@ public class Turret extends SubsystemBase{
         }
     }
 
-    public void updateValues(double P,double V, double RPM){
-        if(P != lastP || V != lastV ){
-            shooterConfig.Slot0.kP = P;
-            shooterConfig.Slot0.kV = V;
-            m_shooter.getConfigurator().apply(shooterConfig);
+    public void updateValues(double P, double D, double S){
+        if(P != lastP || D != lastD || S != lastS){
+            turretConfig.Slot0.kP = P;
+            turretConfig.Slot0.kD = D;
+            turretConfig.Slot0.kS = S;
+            m_turret.getConfigurator().apply(turretConfig);
 
             lastP = P;
-            lastV = V;
+            lastD = D;
+            lastS = S;
         }
 
-        if(RPM != lastRPM){
-            lastRPM = RPM;
-        }
+        // if(RPM != lastRPM){
+        //     lastRPM = RPM;
+        // }
     }
 
-    public void doPeriodically(){
-        double xPosition = m_drivetrain.getState().Pose.getX();
-        if(xPosition < 3.8 || xPosition > 12.9){
-            turnUntilApriltag();            
-        }
-        else{
-            stopMotors();
-        }
+    public double getPoseX(){
+       return m_drivetrain.getState().Pose.getX();
+    }
+
+    //no worky before cuz bad pid control, need use phoenix not external
+    public void setYaw(double angle) {
+        m_turret.setControl(m_positionRequest.withPosition(angle));
     }
 
     public void periodic(){
-        TX = LimelightHelpers.getTX("limelight-four");
-        TY = LimelightHelpers.getTY("limelight-four");
-        TV = LimelightHelpers.getTV("limelight-four");
+        //TY = LimelightHelpers.getTY("limelight-four");
+        //TV = LimelightHelpers.getTV("limelight-four");
 
         // double shooterRPM = SmartDashboard.getNumber("Shooter RPM", TurretConstants.shooterSpeed);
-        // double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
-        // double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
-        SmartDashboard.putNumber("speed", m_shooter.getVelocity().getValueAsDouble());
+         double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
+         double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
+         double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
+        //SmartDashboard.putNumber("speed", m_shooter.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("distance", findDistance());
-        SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
+        //SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
+
+        // double driveYaw = m_drivetrain.getRotation3d().getZ();
+        // if(driveYaw >= TurretConstants.leftLimit || driveYaw <= TurretConstants.rightLimit){
+        //     m_turret.setControl(m_dutyCycleTurret.withOutput(0));
+        //     System.out.println("hello");
+        // }
+        updateValues(turretP, turretD, turretS);
+        System.out.println(getLimelightYaw());
     }
 }
