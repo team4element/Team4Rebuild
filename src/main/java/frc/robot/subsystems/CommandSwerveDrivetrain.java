@@ -4,7 +4,7 @@
  * The drivetrain can use the field perspective (forward point to the opposing alliance) or the robot perspective (forward defined by swerve module from tuner constants).
  */
 
-package frc.robot.Subsystems;
+package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -187,7 +187,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         );
 
         mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-        //this.getPigeon2().getAngularVelocityZDevice().getValueAsDouble() > 360
 
         if(Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 360){
             doRejectUpdate = true;
@@ -211,19 +210,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public void pathplanner(){
         try{
             RobotConfig m_config = RobotConfig.fromGUISettings();
-            // use if weight doesn't work
-            // RobotConfig m_config = new RobotConfig(
-            //     0.0,
-            //     0.0, 
-            //     new ModuleConfig(
-            //             0.0508d,
-            //             0.0,
-            //             1.2,
-            //             new ,
-            //             70,
-            //             kNumConfigAttempts),
-            //     new Translation2d(0.24765, 0.24765));
-
             AutoBuilder.configure(
                 () -> this.getState().Pose,// Robot pose supplier
                 this::resetPose,

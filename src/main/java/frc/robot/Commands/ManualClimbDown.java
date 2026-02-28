@@ -1,7 +1,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Climb;
+import frc.robot.subsystems.Climb;
 
 public class ManualClimbDown extends Command {
   private Climb m_climb;

@@ -1,7 +1,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import frc.robot.Subsystems.Intake;
+import frc.robot.subsystems.Intake;
 
 public class IntakeAndRetract extends SequentialCommandGroup {
   /** Creates a new IntakeAndRetract. */

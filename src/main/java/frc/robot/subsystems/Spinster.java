@@ -3,7 +3,7 @@
  * The spinster can be controlled manually or through by the slots (60 degrees)
  */
 
-package frc.robot.Subsystems;
+package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.controls.DutyCycleOut;

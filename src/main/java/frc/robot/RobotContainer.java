@@ -29,12 +29,12 @@ import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
-import frc.robot.Subsystems.Climb;
-import frc.robot.Subsystems.CommandSwerveDrivetrain;
-import frc.robot.Subsystems.Conveyor;
-import frc.robot.Subsystems.Intake;
-import frc.robot.Subsystems.Spinster;
-import frc.robot.Subsystems.Turret;
+import frc.robot.subsystems.Climb;
+import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Conveyor;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Spinster;
+import frc.robot.subsystems.Turret;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a

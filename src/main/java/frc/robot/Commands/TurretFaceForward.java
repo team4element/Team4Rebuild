@@ -1,7 +1,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Turret;
+import frc.robot.subsystems.Turret;
 
 public class TurretFaceForward extends Command {
   /** Creates a new TurretFaceForward. */
