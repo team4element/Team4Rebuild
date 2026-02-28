@@ -58,6 +58,8 @@ public class Robot extends TimedRobot {
     m_robotContainer.c_fieldRelative();
     m_robotContainer.onEnable();
 
+    LimelightHelpers.SetIMUMode("limelight-four", 1);
+
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }

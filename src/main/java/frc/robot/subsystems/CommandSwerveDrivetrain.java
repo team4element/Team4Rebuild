@@ -22,15 +22,19 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.estimator.PoseEstimator;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -40,6 +44,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.LimelightHelpers;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
 
@@ -54,6 +59,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
+    private boolean doRejectUpdate;
     public SPEED m_speed = SPEED.FAST;
 
     // Blue alliance sees forward as 0 degrees (toward red alliance wall).
@@ -73,6 +79,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     private Field2d field;
+    public LimelightHelpers.PoseEstimate mt2;
+
+    private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
             .withDeadband(.6).withRotationalDeadband(.6)
@@ -104,6 +114,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * SysId routine for characterizing steer. This is used to find PID gains for
      * the steer motors.
      */
+     @SuppressWarnings("unused")
     private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
         new SysIdRoutine.Config(
             null, // Use default ramp rate (1 V/s)
@@ -123,6 +134,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * See the documentation of SwerveRequest.SysIdSwerveRotation for info on
      * importing the log to SysId.
      */
+     @SuppressWarnings("unused")
     private final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
         new SysIdRoutine.Config(
             /* This is in radians per second², but SysId only supports "volts per second" */
@@ -152,15 +164,44 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         new Translation2d(-0.273, 0.273) // The location of the back right module from center of robot in meters.
     );
 
-    public void defaultDrive(){
-    //    this.applyRequest(() ->
-    //     drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
-    //             -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
-    //          .withVelocityY(ControllerConstants.xTranslationModifier.apply(
-    //             -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
-    //          .withRotationalRate(ControllerConstants.zRotationModifier.apply(
-    //             ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-    //     )   
+    SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
+        kKinematics,
+        TunerConstants.m_pigeon.getRotation2d(),
+        this.getState().ModulePositions,
+        new Pose2d());
+
+    PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
+
+    /*
+     * Links the robot odometry to the field using the limelight's data.
+     */
+    public void setMegaTag2(){
+        LimelightHelpers.SetRobotOrientation(
+            "limelight-four",
+            m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(),
+            0,
+            0,
+            0,
+            0,
+            0
+        );
+
+        mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        //this.getPigeon2().getAngularVelocityZDevice().getValueAsDouble() > 360
+
+        if(Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 360){
+            doRejectUpdate = true;
+        }
+        if(mt2.tagCount == 0){
+            doRejectUpdate = true;
+        }
+        if(!doRejectUpdate){
+            m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(0.7, 0.7, 999999));
+            m_poseEstimator.addVisionMeasurement(
+                mt2.pose, 
+                mt2.timestampSeconds
+            );
+        }
     }
 
     /*
@@ -190,7 +231,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     return this.getState().Speeds;
                 },// ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 // This is is where I think the feedforward should go into!
-                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)
+                    .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
+                    .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
                         new PIDConstants(6, 0.0, 0), // Translation PID constants (most likely will need tuning)
                         new PIDConstants(5, 0.0, 0) // Rotation PID constants (most likely would need tuning)
@@ -236,6 +279,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
+        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
+        LimelightHelpers.SetIMUMode("limelight-four", 4);
+
         field = new Field2d();
         SmartDashboard.putData("Field", field);
     }
@@ -264,6 +310,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
+
+        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
+        LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         field = new Field2d();
         SmartDashboard.putData("Field", field);
@@ -307,6 +356,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
+
+        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
+        LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         field = new Field2d();
         SmartDashboard.putData("Field", field);
@@ -371,7 +423,19 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             });
         }
 
-        field.setRobotPose(getState().Pose);
+        // Rotation2d pigeonAngle = TunerConstants.m_pigeon.getRotation2d();
+
+        // Pose2d m_pose = m_odometry.update(
+        //     pigeonAngle,
+        //     new SwerveModulePosition[] {
+        //         TunerConstants.createDrivetrain().getModule(0).getPosition(true),
+        //         TunerConstants.createDrivetrain().getModule(1).getPosition(true),
+        //         TunerConstants.createDrivetrain().getModule(2).getPosition(true),
+        //         TunerConstants.createDrivetrain().getModule(3).getPosition(true)
+        //     }
+        // );
+
+       // field.setRobotPose(m_pose);
     }
 
     private void startSimThread(){

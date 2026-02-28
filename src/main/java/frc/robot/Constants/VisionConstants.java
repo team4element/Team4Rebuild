@@ -11,5 +11,7 @@ public class VisionConstants {
     public static final double mountedDegree = -1.2; // The degree the limelight is tilted from vertical.
 
     public static final double hubApriltagHeight = 44; // The height in inches of the center of the apriltag from the floor.
+
+    public static final int[] validIDS = {25,26};
     
 }

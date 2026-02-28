@@ -88,6 +88,7 @@ public class TunerConstants {
     private static final boolean kInvertRightSide = false;
 
     private static final int kPigeonId = 0;
+    public static final Pigeon2 m_pigeon = new Pigeon2(kPigeonId);
 
     // These are only used for simulation
     private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);
@@ -200,7 +201,6 @@ public class TunerConstants {
             DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight
         );
     }
-
 
     /**
      * Swerve Drive class utilizing CTR Electronics' Phoenix 6 API with the selected device types.
