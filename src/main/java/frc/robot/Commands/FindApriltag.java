@@ -2,7 +2,7 @@ package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
-import frc.robot.subsystems.Turret;
+import frc.robot.Subsystems.Turret;
 
 public class FindApriltag extends Command {
   /** Creates a new FollowApriltag. */
@@ -28,19 +28,18 @@ public class FindApriltag extends Command {
   public void execute() {
     TX = -LimelightHelpers.getTX("limelight-four");
     hasTarget = LimelightHelpers.getTV("limelight-four");
-    currentPose = m_turret.getPoseX();
     
     if(hasTarget){
-      final double gearRatio = 11.273;
+      final double gearRatio = 7.01;
       double rotationsError = (TX/360)*gearRatio;
-      double currentMotorRotations = m_turret.getMotorRotations();
+      double currentRotation = m_turret.getTurretRotation();
       
-      double targetRotations = currentMotorRotations + rotationsError;
+      double targetRotation = currentRotation + rotationsError;
 
-      System.out.println(targetRotations + " | " + rotationsError + " | " + TX + " | " + currentMotorRotations);
+      System.out.println(targetRotation + " | " + rotationsError + " | " + TX + " | " + currentRotation);
       
       if(Math.abs(rotationsError) > .05){
-        m_turret.setYaw(targetRotations);
+        m_turret.setYaw(targetRotation);
       }
 
     }

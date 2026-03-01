@@ -3,7 +3,7 @@
  * The linear slide could be moved either manually (through controller input) or through setpoints.
  */
 
-package frc.robot.subsystems;
+package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.controls.DutyCycleOut;

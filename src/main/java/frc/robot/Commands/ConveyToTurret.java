@@ -1,7 +1,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Conveyor;
+import frc.robot.Subsystems.Conveyor;
 
 public class ConveyToTurret extends Command {
   /** Creates a new TransferFuel. */

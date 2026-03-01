@@ -1,7 +1,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Spinster;
+import frc.robot.Subsystems.Spinster;
 
 public class GumballRotation extends Command {
   /** Creates a new TransferFuel. */

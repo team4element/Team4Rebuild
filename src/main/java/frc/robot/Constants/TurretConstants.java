@@ -7,8 +7,8 @@ public class TurretConstants {
     public static final int turretID = 19;
     public static final int shooterID = 18;
 
-    public static final double leftLimit = -138;
-    public static final double rightLimit = 108;
+    public static final double leftLimit = 90;
+    public static final double rightLimit = -45;
 
     public static final double dutyCycleTurret = 0.5;
     public static final double dutyCycleShooter = 1;
@@ -19,9 +19,9 @@ public class TurretConstants {
     public static final double turretSupplyLimit = 20;
     public static final double shooterSupplyLimit = 20;
 
-    public static final double KPTurret = 3.0; // Think of this as the power value.
+    public static final double KPTurret = 2.53; // Think of this as the power value.
     public static final double KITurret = 0.0;
-    public static final double KDTurret = 0.1; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
+    public static final double KDTurret = 0.22; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
     public static final double KSTurret = 0.4;
     public static final double KVTurret = 0.0;
 
@@ -36,6 +36,7 @@ public class TurretConstants {
     public static final double distanceLowerLimit = 50;
 
     public static final double turretSpeed = 50;
+    public static final double turretSpeedManual = 25;
 
     // Hub location on the field in meters.
     public static final Translation2d hubLocation = new Translation2d(4.625, 4);

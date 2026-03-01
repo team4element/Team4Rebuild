@@ -1,16 +1,14 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Turret;
+import frc.robot.Subsystems.Turret;
 
 public class TurretManual extends Command {
   /** Creates a new TurretManual. */
   Turret m_turret;
-  double m_speedPercentage;
 
-  public TurretManual(Turret turret, double speedPercentage) {
+  public TurretManual(Turret turret) {
     m_turret = turret;
-    m_speedPercentage = speedPercentage;
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(turret);
   }
@@ -22,7 +20,7 @@ public class TurretManual extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.rotateManual(m_speedPercentage);
+    m_turret.rotateManual();
   }
 
   // Called once the command ends or is interrupted.

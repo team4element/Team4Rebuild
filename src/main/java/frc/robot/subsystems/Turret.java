@@ -3,7 +3,9 @@
  * The turret's actions are given by states: IDLE, MANUAL, LOCK_ONTO_TARGET, TRACK_APRILTAG
  */
 
-package frc.robot.subsystems;
+package frc.robot.Subsystems;
+
+import static edu.wpi.first.units.Units.Degrees;
 
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -46,7 +48,7 @@ public class Turret extends SubsystemBase{
 
     ClosedLoopGeneralConfigs generalConfigs;
 
-    private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
+    CommandSwerveDrivetrain m_drivetrain;
 
     // Variables used to update values
     double lastRPM;
@@ -59,13 +61,15 @@ public class Turret extends SubsystemBase{
     // Determines weather or not limelight sees apriltag
     private boolean hasTarget; 
 
-    public Turret(){
+    public Turret(CommandSwerveDrivetrain drivetrain){
         m_turret = new TalonFX(TurretConstants.turretID);
         m_shooter = new TalonFX(TurretConstants.shooterID);
 
+        m_drivetrain = drivetrain;
+
         // The turret and shooter motor will start with half speed
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
-        m_dutyCycleShooter = new DutyCycleOut(TurretConstants.dutyCycleShooter);
+       // m_dutyCycleShooter = new DutyCycleOut(TurretConstants.dutyCycleShooter);
         m_feedForward = new SimpleMotorFeedforward(TurretConstants.KSTurret, TurretConstants.KVTurret);
 
         m_positionRequest = new PositionVoltage(0).withSlot(0);
@@ -162,59 +166,41 @@ public class Turret extends SubsystemBase{
     }
 
     /**
-     * Grabs the turret motor's rotation, not as the turret's true position.
-     * @return rotations.
+     * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
+     * @return degree of turret.
      */
-    public double getMotorRotations(){
-        return m_turret.getPosition().getValueAsDouble();
+    public double getTurretDegree(){
+        return m_turret.getPosition().getValue().in(Degrees)/7.01; 
     }
 
     /**
-     * Grabs yaw from the limelight's IMU limelight.
-     * @return angle in degrees.
+     * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
+     * @return the motor rotation of turret.
      */
-    public double getLimelightYaw(){
-        return LimelightHelpers.getIMUData("limelight-four").Yaw;
-    }
-
-    /**
-     * Grabs the data for yaw from the stored limelight networktable values.
-     * @return yaw in degrees.
-     */
-    public double getLimelightYawRotations(){
-        return (getLimelightYaw()/360)*11.273;
+    public double getTurretRotation(){
+        return m_turret.getPosition().getValueAsDouble()/7.01; 
     }
 
     /**
      * Grabs the drivetrain's position on the field.
      * @return
      */
-    public double getPoseX(){
-       return m_drivetrain.getState().Pose.getX();
-    }
+    // public double getPoseX(){
+    //    return m_drivetrain.getState().Pose.getX();
+    // }
 
-    /**
-     * Calculates the turret location using the robot's position relative to the goal on the field.
-     * @return the angle in radians.
-     */
-    public double getTurretPose(){
-        Translation2d robotPoseToHub = TurretConstants.hubLocation.minus(m_drivetrain.mt2.pose.getTranslation());
-        //Rotation2d turretAngleToHub = robotPoseToHub.getAngle().minus(m_drivetrain.getState().Pose.getRotation());
-        return robotPoseToHub.getX();
-    }
     /**
      * Allows the operator to control the direction of the turret.
      * Stops the motor once the turret reaches the left or right limits.
-     * @param RPS as a percentage from -1 to 1.
      */
-    public void rotateManual(double RPS){
+    public void rotateManual(){
         if(ControllerConstants.operatorController.b().getAsBoolean()){
              double limit = TurretConstants.leftLimit;
 
-            if(getLimelightYaw() >= limit){
-                 spinTurret(RPS);
+            if(getTurretDegree() <= limit){
+                m_turret.setControl(m_dutyCycleTurret.withOutput(0.05));
 
-            }else if(getLimelightYaw() <= limit){
+            }else if(getTurretDegree() >= limit){
 
                 m_turret.set(0);
 
@@ -222,15 +208,15 @@ public class Turret extends SubsystemBase{
         }else if(ControllerConstants.operatorController.x().getAsBoolean()){
              double limit = TurretConstants.rightLimit;
 
-            if(getLimelightYaw() >= limit){
+            if(getTurretDegree() <= limit){
                 m_turret.set(0);
 
-            }else if(getLimelightYaw() <= limit){
-                 spinTurret(RPS);
+            }else if(getTurretDegree() >= limit){
+                m_turret.setControl(m_dutyCycleTurret.withOutput(-0.05));
 
             }
         }else{
-             m_turret.set(0);
+            m_turret.set(0);
         }
     }
 
@@ -254,7 +240,8 @@ public class Turret extends SubsystemBase{
 
         }
 
-        return distance-15;
+       // return distance-15;
+       return distance;
     }
 
     /**
@@ -370,9 +357,10 @@ public class Turret extends SubsystemBase{
         double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
         double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
         SmartDashboard.putNumber("distance", findDistance());
-        SmartDashboard.putNumber("Turret Degree", getTurretPose());
         //SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
 
         updateValues(turretP, turretD, turretS);
+        SmartDashboard.putNumber("turret degree", getTurretDegree());
+        System.out.println(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four"));
     }
 }

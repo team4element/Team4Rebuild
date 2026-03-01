@@ -4,7 +4,7 @@
  * The drivetrain can use the field perspective (forward point to the opposing alliance) or the robot perspective (forward defined by swerve module from tuner constants).
  */
 
-package frc.robot.subsystems;
+package frc.robot.Subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -47,6 +47,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.LimelightHelpers.LimelightResults;
+import frc.robot.LimelightHelpers.PoseEstimate;
 
 /** Add your docs here. */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
@@ -79,7 +81,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     private Field2d field;
-    public LimelightHelpers.PoseEstimate mt2;
+
+    LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
 
     private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
     private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
@@ -170,7 +173,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         this.getState().ModulePositions,
         new Pose2d());
 
-    PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
+    public PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
 
     /*
      * Links the robot odometry to the field using the limelight's data.
@@ -265,7 +268,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
-        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         field = new Field2d();
@@ -297,7 +299,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
-        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         field = new Field2d();
@@ -343,7 +344,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
-        LimelightHelpers.SetRobotOrientation("limelight-four",0,0,0,0,0,0);
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         field = new Field2d();
@@ -422,6 +422,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         // );
 
        // field.setRobotPose(m_pose);
+       LimelightHelpers.SetRobotOrientation("limelight-four", this.getState().Pose.getRotation().getDegrees(),0,0,0,0,0);
     }
 
     private void startSimThread(){

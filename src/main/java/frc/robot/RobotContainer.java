@@ -29,12 +29,12 @@ import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
-import frc.robot.subsystems.Climb;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Conveyor;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Spinster;
-import frc.robot.subsystems.Turret;
+import frc.robot.Subsystems.Climb;
+import frc.robot.Subsystems.CommandSwerveDrivetrain;
+import frc.robot.Subsystems.Conveyor;
+import frc.robot.Subsystems.Intake;
+import frc.robot.Subsystems.Spinster;
+import frc.robot.Subsystems.Turret;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -58,15 +58,23 @@ public class RobotContainer {
             .withDeadband(.6).withRotationalDeadband(.6)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage).withForwardPerspective(ForwardPerspectiveValue.OperatorPerspective);
 
-  public final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
-  public final Climb m_climb = new Climb();
-  public final Turret m_turret = new Turret();
-  public final Intake m_intake = new Intake();
-  public final Spinster m_spinster = new Spinster();
-  public final Conveyor m_conveyor = new Conveyor();
+  public final CommandSwerveDrivetrain m_drivetrain;
+  public final Turret m_turret;
+  public final Climb m_climb;
+  public final Intake m_intake;
+  public final Spinster m_spinster;
+  public final Conveyor m_conveyor;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    m_drivetrain = TunerConstants.createDrivetrain();
+     // Use the drivetrain in the turret.
+    m_turret = new Turret(m_drivetrain);
+    m_climb = new Climb();
+    m_intake = new Intake();
+    m_spinster = new Spinster();
+    m_conveyor = new Conveyor();
+
     // Configure the trigger bindings
     NamedCommands.registerCommand("Shoot", new FindApriltag(m_turret).withTimeout(TurretConstants.shooterTimeout));
     NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
@@ -98,10 +106,10 @@ public class RobotContainer {
 
     ControllerConstants.operatorController.pov(0).whileTrue(new ManualClimbUp(m_climb, ClimbConstants.climbSpeed));
     ControllerConstants.operatorController.pov(180).whileTrue(new ManualClimbDown(m_climb, ClimbConstants.climbSpeed));
-    ControllerConstants.operatorController.y().whileTrue(new Shoot(m_turret));
+    //ControllerConstants.operatorController.y().whileTrue(new Shoot(m_turret));
     ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
-    ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret, TurretConstants.turretSpeed));
-    ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret, -TurretConstants.turretSpeed));
+    ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret));
+    ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.leftBumper().whileTrue(new ConveyToTurret(m_conveyor, 0.5));
     ControllerConstants.operatorController.rightBumper().whileTrue(new ConveyToTurret(m_conveyor, -0.5));
   }
