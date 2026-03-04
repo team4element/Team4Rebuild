@@ -2,6 +2,7 @@ package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
+import frc.robot.Constants.TurretConstants;
 import frc.robot.Subsystems.Turret;
 
 public class FindApriltag extends Command {
@@ -10,7 +11,8 @@ public class FindApriltag extends Command {
   public double TX;
   public boolean hasTarget;
   public double currentPose;
-  private final double kMinCommand = 0.0003;
+  public double FPS;
+ // private final double kMinCommand = 0.0003;
 
   public FindApriltag(Turret turret) {
     m_turret = turret;
@@ -30,18 +32,31 @@ public class FindApriltag extends Command {
     hasTarget = LimelightHelpers.getTV("limelight-four");
     
     if(hasTarget){
-      final double gearRatio = 7.01;
-      double rotationsError = (TX/360)*gearRatio;
+      // This converts the constant into motor rotations.
+      double rotationsError = (TX/360)*TurretConstants.gearRatio;
       double currentRotation = m_turret.getTurretRotation();
       
       double targetRotation = currentRotation + rotationsError;
-
-      System.out.println(targetRotation + " | " + rotationsError + " | " + TX + " | " + currentRotation);
       
       if(Math.abs(rotationsError) > .05){
         m_turret.setYaw(targetRotation);
       }
 
+    } else{
+      // This is used to give the turret enough power to 'scan' the area within it's physical limits until it sees an apriltag.
+      double searchSpeed;
+
+      if(m_turret.getTurretDegree() > 0 || m_turret.getTurretDegree() > TurretConstants.leftLimit){
+        searchSpeed = -0.05;
+      }
+      else if(m_turret.getTurretDegree() < 0 || m_turret.getTurretDegree() < TurretConstants.rightLimit){
+        searchSpeed = 0.05;
+
+      } else{
+        searchSpeed = 0;
+      }
+
+      m_turret.setTurretPercentage(searchSpeed);
     }
   }
 

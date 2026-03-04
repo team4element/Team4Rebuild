@@ -8,7 +8,6 @@ package frc.robot.Subsystems;
 import static edu.wpi.first.units.Units.Degrees;
 
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -18,14 +17,11 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
-import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 
@@ -34,10 +30,11 @@ public class Turret extends SubsystemBase{
     private TalonFX m_turret, m_shooter;
 
     // Used to control speed of motors
-    private DutyCycleOut m_dutyCycleTurret, m_dutyCycleShooter;
-    private CurrentLimitsConfigs m_limitConfigTurret = new CurrentLimitsConfigs();
-    private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
+    private DutyCycleOut m_dutyCycleTurret;
+    //private CurrentLimitsConfigs m_limitConfigTurret = new CurrentLimitsConfigs();
+    //private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
     private PositionVoltage m_positionRequest;
+    @SuppressWarnings("unused")
     private SimpleMotorFeedforward m_feedForward;
     private VelocityVoltage m_voltage;
 
@@ -61,6 +58,9 @@ public class Turret extends SubsystemBase{
     // Determines weather or not limelight sees apriltag
     private boolean hasTarget; 
 
+    // This should be true only when you want to tune constants through the shuffleboard.
+    private boolean debug = false;
+
     public Turret(CommandSwerveDrivetrain drivetrain){
         m_turret = new TalonFX(TurretConstants.turretID);
         m_shooter = new TalonFX(TurretConstants.shooterID);
@@ -69,7 +69,6 @@ public class Turret extends SubsystemBase{
 
         // The turret and shooter motor will start with half speed
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
-       // m_dutyCycleShooter = new DutyCycleOut(TurretConstants.dutyCycleShooter);
         m_feedForward = new SimpleMotorFeedforward(TurretConstants.KSTurret, TurretConstants.KVTurret);
 
         m_positionRequest = new PositionVoltage(0).withSlot(0);
@@ -77,7 +76,6 @@ public class Turret extends SubsystemBase{
 
         turretConfig = new TalonFXConfiguration();
         shooterConfig = new TalonFXConfiguration();
-        // generalConfigs = new ClosedLoopGeneralConfigs().withContinuousWrap(true);
 
         // Assigns PID values to the turret for precise speed 
         turretConfig.Slot0.kP = TurretConstants.KPTurret; // Controls position error
@@ -118,13 +116,13 @@ public class Turret extends SubsystemBase{
         // configuratorShooter.apply(m_limitConfigShooter);
 
         // Puts a filter on what tags the limelight will recognize. 
-        LimelightHelpers.SetFiducialIDFiltersOverride("limelight-four", VisionConstants.validIDS);
+        //LimelightHelpers.SetFiducialIDFiltersOverride("limelight-four", VisionConstants.validIDS);
 
         // Puts the constants onto the shuffleboard which will update periodically.
         SmartDashboard.putNumber("Turret kP", TurretConstants.KPTurret);
         SmartDashboard.putNumber("Turret kD", TurretConstants.KDTurret);
         SmartDashboard.putNumber("Turret kS", TurretConstants.KSTurret);
-        LimelightHelpers.SetIMUMode("limelight-four",1);
+        LimelightHelpers.SetIMUMode("limelight-four",4);
     }
 
     /**
@@ -133,6 +131,14 @@ public class Turret extends SubsystemBase{
      */
     public void spinTurret(double RPS){
         m_turret.setControl(m_voltage.withVelocity(RPS).withSlot(0));
+    }
+
+    /**
+     * Assigns power to the turret motor based on a percentage.
+     * @param percentage from -1 to 1.
+     */
+    public void setTurretPercentage(double percentage){
+         m_turret.setControl(m_dutyCycleTurret.withOutput(percentage));
     }
 
     /*
@@ -170,7 +176,7 @@ public class Turret extends SubsystemBase{
      * @return degree of turret.
      */
     public double getTurretDegree(){
-        return m_turret.getPosition().getValue().in(Degrees)/7.01; 
+        return m_turret.getPosition().getValue().in(Degrees)/TurretConstants.gearRatio; 
     }
 
     /**
@@ -178,16 +184,8 @@ public class Turret extends SubsystemBase{
      * @return the motor rotation of turret.
      */
     public double getTurretRotation(){
-        return m_turret.getPosition().getValueAsDouble()/7.01; 
+        return m_turret.getPosition().getValueAsDouble()/TurretConstants.gearRatio; 
     }
-
-    /**
-     * Grabs the drivetrain's position on the field.
-     * @return
-     */
-    // public double getPoseX(){
-    //    return m_drivetrain.getState().Pose.getX();
-    // }
 
     /**
      * Allows the operator to control the direction of the turret.
@@ -198,7 +196,7 @@ public class Turret extends SubsystemBase{
              double limit = TurretConstants.leftLimit;
 
             if(getTurretDegree() <= limit){
-                m_turret.setControl(m_dutyCycleTurret.withOutput(0.05));
+                setTurretPercentage(0.05);
 
             }else if(getTurretDegree() >= limit){
 
@@ -212,7 +210,7 @@ public class Turret extends SubsystemBase{
                 m_turret.set(0);
 
             }else if(getTurretDegree() >= limit){
-                m_turret.setControl(m_dutyCycleTurret.withOutput(-0.05));
+                setTurretPercentage(-0.05);
 
             }
         }else{
@@ -240,7 +238,6 @@ public class Turret extends SubsystemBase{
 
         }
 
-       // return distance-15;
        return distance;
     }
 
@@ -257,6 +254,7 @@ public class Turret extends SubsystemBase{
            RPS = 0;
 
         }else{
+            // This is the formula found by regression in MatLab using RPS for the motor and inches it reaches.
             RPS = (0.000070*Math.pow(distance,3))-(0.015014*Math.pow(distance,2))+(1.340095*distance)+28.994609;
 
         }
@@ -353,14 +351,14 @@ public class Turret extends SubsystemBase{
     public void periodic(){
         hasTarget = LimelightHelpers.getTV("limelight-four");
 
-        double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
-        double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
-        double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
-        SmartDashboard.putNumber("distance", findDistance());
-        //SmartDashboard.putNumber("Limelight yaw", getLimelightYaw());
+        if(debug){
+            double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
+            double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
+            double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
+            SmartDashboard.putNumber("turret degree", getTurretDegree());
 
-        updateValues(turretP, turretD, turretS);
-        SmartDashboard.putNumber("turret degree", getTurretDegree());
-        System.out.println(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four"));
+            updateValues(turretP, turretD, turretS);
+        }
+        SmartDashboard.putNumber("distance", findDistance());
     }
 }

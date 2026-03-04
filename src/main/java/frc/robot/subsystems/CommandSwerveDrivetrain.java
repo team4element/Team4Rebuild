@@ -31,7 +31,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
-import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
@@ -45,9 +44,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.LimelightHelpers;
+import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
-import frc.robot.LimelightHelpers.LimelightResults;
 import frc.robot.LimelightHelpers.PoseEstimate;
 
 /** Add your docs here. */
@@ -59,8 +58,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     };
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
+    private int isBooleanTrue;
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
+    private boolean robotFieldCentric;
     private boolean doRejectUpdate;
     public SPEED m_speed = SPEED.FAST;
 
@@ -88,14 +89,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
-            .withDeadband(.6).withRotationalDeadband(.6)
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+        .withDeadband(.6).withRotationalDeadband(.6)
+         .withDriveRequestType(DriveRequestType.OpenLoopVoltage
+    );
 
     // Defines the field forward direction
     public final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle = new SwerveRequest.FieldCentricFacingAngle()
         .withDeadband(.2)
         .withRotationalDeadband(.2)
-        .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+        .withDriveRequestType(DriveRequestType.OpenLoopVoltage
+    );
 
     /*
      * SysId routine for characterizing translation. This is used to find PID gains
@@ -171,13 +174,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         kKinematics,
         TunerConstants.m_pigeon.getRotation2d(),
         this.getState().ModulePositions,
-        new Pose2d());
+        new Pose2d()
+    );
 
     public PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
 
-    /*
-     * Links the robot odometry to the field using the limelight's data.
+    /**
+     * @return the pigeon's rotation.
      */
+    public Rotation2d getGyroAngle(){
+        return TunerConstants.m_pigeon.getRotation2d();
+    }
+
+    /*
+     * Links the robot odometry to the field using the limelight's data (MegaTag2).
+     */
+    @SuppressWarnings("unchecked")
     public void setMegaTag2(){
         LimelightHelpers.SetRobotOrientation(
             "limelight-four",
@@ -191,7 +203,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
 
-        if(Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 360){
+        if(Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 180){
             doRejectUpdate = true;
         }
         if(mt2.tagCount == 0){
@@ -204,6 +216,23 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 mt2.timestampSeconds
             );
         }
+    }
+
+    /**
+     * Inverses the boolean, which starts as false, when the left or right bumpers are triggered (switch from robot centric to field centric).
+     * @return weather or not robot is driving robot centric or field centric.
+     */
+    public boolean isFieldCentric(){
+        if(ControllerConstants.driverController.leftBumper().getAsBoolean() || ControllerConstants.driverController.rightBumper().getAsBoolean()){
+            isBooleanTrue*=(-1);
+        }
+
+        if(isBooleanTrue < 0){
+            robotFieldCentric = false;
+        }else if(isBooleanTrue > 0){
+            robotFieldCentric = true;
+        }
+        return robotFieldCentric;
     }
 
     /*
@@ -220,12 +249,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     return this.getState().Speeds;
                 },// ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 // This is is where I think the feedforward should go into!
-                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)
-                    .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
-                    .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)),
+                    //.withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
+                    //.withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-                        new PIDConstants(6, 0.0, 0), // Translation PID constants (most likely will need tuning)
-                        new PIDConstants(5, 0.0, 0) // Rotation PID constants (most likely would need tuning)
+                        new PIDConstants(5.4, 0.0, 0), // Translation PID constants (most likely will need tuning)
+                        new PIDConstants(2.1, 0.2, 0) // Rotation PID constants (most likely would need tuning)
                 ),
                 m_config, // The robot configuration
                 () -> {
@@ -270,8 +299,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
+        robotFieldCentric = false;
+        isBooleanTrue = -1;
+        
         field = new Field2d();
         SmartDashboard.putData("Field", field);
+
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
     }
 
     /**
@@ -301,8 +335,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
+        robotFieldCentric = false;
+        isBooleanTrue = -1;
+        
         field = new Field2d();
         SmartDashboard.putData("Field", field);
+
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
     }
 
     /**
@@ -346,8 +385,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         LimelightHelpers.SetIMUMode("limelight-four", 4);
 
+        robotFieldCentric = false;
+        isBooleanTrue = -1;
+
         field = new Field2d();
         SmartDashboard.putData("Field", field);
+
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
     }
 
     /**
@@ -382,6 +426,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return m_sysIdRoutineToApply.dynamic(direction);
     }
 
+    // Zeros the drivetrain's 'forward' direction.
     public Command c_seedFieldRelative(){
         return runOnce(() -> seedFieldCentric());
     }
@@ -409,20 +454,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             });
         }
 
-        // Rotation2d pigeonAngle = TunerConstants.m_pigeon.getRotation2d();
+        if(LimelightHelpers.getTV("limelight-four")){
+            if(DriverStation.getAlliance().get() == Alliance.Blue){
+                field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+            }else if(DriverStation.getAlliance().get() == Alliance.Red){
+                field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2("limelight-four").pose);
+            }
+        }else{
+            field.setRobotPose(this.getState().Pose);
+        }
 
-        // Pose2d m_pose = m_odometry.update(
-        //     pigeonAngle,
-        //     new SwerveModulePosition[] {
-        //         TunerConstants.createDrivetrain().getModule(0).getPosition(true),
-        //         TunerConstants.createDrivetrain().getModule(1).getPosition(true),
-        //         TunerConstants.createDrivetrain().getModule(2).getPosition(true),
-        //         TunerConstants.createDrivetrain().getModule(3).getPosition(true)
-        //     }
-        // );
-
-       // field.setRobotPose(m_pose);
-       LimelightHelpers.SetRobotOrientation("limelight-four", this.getState().Pose.getRotation().getDegrees(),0,0,0,0,0);
+        LimelightHelpers.SetRobotOrientation("limelight-four", this.getState().Pose.getRotation().getDegrees(),this.getPigeon2().getAngularVelocityZWorld().getValueAsDouble(),0,0,0,0);
+        SmartDashboard.putNumber("Current Drive Speed", speedToDouble(m_speed));
+        SmartDashboard.putBoolean("Drive Mode", isFieldCentric());
+        SmartDashboard.putNumber("boolean", isBooleanTrue);
     }
 
     private void startSimThread(){
