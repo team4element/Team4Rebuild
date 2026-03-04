@@ -1,6 +1,7 @@
 /*
  * This subsystem controls the belt on the climb to pull onto levels 1, 2, and 3.
  * The climb can be used manually or by the internal encoder position.
+ * This class is currently not being used.
  */
 
 package frc.robot.Subsystems;
@@ -57,13 +58,13 @@ public class Climb extends SubsystemBase{
     }
 
     // Constantly gets the motor's rotation while testing.
-   // public void periodic(){
-    //    if(debug == true){
-    //    double currentRotation = m_motor.getPosition().getValueAsDouble();
-   //     //System.out.println("CLIMB POSITION: " + currentRotation); 
+   public void periodic(){
+       if(debug == true){
+       double currentRotation = m_motor.getPosition().getValueAsDouble();
+       System.out.println("CLIMB POSITION: " + currentRotation); 
 
-   //     }
-   // }
+       }
+    }
 
     /*
      * Initiates motor starting position.

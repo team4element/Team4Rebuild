@@ -19,17 +19,14 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FindApriltag;
 import frc.robot.Commands.IntakeAndRetract;
-import frc.robot.Commands.ManualClimbDown;
-import frc.robot.Commands.ManualClimbUp;
-import frc.robot.Commands.Shoot;
+//import frc.robot.Commands.Shoot;
+import frc.robot.Commands.TrackWhileMove;
 import frc.robot.Commands.TurretManual;
-import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
-import frc.robot.Subsystems.Climb;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Intake;
@@ -60,7 +57,7 @@ public class RobotContainer {
 
   public final CommandSwerveDrivetrain m_drivetrain;
   public final Turret m_turret;
-  public final Climb m_climb;
+  //public final Climb m_climb;
   public final Intake m_intake;
   public final Spinster m_spinster;
   public final Conveyor m_conveyor;
@@ -68,16 +65,16 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     m_drivetrain = TunerConstants.createDrivetrain();
-     // Use the drivetrain in the turret.
+    // Use the drivetrain in the turret.
     m_turret = new Turret(m_drivetrain);
-    m_climb = new Climb();
+    //m_climb = new Climb();
     m_intake = new Intake();
     m_spinster = new Spinster();
     m_conveyor = new Conveyor();
 
     // Configure the trigger bindings
     NamedCommands.registerCommand("Shoot", new FindApriltag(m_turret).withTimeout(TurretConstants.shooterTimeout));
-    NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
+    //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
     NamedCommands.registerCommand("Intake", new IntakeAndRetract(m_intake, IntakeConstants.linearSlideSpeed, IntakeConstants.rollerSpeed).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Transfer",new ConveyToTurret(m_conveyor, 0.5).withTimeout(ConveyorConstants.conveyorTimeout));
 
@@ -89,6 +86,7 @@ public class RobotContainer {
 
   private void configureBindings() {
 
+    // These are the subsystem default commands.
     m_drivetrain.setDefaultCommand(
      //  Drivetrain will execute this command periodically
       m_drivetrain.applyRequest(() ->
@@ -98,15 +96,22 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
              .withRotationalRate(ControllerConstants.zRotationModifier.apply(
                 ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-        )
-      );    
-   // m_turret.setDefaultCommand(new FindApriltag(m_turret));
+      )
+    );
 
-    //ControllerConstants.driverController.leftBumper().whileTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
+    // These are the driver controls: 
+    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
+    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
+      fcDrive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
+              .withVelocityY(ControllerConstants.xTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
+              .withRotationalRate(ControllerConstants.zRotationModifier.apply(
+                ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
+    ));
 
-    ControllerConstants.operatorController.pov(0).whileTrue(new ManualClimbUp(m_climb, ClimbConstants.climbSpeed));
-    ControllerConstants.operatorController.pov(180).whileTrue(new ManualClimbDown(m_climb, ClimbConstants.climbSpeed));
-    //ControllerConstants.operatorController.y().whileTrue(new Shoot(m_turret));
+    // These are the operator controls:
+    ControllerConstants.operatorController.y().whileTrue(new TrackWhileMove(m_turret, m_drivetrain));
     ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
     ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret));
@@ -118,7 +123,7 @@ public class RobotContainer {
    * This runs in initialize on auton to set the climb and turret's starting position.
    */
   public void onEnable(){
-    m_climb.resetMotor();
+   // m_climb.resetMotor();
     m_turret.resetTurret();
   }
 
