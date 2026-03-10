@@ -4,13 +4,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Intake;
 
 public class RetractIntake extends Command {
-  /** Creates a new RetractIntake. */
-   public Intake m_intake;
-  public double v_speedPercentage;
+  /** Creates a new Intake. */
+  public Intake m_intake;
+  public double v_speedPercentagePivot;
 
-  public RetractIntake(Intake intake, double speedPercentage) {
+  public RetractIntake(Intake intake, double speedPercentagePivot) {
     m_intake = intake;
-    v_speedPercentage = speedPercentage;
+    v_speedPercentagePivot = speedPercentagePivot;
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(intake);
@@ -18,13 +18,13 @@ public class RetractIntake extends Command {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {
-  }
+  public void initialize() {}
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_intake.retractLinearSlideManual(v_speedPercentage);
+    m_intake.extendIntake(m_intake.m_leftPivot, v_speedPercentagePivot);
+    m_intake.extendIntake(m_intake.m_rightPivot, v_speedPercentagePivot);
   }
 
   // Called once the command ends or is interrupted.

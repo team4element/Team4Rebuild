@@ -74,7 +74,7 @@ public class TrackWhileMove extends Command {
     
     if(hasTarget){
       // Places higher pid values to the turret.
-      m_turret.updateValues(3.5, 0.22, 0.8);
+      m_turret.updateValues(3.5, 0.22, 0.8, TurretConstants.KPShooter, TurretConstants.KDShooter, TurretConstants.KVShooter, TurretConstants.shooterSpeed);
 
       double goalAngle = Math.atan2(targetPose.getY() - robotCurrentPose.getY(), targetPose.getX() - robotCurrentPose.getX());
 

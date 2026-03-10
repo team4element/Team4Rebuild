@@ -61,7 +61,7 @@ public class Robot extends TimedRobot {
     LimelightHelpers.SetIMUMode("limelight-four", 1);
 
     if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
+      CommandScheduler.getInstance().schedule();
     }
   }
 

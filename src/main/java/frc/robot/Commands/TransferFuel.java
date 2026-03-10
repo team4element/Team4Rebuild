@@ -10,6 +10,6 @@ public class TransferFuel extends ParallelCommandGroup {
   public TransferFuel(Spinster spinster, Conveyor conveyor, double speedPercentage) {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
-    addCommands(new GumballRotation(spinster).withTimeout(2).alongWith(new ConveyToTurret(conveyor, speedPercentage)).withTimeout(2));
+    addCommands(new GumballRotation(spinster, 0.1).withTimeout(2).alongWith(new ConveyToTurret(conveyor, speedPercentage)).withTimeout(2));
   }
 }

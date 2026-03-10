@@ -10,10 +10,12 @@ import static edu.wpi.first.units.Units.Degrees;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -27,7 +29,7 @@ import frc.robot.Constants.VisionConstants;
 
 public class Turret extends SubsystemBase{
     // Declares motors and sensors
-    private TalonFX m_turret, m_shooter;
+    private TalonFX m_turret, m_shooterLeft, m_shooterRight;
 
     // Used to control speed of motors
     private DutyCycleOut m_dutyCycleTurret;
@@ -48,10 +50,13 @@ public class Turret extends SubsystemBase{
     CommandSwerveDrivetrain m_drivetrain;
 
     // Variables used to update values
-    double lastRPM;
+    double lastRPS;
     double lastP;
     double lastD;
     double lastS;
+    double lastPS;
+    double lastDS;
+    double lastVS;
 
     // Declares x and y offsets from limelight
     private double TX, TY;
@@ -63,7 +68,8 @@ public class Turret extends SubsystemBase{
 
     public Turret(CommandSwerveDrivetrain drivetrain){
         m_turret = new TalonFX(TurretConstants.turretID);
-        m_shooter = new TalonFX(TurretConstants.shooterID);
+        m_shooterLeft = new TalonFX(TurretConstants.shooterLeftID);
+        m_shooterRight = new TalonFX(TurretConstants.shooterRightID);
 
         m_drivetrain = drivetrain;
 
@@ -89,15 +95,20 @@ public class Turret extends SubsystemBase{
         shooterConfig.Slot0.kD = TurretConstants.KDShooter; // Controls derivative error
         shooterConfig.Slot0.kV = TurretConstants.KVShooter;
 
-        lastRPM = TurretConstants.shooterSpeed;
+        lastRPS = TurretConstants.shooterSpeed;
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
         lastS = TurretConstants.KSTurret;
+        lastPS = TurretConstants.KPShooter;
+        lastDS = TurretConstants.KDShooter;
+        lastVS = TurretConstants.KVShooter;
 
         m_turret.getConfigurator().apply(turretConfig);
 
         shooterConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
-        m_shooter.getConfigurator().apply(shooterConfig);
+        m_shooterLeft.getConfigurator().apply(shooterConfig);
+
+        m_shooterRight.setControl(new Follower(TurretConstants.shooterLeftID, MotorAlignmentValue.Opposed));
 
         // Motor current limits to test for later.
 
@@ -122,7 +133,18 @@ public class Turret extends SubsystemBase{
         SmartDashboard.putNumber("Turret kP", TurretConstants.KPTurret);
         SmartDashboard.putNumber("Turret kD", TurretConstants.KDTurret);
         SmartDashboard.putNumber("Turret kS", TurretConstants.KSTurret);
+        SmartDashboard.putNumber("Shooter kP", TurretConstants.KPShooter);
+        SmartDashboard.putNumber("Shooter kD", TurretConstants.KDShooter);
+        SmartDashboard.putNumber("Shooter kV", TurretConstants.KVShooter);
+        SmartDashboard.putNumber("Shooter RPS", TurretConstants.shooterSpeed);
         LimelightHelpers.SetIMUMode("limelight-four",4);
+    }
+
+    /*
+     * Sets the turret's starting position.
+     */
+    public void resetTurret(){
+        m_turret.setPosition(0);
     }
 
     /**
@@ -149,18 +171,11 @@ public class Turret extends SubsystemBase{
     }
 
     /*
-     * Sets the turret's starting position.
-     */
-    public void resetTurret(){
-        m_turret.setPosition(0);
-    }
-
-    /*
      * Stops both the turret and shooter movement.  
      */
     public void stopMotors(){
         m_turret.setControl(m_dutyCycleTurret.withOutput(0));
-        m_shooter.setControl(m_dutyCycleTurret.withOutput(0));
+        m_shooterLeft.setControl(m_dutyCycleTurret.withOutput(0));
         m_turret.setNeutralMode(NeutralModeValue.Brake);
     }
 
@@ -196,7 +211,7 @@ public class Turret extends SubsystemBase{
              double limit = TurretConstants.leftLimit;
 
             if(getTurretDegree() <= limit){
-                setTurretPercentage(0.05);
+                setTurretPercentage(0.1);
 
             }else if(getTurretDegree() >= limit){
 
@@ -210,7 +225,7 @@ public class Turret extends SubsystemBase{
                 m_turret.set(0);
 
             }else if(getTurretDegree() >= limit){
-                setTurretPercentage(-0.05);
+                setTurretPercentage(-0.1);
 
             }
         }else{
@@ -255,7 +270,7 @@ public class Turret extends SubsystemBase{
 
         }else{
             // This is the formula found by regression in MatLab using RPS for the motor and inches it reaches.
-            RPS = (0.000070*Math.pow(distance,3))-(0.015014*Math.pow(distance,2))+(1.340095*distance)+28.994609;
+            RPS = (0.000011*Math.pow(distance,3))-(0.003632*Math.pow(distance,2))+(0.59999*distance)+32.574475;
 
         }
 
@@ -264,10 +279,10 @@ public class Turret extends SubsystemBase{
     
     /**
      * Assigns a speed to run the shooter motor using PID.
-     * @param speedPercentage from -1 to 1.
+     * @param RPS from -1 to 1.
      */
     public void startShooter(){
-        m_shooter.setControl(m_voltage.withVelocity(shootingDistance()).withSlot(0));
+        m_shooterLeft.setControl(m_voltage.withVelocity(TurretConstants.shooterSpeed).withSlot(0));
     }
 
     /**
@@ -294,71 +309,51 @@ public class Turret extends SubsystemBase{
     }
 
     /**
-     * Gets the velocity needed to center the turret to the apriltag by the x axis of the turret
-     * @return the speed
-     */
-    //TODO: This should be tested later with turnUntilApriltag function
-    public double limelight_aim_proportional(){    
-        // kP (constant of proportionality)
-        // This is a hand-tuned number that determines the aggressiveness of our proportional control loop.
-        // If it is too high, the robot will oscillate.
-        // If it is too low, the robot will never reach its target.
-        // If the turret never turns in the correct direction, kP should be inverted.
-        double kP = .035;
-
-        // tx ranges from (-hfov/2) to (hfov/2) in degrees. If your target is on the rightmost edge of 
-        // your limelight 3 feed, tx should return roughly 31 degrees.
-        double targetingAngularVelocity = TX * kP;
-
-        // convert to radians per second for our drive method
-        targetingAngularVelocity *= kP;
-
-        //invert since tx is positive when the target is to the right of the crosshair
-        targetingAngularVelocity *= -1.0;
-
-        return targetingAngularVelocity;
-    }
-
-    /**
-     * Spins the turret (in respect to the limit) until the apriltag is in range of the limelight's vision.
-     * Finds the angle needed to center the turret to the apriltag and turns the turret by the desired angle.
-     * @param speedPercentage as a percetage from -1 to 1.
-     */
-    public void turnUntilApriltag(){
-        if(hasTarget) {
-        }
-    }
-
-    /**
      * Updates the PID values of the turret motor.
      * @param P
      * @param D
      * @param S
      */
-    public void updateValues(double P, double D, double S){
-        if(P != lastP || D != lastD || S != lastS){
+    public void updateValues(double P, double D, double S, double PS, double DS, double VS, double RPS){
+        if(P != lastP || D != lastD || S != lastS || PS != lastPS || DS != lastDS || VS != lastVS || RPS != lastRPS){
             turretConfig.Slot0.kP = P;
             turretConfig.Slot0.kD = D;
             turretConfig.Slot0.kS = S;
+            shooterConfig.Slot0.kP = PS;
+            shooterConfig.Slot0.kD = DS;
+            shooterConfig.Slot0.kV = VS;
             m_turret.getConfigurator().apply(turretConfig);
+            m_shooterLeft.getConfigurator().apply(shooterConfig);
+
+            TurretConstants.shooterSpeed = RPS;
 
             lastP = P;
             lastD = D;
             lastS = S;
+            lastPS = PS;
+            lastDS = DS;
+            lastVS = VS;
+            lastRPS = RPS;
         }
     }
 
     public void periodic(){
-        hasTarget = LimelightHelpers.getTV("limelight-four");
+        //hasTarget = LimelightHelpers.getTV("limelight-four");
 
         if(debug){
             double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
             double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
             double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
+            double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
+            double shooterD = SmartDashboard.getNumber("Shooter kD", TurretConstants.KDShooter);
+            double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
+            double RPS = SmartDashboard.getNumber("Shooter RPS", TurretConstants.shooterSpeed);
             SmartDashboard.putNumber("turret degree", getTurretDegree());
+            SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
 
-            updateValues(turretP, turretD, turretS);
+            updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV, RPS);
         }
-        SmartDashboard.putNumber("distance", findDistance());
+       SmartDashboard.putNumber("distance", findDistance());
+       SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
     }
 }
