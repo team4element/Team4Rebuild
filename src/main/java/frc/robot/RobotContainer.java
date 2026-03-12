@@ -16,12 +16,15 @@ import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FindApriltag;
-import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeFuel;
+import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
 import frc.robot.Commands.Shoot;
+import frc.robot.Commands.TapPivot;
+import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
@@ -79,6 +82,7 @@ public class RobotContainer {
     NamedCommands.registerCommand("Extend + Intake", new IntakeFuel(m_intake, IntakeConstants.rollerSpeed).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Retract", new RetractIntake(m_intake, IntakeConstants.linearPivotSpeed).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Transfer",new ConveyToTurret(m_conveyor, 0.5).withTimeout(ConveyorConstants.conveyorTimeout));
+    NamedCommands.registerCommand("Aim", new FindApriltag(m_turret).withTimeout(TurretConstants.aimTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Chooser", sendableAuton);
@@ -111,23 +115,25 @@ public class RobotContainer {
               .withRotationalRate(ControllerConstants.zRotationModifier.apply(
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
     ));
-
-    ControllerConstants.driverController.leftBumper().whileTrue(new IntakeFuel(m_intake, 0.5));
-    ControllerConstants.driverController.rightBumper().whileTrue(new IntakeFuel(m_intake, -0.5));
-    ControllerConstants.driverController.y().whileTrue(new Shoot(m_turret));
-
+    
     // These are the operator controls:
-    //ControllerConstants.operatorController.y().whileTrue(new TrackWhileMove(m_turret, m_drivetrain));
-    ControllerConstants.operatorController.y().whileTrue(new GumballRotation(m_spinster, -1));
-    ControllerConstants.operatorController.a().whileTrue(new ConveyToTurret(m_conveyor, 1));
-   // ControllerConstants.operatorController.x().whileTrue(new Shoot(m_turret));
-    // ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
-    ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret));
-    ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret));
-   // ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake).withTimeout(0.8));
+    ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
+    ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
 
-    ControllerConstants.operatorController.leftBumper().whileTrue(new RetractIntake(m_intake, 0.1));
-    ControllerConstants.operatorController.rightBumper().whileTrue(new RetractIntake(m_intake, 0.1));
+    //ControllerConstants.operatorController.start().onTrue(new PositionPivot(m_intake).withTimeout(0.8));
+    ControllerConstants.operatorController.back().onTrue(new TapPivot(m_intake, 0.1));
+
+    ControllerConstants.operatorController.y().whileTrue(new Shoot(m_turret));
+    ControllerConstants.operatorController.x().whileTrue(new TransferFuel(m_spinster, m_conveyor, 1, -1));
+    //ControllerConstants.operatorController.y().whileTrue(new TrackWhileMove(m_turret, m_drivetrain));
+    ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
+    // ControllerConstants.operatorController.b().whileTrue(new TurretToPosition(m_turret, 45));
+    ControllerConstants.operatorController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
+
+    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, 0.5));
+    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, -0.5));
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, 0.1));
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, 0.1));
   }
 
   /*
@@ -137,6 +143,10 @@ public class RobotContainer {
     m_intake.resetPivot(m_intake.m_leftPivot);
     m_intake.resetPivot(m_intake.m_rightPivot);
     m_turret.resetTurret();
+  }
+
+  public void onDisable(){
+    m_turret.returnToStartPosition();
   }
 
   /*

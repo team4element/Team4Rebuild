@@ -48,6 +48,7 @@ public class Intake extends SubsystemBase{
     double lastPRight;
 
     boolean debug = false;
+    boolean down = false;
 
     // Initiates objects for linear slide and roller motors.  
     public Intake(){
@@ -123,30 +124,29 @@ public class Intake extends SubsystemBase{
      * Runs the pivot motor to extend the intake out of the robot.
      * @param speedPercentage -1 to 1.
     */
-    public void extendIntake(TalonFX motor, double speedPercentage){
-        if(ControllerConstants.operatorController.leftBumper().getAsBoolean()){
+    public void  extendIntake(TalonFX motor, double speedPercentage){
+        if(ControllerConstants.operatorController.leftTrigger().getAsBoolean()){
              double limit = IntakeConstants.lowerPivotLimit;
 
-            if(getPivotPosition(motor) <= limit){
+            if(getPivotPosition(motor) < limit){
                 setPivotPercentage(motor, speedPercentage);
 
             }else if(getPivotPosition(motor) >= limit){
-                motor.set(0);
-               // runRollers();
+                setPivotPercentage(motor, 0);
 
             }
-        }else if(ControllerConstants.operatorController.rightBumper().getAsBoolean()){
+        }else if(ControllerConstants.operatorController.rightTrigger().getAsBoolean()){
              double limit = IntakeConstants.upperPivotLimit;
 
             if(getPivotPosition(motor) <= limit){
-                motor.set(0);
+                setPivotPercentage(motor, 0);
 
-            }else if(getPivotPosition(motor) >= limit){
+            }else if(getPivotPosition(motor) > limit){
                 setPivotPercentage(motor, -speedPercentage);
 
             }
         }else{
-            motor.set(0);
+            setPivotPercentage(motor, 0);
         }
     }
 
@@ -160,7 +160,9 @@ public class Intake extends SubsystemBase{
 
     public void automaticPivot(TalonFX motor){
         if(getPivotPosition(motor) <= IntakeConstants.pivotMidPoint){
-            motor.setControl(m_positionRequest.withPosition(19.2));
+            motor.setControl(m_positionRequest.withPosition(18));
+        }else if(ControllerConstants.operatorController.povDown().getAsBoolean()){
+            motor.setControl(m_positionRequest.withPosition(16));
         }else if(getPivotPosition(motor) > IntakeConstants.pivotMidPoint){
             motor.setControl(m_positionRequest.withPosition(0));
         }
@@ -213,5 +215,13 @@ public class Intake extends SubsystemBase{
     
             updateValues(pivotL, pivotR);
         }
+
+        if(m_leftPivot.getPosition().getValueAsDouble() > 17.5){
+            down = true;
+        }else{
+            down = false;
+        }
+
+        SmartDashboard.putBoolean("Pivot lowered", down);
     }
 }

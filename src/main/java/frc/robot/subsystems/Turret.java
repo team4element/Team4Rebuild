@@ -50,7 +50,6 @@ public class Turret extends SubsystemBase{
     CommandSwerveDrivetrain m_drivetrain;
 
     // Variables used to update values
-    double lastRPS;
     double lastP;
     double lastD;
     double lastS;
@@ -64,7 +63,7 @@ public class Turret extends SubsystemBase{
     private boolean hasTarget; 
 
     // This should be true only when you want to tune constants through the shuffleboard.
-    private boolean debug = false;
+    private boolean debug = true;
 
     public Turret(CommandSwerveDrivetrain drivetrain){
         m_turret = new TalonFX(TurretConstants.turretID);
@@ -95,7 +94,6 @@ public class Turret extends SubsystemBase{
         shooterConfig.Slot0.kD = TurretConstants.KDShooter; // Controls derivative error
         shooterConfig.Slot0.kV = TurretConstants.KVShooter;
 
-        lastRPS = TurretConstants.shooterSpeed;
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
         lastS = TurretConstants.KSTurret;
@@ -136,7 +134,6 @@ public class Turret extends SubsystemBase{
         SmartDashboard.putNumber("Shooter kP", TurretConstants.KPShooter);
         SmartDashboard.putNumber("Shooter kD", TurretConstants.KDShooter);
         SmartDashboard.putNumber("Shooter kV", TurretConstants.KVShooter);
-        SmartDashboard.putNumber("Shooter RPS", TurretConstants.shooterSpeed);
         LimelightHelpers.SetIMUMode("limelight-four",4);
     }
 
@@ -160,14 +157,18 @@ public class Turret extends SubsystemBase{
      * @param percentage from -1 to 1.
      */
     public void setTurretPercentage(double percentage){
-         m_turret.setControl(m_dutyCycleTurret.withOutput(percentage));
+        m_turret.setControl(m_dutyCycleTurret.withOutput(percentage));
+    }
+
+    public double getRPS(){
+        return m_shooterLeft.getPosition().getValueAsDouble();
     }
 
     /*
      * Powers the turret motor through a position in rotations.
      */
     public void setYaw(double angle) {
-        m_turret.setControl(m_positionRequest.withPosition(angle));
+        m_turret.setControl(m_positionRequest.withPosition(1));
     }
 
     /*
@@ -207,7 +208,7 @@ public class Turret extends SubsystemBase{
      * Stops the motor once the turret reaches the left or right limits.
      */
     public void rotateManual(){
-        if(ControllerConstants.operatorController.b().getAsBoolean()){
+        if(ControllerConstants.operatorController.povRight().getAsBoolean()){
              double limit = TurretConstants.leftLimit;
 
             if(getTurretDegree() <= limit){
@@ -218,7 +219,7 @@ public class Turret extends SubsystemBase{
                 m_turret.set(0);
 
             }
-        }else if(ControllerConstants.operatorController.x().getAsBoolean()){
+        }else if(ControllerConstants.operatorController.povLeft().getAsBoolean()){
              double limit = TurretConstants.rightLimit;
 
             if(getTurretDegree() <= limit){
@@ -237,14 +238,21 @@ public class Turret extends SubsystemBase{
      * Finds the distance between the apriltag and the limelight (center of lens).
      * If the distance is more than the shooter's distance limit, the distance will return 0.
      * @link https://docs.limelightvision.io/docs/docs-limelight/tutorials/tutorial-estimating-distance  -> Explains the calculations to find the distance.
-     * @return The distance as a degree in radians.
+     * @return The distance in inches.
      */
     public double findDistance(){
-        double degreesToGoal = VisionConstants.mountedDegree + (TY);
-        double radiansToGoal = Math.toRadians(degreesToGoal);
+        //
+        double degreesToGoal = 0;
+        if(TY < 0){
+            degreesToGoal = VisionConstants.mountedDegree - (TY);
+        }else if(TY >= 0){
+            degreesToGoal = 12.5 + (TY);
+        }
+        
+        double radiansToGoal = degreesToGoal *(3.141592/180);
 
         // The formula below can be used to find the degree the limelight is rotated backward from vertical.
-        //double a1 = ((Math.atan(VisionConstants.hubApriltagHeight - VisionConstants.altitude)/100)*(180/Math.PI))-(TY);
+        //double a1 = ((Math.atan(VisionConstants.hubApriltagHeight - VisionConstants.altitude)/36)*(180/Math.PI))-(TY);
 
         double distance = (VisionConstants.hubApriltagHeight - VisionConstants.altitude)/Math.tan(radiansToGoal);
 
@@ -282,7 +290,7 @@ public class Turret extends SubsystemBase{
      * @param RPS from -1 to 1.
      */
     public void startShooter(){
-        m_shooterLeft.setControl(m_voltage.withVelocity(TurretConstants.shooterSpeed).withSlot(0));
+        m_shooterLeft.setControl(m_voltage.withVelocity(shootingDistance()).withSlot(0));
     }
 
     /**
@@ -314,8 +322,8 @@ public class Turret extends SubsystemBase{
      * @param D
      * @param S
      */
-    public void updateValues(double P, double D, double S, double PS, double DS, double VS, double RPS){
-        if(P != lastP || D != lastD || S != lastS || PS != lastPS || DS != lastDS || VS != lastVS || RPS != lastRPS){
+    public void updateValues(double P, double D, double S, double PS, double DS, double VS){
+        if(P != lastP || D != lastD || S != lastS || PS != lastPS || DS != lastDS || VS != lastVS){
             turretConfig.Slot0.kP = P;
             turretConfig.Slot0.kD = D;
             turretConfig.Slot0.kS = S;
@@ -325,20 +333,19 @@ public class Turret extends SubsystemBase{
             m_turret.getConfigurator().apply(turretConfig);
             m_shooterLeft.getConfigurator().apply(shooterConfig);
 
-            TurretConstants.shooterSpeed = RPS;
-
             lastP = P;
             lastD = D;
             lastS = S;
             lastPS = PS;
             lastDS = DS;
             lastVS = VS;
-            lastRPS = RPS;
         }
     }
 
     public void periodic(){
-        //hasTarget = LimelightHelpers.getTV("limelight-four");
+        hasTarget = LimelightHelpers.getTV("limelight-four");
+        TY = LimelightHelpers.getTY("limelight-four");
+        TX = LimelightHelpers.getTX("limelight-four");
 
         if(debug){
             double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
@@ -347,13 +354,12 @@ public class Turret extends SubsystemBase{
             double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
             double shooterD = SmartDashboard.getNumber("Shooter kD", TurretConstants.KDShooter);
             double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
-            double RPS = SmartDashboard.getNumber("Shooter RPS", TurretConstants.shooterSpeed);
-            SmartDashboard.putNumber("turret degree", getTurretDegree());
-            SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
+            SmartDashboard.putNumber("turret pos", m_turret.getPosition().getValueAsDouble());
+            //SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
 
-            updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV, RPS);
+            updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV);
         }
-       SmartDashboard.putNumber("distance", findDistance());
-       SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
+       //SmartDashboard.putNumber("TY", TY);
+       //SmartDashboard.putNumber("turret degree", findDistance());
     }
 }

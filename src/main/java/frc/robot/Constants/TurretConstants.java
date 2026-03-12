@@ -22,10 +22,10 @@ public class TurretConstants {
 
     public static final double gearRatio = 11.66667; 
 
-    public static final double KPTurret = 1.7; // Think of this as the power value.
+    public static final double KPTurret = 2.4; // Think of this as the power value.
     public static final double KITurret = 0.0;
     public static final double KDTurret = 0.0; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
-    public static final double KSTurret = 0.8;
+    public static final double KSTurret = 0.0;
     public static final double KVTurret = 0.0;
 
     public static final double KPShooter = 0.3; 
@@ -33,10 +33,11 @@ public class TurretConstants {
     public static final double KDShooter = 0;
     public static final double KVShooter = 0.12;
 
-    public static double shooterSpeed = 100;
     public static final double shooterTimeout = 2;
     public static final double distanceUpperLimit = 210;
     public static final double distanceLowerLimit = 49;
+
+    public static final double aimTimeout = 1.5;
 
     // Hub location on the field in meters.
     public static final Translation2d hubLocation = new Translation2d(4.625, 4);
