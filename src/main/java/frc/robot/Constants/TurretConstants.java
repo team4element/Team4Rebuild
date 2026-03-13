@@ -29,9 +29,9 @@ public class TurretConstants {
     public static final double turretMaxJerk = 800.0;         // S-Curve smoothing to protect the gearbox
 
     // Refined Feedback/Feedforward
-    public static final double KPTurret = 2.0;  // Slightly higher P is okay with Motion Magic
-    public static final double KDTurret = 0.1;  // Small D helps prevent overshoot at high speeds
-    public static final double KSTurret = 0.25; // Lowered from 0.8 (0.8 is very high for Phoenix 6)
+    public static final double KPTurret = 2.0;  
+    public static final double KDTurret = 0.1;  
+    public static final double KSTurret = 0.25; 
     public static final double KVTurret = 0.11; // 12V / ~105 Max RPS of Kraken/Falcon
 
     public static final double KPShooter = 0.3; 
@@ -39,7 +39,6 @@ public class TurretConstants {
     public static final double KDShooter = 0;
     public static final double KVShooter = 0.12;
 
-    public static double shooterSpeed = 100;
     public static final double shooterTimeout = 2;
     public static final double distanceUpperLimit = 210;
     public static final double distanceLowerLimit = 49;
@@ -50,4 +49,5 @@ public class TurretConstants {
     // Offset of the Limelight lens relative to the center of the TURRET pivot
     // (Used for setCameraPose_RobotSpace)
     public static final double turretToLensForward = 0.1; // meters
+    public static final double aimTimeout = 1.5; // In seconds
 }

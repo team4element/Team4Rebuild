@@ -4,24 +4,24 @@
     {
       "anchor": {
         "x": 3.6,
-        "y": 2.0
+        "y": 5.0
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.85,
-        "y": 2.0
+        "x": 3.0718874172185426,
+        "y": 5.6104056291390725
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.2,
-        "y": 2.0
+        "x": 1.1,
+        "y": 6.0
       },
       "prevControl": {
-        "x": 2.2,
-        "y": 1.9999999999999998
+        "x": 1.617789735099338,
+        "y": 5.976448675496688
       },
       "nextControl": null,
       "isLocked": false,
@@ -45,7 +45,7 @@
     "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Taxi",
+  "folder": "Left",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 0.0

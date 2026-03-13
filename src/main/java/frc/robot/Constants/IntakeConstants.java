@@ -16,9 +16,9 @@ public class IntakeConstants {
     public static final int currentLimitPivot = 80;    
     public static final int currentLimitRollers = 80; 
 
-    public static final double lowerPivotLimit = 18.5;
+    public static final double lowerPivotLimit = 18;
     public static final double upperPivotLimit = 0.0;
-    public static final double pivotMidPoint = 9.51;
+    public static final double pivotMidPoint = 9;
 
     public static final double linearPivotSpeed = 0.5;    
     public static final double rollerSpeed = 0.5;    

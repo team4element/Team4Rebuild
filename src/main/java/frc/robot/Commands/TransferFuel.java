@@ -7,9 +7,8 @@ import frc.robot.Subsystems.Spinster;
 public class TransferFuel extends ParallelCommandGroup {
   /** Creates a new TransferFuel. */
 
-  public TransferFuel(Spinster spinster, Conveyor conveyor, double speedPercentage) {
+  public TransferFuel(Spinster spinster, Conveyor conveyor, double speedPercentageConvey, double speedPercentageSpin) {
     // Add your commands in the addCommands() call, e.g.
-    // addCommands(new FooCommand(), new BarCommand());
-    addCommands(new GumballRotation(spinster, 0.1).withTimeout(2).alongWith(new ConveyToTurret(conveyor, speedPercentage)).withTimeout(2));
+    addCommands(new GumballRotation(spinster, speedPercentageSpin), (new ConveyToTurret(conveyor, speedPercentageConvey)));
   }
 }
