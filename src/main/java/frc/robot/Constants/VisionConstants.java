@@ -1,17 +1,12 @@
 package frc.robot.Constants;
 
 public class VisionConstants {
-    
-    public static final int limelightID = 0;
+    public static final double inchesToMeters = 0.0254;
 
-    // The limelight measurements in inches.
-    public static final double horizontalOffset = 0;
-    public static final double verticalOffset = 0; 
-    public static final double altitude = 24.25; // The height in inches of the center of the limelight lens from the floor.
-    public static final double mountedDegree = -1.2; // The degree the limelight is tilted from vertical.
+    public static final double altitudeMeters = 25.5 * inchesToMeters;
+    public static final double forwardOffsetMeters = (27.5/2) * inchesToMeters; 
+    public static final double sideOffsetMeters = 0.1524;
+    public static final double mountedDegree = -6; 
 
-    public static final double hubApriltagHeight = 44; // The height in inches of the center of the apriltag from the floor.
-
-    //public static final int[] validIDS = {25,26};
-    
+    public static final double hubApriltagHeightMeters = 44 * inchesToMeters; 
 }

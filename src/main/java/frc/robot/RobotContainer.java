@@ -13,15 +13,19 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FindApriltag;
 import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.RetractIntake;
 import frc.robot.Commands.Shoot;
+import frc.robot.Commands.TrackWhileMove;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
@@ -63,11 +67,14 @@ public class RobotContainer {
   public final Spinster m_spinster;
   public final Conveyor m_conveyor;
 
+  public final AprilTagFieldLayout m_field_layout;
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     m_drivetrain = TunerConstants.createDrivetrain();
     // Use the drivetrain in the turret.
-    m_turret = new Turret(m_drivetrain);
+    m_field_layout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+    m_turret = new Turret(m_field_layout, m_drivetrain);
     //m_climb = new Climb();
     m_intake = new Intake();
     m_spinster = new Spinster();
@@ -122,7 +129,7 @@ public class RobotContainer {
     ControllerConstants.operatorController.a().whileTrue(new ConveyToTurret(m_conveyor, 1));
    // ControllerConstants.operatorController.x().whileTrue(new Shoot(m_turret));
     // ControllerConstants.operatorController.a().whileTrue(new FindApriltag(m_turret));
-    ControllerConstants.operatorController.b().whileTrue(new TurretManual(m_turret));
+    ControllerConstants.operatorController.b().whileTrue(new AutoAim(m_turret));
     ControllerConstants.operatorController.x().whileTrue(new TurretManual(m_turret));
    // ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake).withTimeout(0.8));
 

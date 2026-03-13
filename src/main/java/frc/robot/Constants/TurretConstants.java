@@ -1,5 +1,6 @@
 package frc.robot.Constants;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.Translation2d;
 
 public class TurretConstants {
@@ -22,11 +23,16 @@ public class TurretConstants {
 
     public static final double gearRatio = 11.66667; 
 
-    public static final double KPTurret = 1.7; // Think of this as the power value.
-    public static final double KITurret = 0.0;
-    public static final double KDTurret = 0.0; // Damp value, helps with ossilation, if too jerky -> higher value, if too slow -> lower value + more kP
-    public static final double KSTurret = 0.8;
-    public static final double KVTurret = 0.0;
+    // Motion Magic Configuration
+    public static final double turretMaxVelocity = 60.0;     // Rotations per second at the motor
+    public static final double turretMaxAcceleration = 140.0; // Snappy acceleration
+    public static final double turretMaxJerk = 800.0;         // S-Curve smoothing to protect the gearbox
+
+    // Refined Feedback/Feedforward
+    public static final double KPTurret = 2.0;  // Slightly higher P is okay with Motion Magic
+    public static final double KDTurret = 0.1;  // Small D helps prevent overshoot at high speeds
+    public static final double KSTurret = 0.25; // Lowered from 0.8 (0.8 is very high for Phoenix 6)
+    public static final double KVTurret = 0.11; // 12V / ~105 Max RPS of Kraken/Falcon
 
     public static final double KPShooter = 0.3; 
     public static final double KIShooter = 0;
@@ -38,6 +44,10 @@ public class TurretConstants {
     public static final double distanceUpperLimit = 210;
     public static final double distanceLowerLimit = 49;
 
-    // Hub location on the field in meters.
-    public static final Translation2d hubLocation = new Translation2d(4.625, 4);
+    // How fast the ball travels (roughly) to calculate travel time lead
+    public static final double estimatedShotVelocity = 15.0; // meters per second
+
+    // Offset of the Limelight lens relative to the center of the TURRET pivot
+    // (Used for setCameraPose_RobotSpace)
+    public static final double turretToLensForward = 0.1; // meters
 }

@@ -431,6 +431,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return runOnce(() -> seedFieldCentric());
     }
 
+    public Command c_seedFieldRelativeWithVision() {
+    return runOnce(() -> {
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        if (mt2.tagCount > 0) {
+            // This resets X, Y, and Rotation to the Vision's "Truth"
+            this.resetPose(mt2.pose); 
+        }
+    });
+}
+
     @Override
     public void periodic(){
         /*
@@ -499,6 +509,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 return 1;
         }
         return 1;
+    }
+
+
+    public void addVisionMeasurement(Pose2d robotPose, double timestamp) {
+        // Note: We set the Rotation (Theta) standard deviation very high (999999) 
+        // because the Pigeon2 is much more trustworthy for heading than the Limelight.
+        this.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(0.7, 0.7, 999999)); 
     }
 
     /**
