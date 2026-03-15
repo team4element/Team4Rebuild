@@ -1,3 +1,7 @@
+/*
+ * This command runs the climb motor up.
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;

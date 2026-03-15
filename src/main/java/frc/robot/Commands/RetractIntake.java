@@ -1,3 +1,7 @@
+/*
+ * This command manually moves the pivot on the intake between it's limits.
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;

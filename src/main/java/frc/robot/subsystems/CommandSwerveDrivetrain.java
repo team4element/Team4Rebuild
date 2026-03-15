@@ -83,8 +83,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private Field2d field;
 
+    // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
 
+    // This is indicates how much 'trust' or reliability is put into the limelight's data for mt2. Smaller numbers mean more trust. 
     private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
     private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
@@ -163,13 +165,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
+    // This gets each module location in meters from the center of the robot.
     public static final SwerveDriveKinematics kKinematics = new SwerveDriveKinematics(
-        new Translation2d(0.273, 0.273), // The location of the front left module from center of robot in meters.
-        new Translation2d(0.273, -0.273), // The location of the front right module from center of robot in meters.
-        new Translation2d(-0.273, 0.273), // The location of the back left module from center of robot in meters.
-        new Translation2d(-0.273, 0.273) // The location of the back right module from center of robot in meters.
+        new Translation2d(0.283, 0.273), // The location of the front left module from center of robot in meters.
+        new Translation2d(0.283, -0.283), // The location of the front right module from center of robot in meters.
+        new Translation2d(-0.283, 0.283), // The location of the back left module from center of robot in meters.
+        new Translation2d(-0.283, 0.283) // The location of the back right module from center of robot in meters.
     );
 
+    // This is used to build the robot's location.
     SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
         kKinematics,
         TunerConstants.m_pigeon.getRotation2d(),
@@ -177,6 +181,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         new Pose2d()
     );
 
+    @SuppressWarnings("rawtypes")
     public PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
 
     /**
@@ -249,9 +254,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                     return this.getState().Speeds;
                 },// ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 // This is is where I think the feedforward should go into!
-                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)),
-                    //.withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
-                    //.withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+                (speeds, feedforwards) -> this.setControl(m_request.withSpeeds(speeds)), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
                 new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
                         new PIDConstants(7, 0.0, 0), // Translation PID constants (most likely will need tuning)
                         new PIDConstants(3, 0, 0) // Rotation PID constants (most likely would need tuning)

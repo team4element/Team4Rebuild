@@ -1,3 +1,7 @@
+/*
+ * This command runs the spindexer and conveyor at the same time in order to pass the balls through to the shooter. s
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;

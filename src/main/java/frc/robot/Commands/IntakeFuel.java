@@ -1,3 +1,7 @@
+/*
+ * This command runs the belts and wheels of the intake.
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;

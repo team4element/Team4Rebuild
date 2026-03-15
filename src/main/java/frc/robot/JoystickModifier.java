@@ -26,10 +26,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
  */
 
 public class JoystickModifier {
-    enum modifyType {
-
-    }
-
     // Member Variables
     // Saving variables for later
     String option = "Linear";

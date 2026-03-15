@@ -1,3 +1,8 @@
+/*
+ * This command places the pivot of the intake in the desired position (limits) depending on where it was last. So if the pivot was near 0, it will 
+ * go to the higher limit and vice versa.
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;

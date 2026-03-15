@@ -14,7 +14,6 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ConveyorConstants;
 
-@SuppressWarnings("unused")
 public class Conveyor extends SubsystemBase{
     // Declare the conveyor motor
     private TalonFX m_motor;
@@ -23,6 +22,7 @@ public class Conveyor extends SubsystemBase{
     private DutyCycleOut m_dutyCycle;
     // Used as an additional limit to the amount of voltage the motor could use that helps prevent brownout
     private CurrentLimitsConfigs m_limitConfig = new CurrentLimitsConfigs();
+    private TalonFXConfigurator m_configurator;
 
     public Conveyor(){
         m_motor = new TalonFX(ConveyorConstants.conveyorID);
@@ -30,12 +30,10 @@ public class Conveyor extends SubsystemBase{
         // The motor will start with half speed
         m_dutyCycle = new DutyCycleOut(ConveyorConstants.dutyCycle);
 
-        // TalonFXConfigurator configurator = m_motor.getConfigurator();
-        // m_limitConfig.StatorCurrentLimit = ConveyorConstants.statorCurrentLimit;
-        // m_limitConfig.StatorCurrentLimitEnable = true;
-        // m_limitConfig.SupplyCurrentLimit = ConveyorConstants.supplyCurrentLimit;
-        // m_limitConfig.SupplyCurrentLimitEnable = true;
-        // configurator.apply(m_limitConfig);
+        m_configurator = m_motor.getConfigurator();
+        m_limitConfig.StatorCurrentLimit = ConveyorConstants.statorCurrentLimit;
+        m_limitConfig.StatorCurrentLimitEnable = true;
+        m_configurator.apply(m_limitConfig);
     }
 
     /**

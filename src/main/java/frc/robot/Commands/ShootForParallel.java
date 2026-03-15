@@ -1,3 +1,7 @@
+/*
+ * This command runs the shooter with no end. 
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -21,7 +25,7 @@ public class ShootForParallel extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.startShooter();
+    m_turret.startShooter(m_turret.shootingDistance());
   }
 
   // Called once the command ends or is interrupted.

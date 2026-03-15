@@ -24,25 +24,24 @@ import frc.robot.Constants.IntakeConstants;
 public class Intake extends SubsystemBase{
     // Declares motors for intake.
     private TalonFX m_leftIntake, m_rightIntake; 
-    // Declares motors for the intake's pivot;
+    // Declares motors for the intake's pivot.
     public TalonFX m_leftPivot, m_rightPivot;
 
-    // Used to control the speed of motors
+    // Used to control the speed of motors.
     private DutyCycleOut m_dutyCyclePivot, m_dutyCycleRollers;
-    // Used to control motor's rotation (position) with a given speed
+    // Used to control motor's rotation (position) with a given speed.
     private PositionVoltage m_positionRequest;
-    // Used to follow each motors.
+    // Used to current limits.
     private TalonFXConfigurator m_leftPivotConfigurator;
     private TalonFXConfigurator m_rightPivotConfigurator;
+    private CurrentLimitsConfigs m_limitConfigPivot;
 
     private TalonFXConfigurator m_leftIntakeConfigurator;
     private TalonFXConfigurator m_rightIntakeConfigurator;
+    private CurrentLimitsConfigs m_limitConfigIntake;
 
     private TalonFXConfiguration m_pivotLeftConfig;
     private TalonFXConfiguration m_pivotRightConfig;
-
-    // Used as an additional limit to the amount of voltage the motor could use that helps prevent brownout
-    private CurrentLimitsConfigs m_slideLimitConfig, m_rollerLimitConfig;
 
     double lastPLeft;
     double lastPRight;
@@ -76,15 +75,29 @@ public class Intake extends SubsystemBase{
         m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
         m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
 
-        // // Applies current limits.
-        // m_slideLimitConfig = new CurrentLimitsConfigs();
-        // m_rollerLimitConfig = new CurrentLimitsConfigs();
+        // Current limmit pivot.
+        m_limitConfigPivot = new CurrentLimitsConfigs();
 
-        // m_slideLimitConfig.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
-        // m_slideLimitConfig.StatorCurrentLimitEnable = true;
+        m_leftPivotConfigurator = m_leftPivot.getConfigurator();
+        m_rightPivotConfigurator = m_rightPivot.getConfigurator();
 
-        // m_rollerLimitConfig.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
-        // m_rollerLimitConfig.StatorCurrentLimitEnable = true;
+        m_limitConfigPivot.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
+        m_limitConfigPivot.StatorCurrentLimitEnable = true;
+
+        m_leftPivotConfigurator.apply(m_limitConfigPivot);
+        m_rightPivotConfigurator.apply(m_limitConfigPivot);
+
+        // Current limmit pivot.
+        m_limitConfigIntake = new CurrentLimitsConfigs();
+
+        m_leftIntakeConfigurator = m_leftIntake.getConfigurator();
+        m_rightIntakeConfigurator = m_rightIntake.getConfigurator();
+
+        m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
+        m_limitConfigIntake.StatorCurrentLimitEnable = true;
+
+        m_leftPivotConfigurator.apply(m_limitConfigIntake);
+        m_rightPivotConfigurator.apply(m_limitConfigIntake);
 
         // This is used to declare the leader and follower for the pivot and intake.
         m_leftIntakeConfigurator = m_leftIntake.getConfigurator();
@@ -107,15 +120,26 @@ public class Intake extends SubsystemBase{
 
     /**
      * Sets the starting position for the pivot motor.
+     * @param motor to home.
      */
-    public void resetPivot(TalonFX motor){
+    public void homePivot(TalonFX motor){
         motor.setPosition(0);
     }
 
+    /**
+     * This gets the motor's rotation.
+     * @param motor for the data.
+     * @return motor rotations.
+     */
     public double getPivotPosition(TalonFX motor){
         return motor.getPosition().getValueAsDouble();
     }
 
+    /**
+     * This applies a certain power percentage to a motor.
+     * @param motor to power.
+     * @param percentage from -1 to 1.
+     */
     public void setPivotPercentage(TalonFX motor, double percentage){
         motor.setControl(m_dutyCyclePivot.withOutput(percentage));
     }
@@ -158,14 +182,28 @@ public class Intake extends SubsystemBase{
         motor.setControl(m_positionRequest.withPosition(motorRotation));
     }
 
+    /**
+     * This moves a motor from the pivot of the intake to the desired position based on it's distance from the midpoint.
+     * @param motor to use.
+     */
     public void automaticPivot(TalonFX motor){
         if(getPivotPosition(motor) <= IntakeConstants.pivotMidPoint){
-            motor.setControl(m_positionRequest.withPosition(18));
-        }else if(ControllerConstants.operatorController.povDown().getAsBoolean()){
-            motor.setControl(m_positionRequest.withPosition(16));
+            pivotToSetpoint(motor, 18);
+        }else if(ControllerConstants.operatorController.povUp().getAsBoolean()){
+            pivotToSetpoint(motor, 16);
         }else if(getPivotPosition(motor) > IntakeConstants.pivotMidPoint){
-            motor.setControl(m_positionRequest.withPosition(0));
+            pivotToSetpoint(motor, 8);
         }
+    }
+
+    /*
+     * This resets the pivot motors to it's home position and puts it in coast mode.
+     */
+    public void resetPivot(){
+        pivotToSetpoint(m_leftIntake, 0);
+        pivotToSetpoint(m_rightIntake, 0);
+        m_rightPivot.setNeutralMode(NeutralModeValue.Coast);
+        m_leftPivot.setNeutralMode(NeutralModeValue.Coast);
     }
 
     /**

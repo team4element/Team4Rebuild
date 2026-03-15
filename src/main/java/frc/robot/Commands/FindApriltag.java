@@ -1,5 +1,10 @@
+/*
+ * This command is used to track the apriltag with the turret using limelight data. 
+ */
+
 package frc.robot.Commands;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.TurretConstants;
@@ -12,6 +17,8 @@ public class FindApriltag extends Command {
   public boolean hasTarget;
   public double currentPose;
   public double FPS;
+  public double targetRotation;
+  public double distance;
  // private final double kMinCommand = 0.0003;
 
   public FindApriltag(Turret turret) {
@@ -23,11 +30,8 @@ public class FindApriltag extends Command {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
-
-  // Called every time the scheduler runs while the command is scheduled.
-  @Override
-  public void execute() {
+  public void initialize() {
+    // Grabs the limelight's data. TX is negative because we want to turn in the opposite direction.
     TX = -LimelightHelpers.getTX("limelight-four");
     hasTarget = LimelightHelpers.getTV("limelight-four");
     
@@ -36,8 +40,10 @@ public class FindApriltag extends Command {
       double rotationsError = (TX/360)*TurretConstants.gearRatio;
       double currentRotation = m_turret.getTurretRotation();
       
-      double targetRotation = currentRotation + rotationsError;
+      // We add the two values so that our goal position isn't just the offest (adds the offset to current position).
+      targetRotation = currentRotation + rotationsError;
       
+      // This applies the angle of the turret within the deadband/tolerance.
       if(Math.abs(rotationsError) > .05){
         m_turret.setYaw(targetRotation);
       }
@@ -58,6 +64,21 @@ public class FindApriltag extends Command {
 
       m_turret.setTurretPercentage(searchSpeed);
     }
+
+    distance = m_turret.shootingDistance();
+  }
+
+  // Called every time the scheduler runs while the command is scheduled.
+  @Override
+  public void execute() {
+    // This puts the data onto the dashboard.
+    if(m_turret.getTurretDegree() >= targetRotation-0.5){
+      SmartDashboard.putBoolean("Shoot Ready", true);
+      m_turret.startShooter(distance);
+    }else {
+      SmartDashboard.putBoolean("Shoot Ready", false);
+    }
+   
   }
 
   // Called once the command ends or is interrupted.
