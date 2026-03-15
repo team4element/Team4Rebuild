@@ -13,7 +13,7 @@ public class TurretConstants {
     public static final double dutyCycleShooter = 1;
 
     public static final double turretStatorLimit = 60;
-    public static final double shooterStatorLimit = 80;
+    public static final double shooterStatorLimit = 100;
 
     public static final double turretSupplyLimit = 20;
     public static final double shooterSupplyLimit = 20;

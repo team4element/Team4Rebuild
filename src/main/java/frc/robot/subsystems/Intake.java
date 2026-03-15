@@ -112,10 +112,10 @@ public class Intake extends SubsystemBase{
         SmartDashboard.putNumber("Left Pivot P", IntakeConstants.KPLeft);
         SmartDashboard.putNumber("Left Pivot S", IntakeConstants.KPRight);
 
-        // m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
-        // m_leftIntake.setNeutralMode(NeutralModeValue.Brake);
-        // m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
-        // m_rightIntake.setNeutralMode(NeutralModeValue.Brake);
+        m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
+        m_leftIntake.setNeutralMode(NeutralModeValue.Brake);
+        m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
+        m_rightIntake.setNeutralMode(NeutralModeValue.Brake);
     }
 
     /**

@@ -5,11 +5,6 @@
 
 package frc.robot.Subsystems;
 
-import static edu.wpi.first.units.Units.Degrees;
-
-import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -23,13 +18,9 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
@@ -37,94 +28,79 @@ import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 
-public class Turret extends SubsystemBase{
-    // Declares motors and sensors.
-    private TalonFX m_turret, m_shooterLeft, m_shooterRight;
+public class Turret extends SubsystemBase {
+    // Hardware
+    private final TalonFX m_turret;
+    private final TalonFX m_shooterLeft;
+    private final TalonFX m_shooterRight;
 
-    // Used to control speed of motors.
-    private DutyCycleOut m_dutyCycleTurret;
-    private CurrentLimitsConfigs m_limitConfigTurret = new CurrentLimitsConfigs();
-    private CurrentLimitsConfigs m_limitConfigShooter = new CurrentLimitsConfigs();
-    private PositionVoltage m_positionRequest;
-    @SuppressWarnings("unused")
-    private SimpleMotorFeedforward m_feedForward;
-    private VelocityVoltage m_voltage;
+    // Control Requests
+    private final DutyCycleOut m_dutyCycleTurret;
+    private final PositionVoltage m_positionRequest;
+    private final VelocityVoltage m_velocityRequest; 
 
-    NetworkTable table;
+    // Configurations
+    private final TalonFXConfiguration turretConfig = new TalonFXConfiguration();
+    private final TalonFXConfiguration shooterConfig = new TalonFXConfiguration();
 
-    TalonFXConfiguration shooterConfig;
-    TalonFXConfiguration turretConfig;
+    // Dependencies
+    private final CommandSwerveDrivetrain m_drivetrain;
+    private final AprilTagFieldLayout m_field_layout;
 
-    ClosedLoopGeneralConfigs generalConfigs;
-
-    CommandSwerveDrivetrain m_drivetrain;
-
+    // Logic State
     private int m_visionLostFrames = 0;
-
-    // Variables used to update values
-    double lastP;
-    double lastD;
-    double lastS;
-    double lastPS;
-    double lastDS;
-    double lastVS;
-
-    // Declares x and y offsets from limelight
+    private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
     private double TX, TY;
-    // Starts the robot's distance from the hub at 0 (since we will be starting flush to the hub).
     private double distance = 0;
-    // Determines weather or not limelight sees apriltag
     private boolean hasTarget;
-
-    // This should be true only when you want to tune constants through the shuffleboard.
     @SuppressWarnings("unused")
     private boolean debug = false;
 
-    // Used to get the turret's position on field relative to limelight.
-    private AprilTagFieldLayout m_field_layout;
-
-    public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain){
+    public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_turret = new TalonFX(TurretConstants.turretID);
         m_shooterLeft = new TalonFX(TurretConstants.shooterLeftID);
         m_shooterRight = new TalonFX(TurretConstants.shooterRightID);
         m_field_layout = field_layout;
-
         m_drivetrain = drivetrain;
 
-        // The turret and shooter motor will start with half speed
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
-        m_feedForward = new SimpleMotorFeedforward(TurretConstants.KSTurret, TurretConstants.KVTurret);
-
         m_positionRequest = new PositionVoltage(0).withSlot(0);
-        m_voltage = new VelocityVoltage(0).withSlot(0);
+        m_velocityRequest = new VelocityVoltage(0).withSlot(0);
 
-        turretConfig = new TalonFXConfiguration();
-        shooterConfig = new TalonFXConfiguration();
-
-        // Assigns PID values to the turret for precise speed
-        turretConfig.Slot0.kP = TurretConstants.KPTurret; // Controls position error
-        turretConfig.Slot0.kI = 0; // Controls integral error using kP and kD (don't change)
-        turretConfig.Slot0.kD = TurretConstants.KDTurret; // Controls derivative error
+        // --- Turret Config ---
+        turretConfig.Slot0.kP = TurretConstants.KPTurret;
+        turretConfig.Slot0.kI = 0;
+        turretConfig.Slot0.kD = TurretConstants.KDTurret;
         turretConfig.Slot0.kS = TurretConstants.KSTurret;
+    
+        turretConfig.MotionMagic.MotionMagicCruiseVelocity = TurretConstants.turretMaxVelocity;
+        turretConfig.MotionMagic.MotionMagicAcceleration = TurretConstants.turretMaxAcceleration;
+        turretConfig.MotionMagic.MotionMagicJerk = TurretConstants.turretMaxJerk;
+    
+        turretConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.turretStatorLimit;
+        turretConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        turretConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
-        MotionMagicConfigs mmConfigs = turretConfig.MotionMagic;
-        // 1. Cruise Velocity: How fast should the turret spin at top speed?
-        // Start slow (e.g., 40 RPS) and increase until it's fast enough to track.
-        mmConfigs.MotionMagicCruiseVelocity = TurretConstants.turretMaxVelocity;
+        m_turret.getConfigurator().apply(turretConfig);
 
-        // 2. Acceleration: How fast should it reach top speed?
-        // Usually, set this to 2x or 4x your Cruise Velocity for a snappy feel.
-        mmConfigs.MotionMagicAcceleration = TurretConstants.turretMaxAcceleration;
-
-        // 3. Jerk: How smooth should the start/stop be?
-        // 0 is a trapezoidal profile. 50-200 adds an "S-Curve" to prevent belt skipping.
-        mmConfigs.MotionMagicJerk = TurretConstants.turretMaxJerk;
-
-        // Assigns PID values to the shooter for precise speed
-        shooterConfig.Slot0.kP = TurretConstants.KPShooter; // Controls position error
-        shooterConfig.Slot0.kI = TurretConstants.KIShooter; // Controls integral error using kP and kD (don't change)
-        shooterConfig.Slot0.kD = TurretConstants.KDShooter; // Controls derivative error
+        // --- Shooter Config ---
+        shooterConfig.Slot0.kP = TurretConstants.KPShooter;
+        shooterConfig.Slot0.kI = TurretConstants.KIShooter;
+        shooterConfig.Slot0.kD = TurretConstants.KDShooter;
         shooterConfig.Slot0.kV = TurretConstants.KVShooter;
+    
+        shooterConfig.Feedback.FeedbackSensorSource = com.ctre.phoenix6.signals.FeedbackSensorSourceValue.RotorSensor;
+    
+        shooterConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
+        shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+    
+        shooterConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.shooterStatorLimit;
+        shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+
+        m_shooterLeft.getConfigurator().apply(shooterConfig);
+        m_shooterRight.getConfigurator().apply(shooterConfig);
+
+        m_shooterRight.setControl(new Follower(m_shooterLeft.getDeviceID(), MotorAlignmentValue.Opposed));
 
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
@@ -133,37 +109,10 @@ public class Turret extends SubsystemBase{
         lastDS = TurretConstants.KDShooter;
         lastVS = TurretConstants.KVShooter;
 
-        m_turret.getConfigurator().apply(turretConfig);
-
-        shooterConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
-        m_shooterLeft.getConfigurator().apply(shooterConfig);
-
-        m_shooterRight.setControl(new Follower(TurretConstants.shooterLeftID, MotorAlignmentValue.Opposed));
-
-        // Motor current limits to test for later.
-        m_limitConfigTurret = new CurrentLimitsConfigs();
-        TalonFXConfigurator configuratorTurret = m_turret.getConfigurator();
-        m_limitConfigTurret.StatorCurrentLimit = TurretConstants.turretStatorLimit;
-        m_limitConfigTurret.StatorCurrentLimitEnable = true;
-        configuratorTurret.apply(m_limitConfigTurret);
-
-        m_limitConfigShooter = new CurrentLimitsConfigs();
-        TalonFXConfigurator configuratorShooter = m_turret.getConfigurator();
-        m_limitConfigShooter.StatorCurrentLimit = TurretConstants.shooterStatorLimit;
-        m_limitConfigShooter.StatorCurrentLimitEnable = true;
-        configuratorShooter.apply(m_limitConfigShooter);
-
-        // Puts a filter on what tags the limelight will recognize.
-        //LimelightHelpers.SetFiducialIDFiltersOverride("limelight-four", VisionConstants.validIDS);
-
-        // Puts the constants onto the shuffleboard which will update periodically.
-        SmartDashboard.putNumber("Turret kP", TurretConstants.KPTurret);
-        SmartDashboard.putNumber("Turret kD", TurretConstants.KDTurret);
-        SmartDashboard.putNumber("Turret kS", TurretConstants.KSTurret);
-        SmartDashboard.putNumber("Shooter kP", TurretConstants.KPShooter);
-        SmartDashboard.putNumber("Shooter kD", TurretConstants.KDShooter);
-        SmartDashboard.putNumber("Shooter kV", TurretConstants.KVShooter);
-        LimelightHelpers.SetIMUMode("limelight-four",0);
+        SmartDashboard.putNumber("Turret kP", lastP);
+        SmartDashboard.putNumber("Shooter kV", lastVS);
+    
+        LimelightHelpers.SetIMUMode("limelight-four", 0);
     }
 
     /*
@@ -178,7 +127,7 @@ public class Turret extends SubsystemBase{
      * @param RPS from 0 to 200.
      */
     public void spinTurret(double RPS){
-        m_turret.setControl(m_voltage.withVelocity(RPS).withSlot(0));
+        m_turret.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
     }
 
     /**
@@ -194,7 +143,7 @@ public class Turret extends SubsystemBase{
      * @return RPS.
      */
     public double getRPS(){
-        return m_shooterLeft.getPosition().getValueAsDouble();
+        return m_shooterLeft.getVelocity().getValueAsDouble();
     }
 
     /**
@@ -214,7 +163,6 @@ public class Turret extends SubsystemBase{
         m_turret.setControl(m_dutyCycleTurret.withOutput(0));
         m_shooterLeft.setControl(m_dutyCycleTurret.withOutput(0));
         m_shooterRight.setControl(m_dutyCycleTurret.withOutput(0));
-        m_turret.setNeutralMode(NeutralModeValue.Brake);
     }
 
     /*
@@ -290,42 +238,32 @@ public double getTurretDegree(){
 
             distance = (VisionConstants.hubApriltagHeightMeters - VisionConstants.altitudeMeters)/Math.tan(radiansToGoal);
 
-            if(distance>=TurretConstants.distanceUpperLimit || distance<=TurretConstants.distanceLowerLimit){
-                distance = 0;
+            // if(distance>=TurretConstants.distanceUpperLimit || distance<=TurretConstants.distanceLowerLimit){
+            //     distance = 0;
 
-            }
+            // }
         }  
         return distance;
     }
 
-    /**
-     * Calculates the speed that the shooter motor should spin in order to reach a target using a formula generated through regression.
-     * If the distance found by the previous function returns 0, the speed of the motor will be 0.
-     * @return rotations per second.
-     */
-    public double shootingDistance(){
-        distance = findDistance()*TurretConstants.metersToInches;
-        double RPS;
 
-        if(distance == 0){
-           RPS = 0;
-
-        }else{
-            // This is the formula found by regression in MatLab using RPS for the motor and inches it reaches.
-            RPS = (0.000011*Math.pow(distance,3))-(0.003632*Math.pow(distance,2))+(0.59999*distance)+32.574475;
-
-        }
-
-        return RPS;
+    public double shootingDistance() {
+        double distInches = findDistance() * TurretConstants.metersToInches;
+        if (distInches == 0) return 0;
+    
+        // This result should be in RPS (Rotations Per Second)
+        double targetRPS = (0.000011 * Math.pow(distInches, 3)) - 
+                       (0.003632 * Math.pow(distInches, 2)) + 
+                       (0.59999 * distInches) + 32.574475;
+                       
+        return targetRPS;
     }
 
-    /**
-     * Assigns a speed to run the shooter motor using PID.
-     * @param RPS from -1 to 1.
-     */
-    public void startShooter(double distance){
-        m_shooterLeft.setControl(m_voltage.withVelocity(distance).withSlot(0));
+    public void startShooter(double RPS) {
+        System.out.println(RPS +  " | " + m_shooterLeft.getVelocity().toString());
+        m_shooterLeft.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
     }
+
 
     /**
      * Gets the degree the robot needs to turn to get to center of apriltag if the apritag is detected.
@@ -366,13 +304,9 @@ public double getTurretDegree(){
             shooterConfig.Slot0.kV = VS;
             m_turret.getConfigurator().apply(turretConfig);
             m_shooterLeft.getConfigurator().apply(shooterConfig);
+            m_shooterRight.getConfigurator().apply(shooterConfig);
 
-            lastP = P;
-            lastD = D;
-            lastS = S;
-            lastPS = PS;
-            lastDS = DS;
-            lastVS = VS;
+            lastP = P; lastD = D; lastS = S; lastPS = PS; lastDS = DS; lastVS = VS;
         }
     }
 
@@ -439,7 +373,6 @@ public double getTurretDegree(){
     private double clampTurretRotations(double targetRotations) {
         double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
         double rightLimitRot = (TurretConstants.rightLimit / 360.0) * TurretConstants.gearRatio;
-
         return MathUtil.clamp(targetRotations, rightLimitRot, leftLimitRot);
     }
 
@@ -467,19 +400,12 @@ public double getTurretDegree(){
             targetDeg = MathUtil.clamp(targetDeg, TurretConstants.rightLimit, TurretConstants.leftLimit);
         }
     }
-
         return (targetDeg / 360.0) * TurretConstants.gearRatio;
     }
 
-    /**
-     * Checks if the turret is properly lined up to shoot successfully.
-     * @return shooting status.
-     */
     public boolean isReadyToShoot() {
         double error = Math.abs(m_turret.getClosedLoopError().getValueAsDouble());
         double shooterError = Math.abs(m_shooterLeft.getClosedLoopError().getValueAsDouble());
-
-        // Within ~1 degree of target and ~2 RPS of target shooter speed
         return (error < (1.0 / 360.0) * TurretConstants.gearRatio) && (shooterError < 2.0);
     }
 
@@ -517,29 +443,16 @@ public double getTurretDegree(){
         }
     }
 
-    @Override
+    @Override   
     public void periodic() {
+        // 1. Refresh vision state so findDistance() and trackAndShoot() use fresh data
+        hasTarget = LimelightHelpers.getTV("limelight-four");
+        if (hasTarget) {
+            TX = LimelightHelpers.getTX("limelight-four");
+            TY = LimelightHelpers.getTY("limelight-four");
+        }
+
+        SmartDashboard.putNumber("distance", findDistance());
         updateVisionOdometry();
     }
-
-
-        // public void periodic(){
-    //     //hasTarget = LimelightHelpers.getTV("limelight-four");
-
-    //     if(debug){
-    //         double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret);
-    //         double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
-    //         double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
-    //         double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter);
-    //         double shooterD = SmartDashboard.getNumber("Shooter kD", TurretConstants.KDShooter);
-    //         double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
-    //         double RPS = SmartDashboard.getNumber("Shooter RPS", TurretConstants.shooterSpeed);
-    //         SmartDashboard.putNumber("turret degree", getTurretDegree());
-    //         SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
-
-    //         updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV, RPS);
-    //     }
-    //    SmartDashboard.putNumber("distance", findDistance());
-    //    SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
-    // }
 }

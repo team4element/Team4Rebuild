@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.GumballRotation;
@@ -125,11 +126,21 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
     ));
     
+
+    //DEBUG DO KEEP (PROBABLY)
+    // ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
+    ControllerConstants.driverController.x().whileTrue(new Shoot(m_turret, 50));
+    // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
+    // ControllerConstants.driverController.povLeft().whileTrue(new TurretManual(m_turret));
+    //END DEBUG
+
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
     ControllerConstants.operatorController.x().whileTrue(new TransferFuel(m_spinster, m_conveyor, ConveyorConstants.conveyorSpeed, SpinsterConstants.spinsterSpeed));
-    ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
+    // ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
 
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
@@ -141,6 +152,7 @@ public class RobotContainer {
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, IntakeConstants.pivotSpeed));
   }
 
+
   /*
    * This runs in initialize on auton to set the climb and turret's starting position.
    */
@@ -148,8 +160,6 @@ public class RobotContainer {
     m_intake.homePivot(m_intake.m_leftPivot);
     m_intake.homePivot(m_intake.m_rightPivot);
     m_turret.resetTurret();
-
-
 
     m_drivetrain.resetPose(new Pose2d(3.7, 4, Rotation2d.fromDegrees(0)));
 

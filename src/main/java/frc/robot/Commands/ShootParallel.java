@@ -13,6 +13,7 @@ public class ShootParallel extends ParallelCommandGroup {
   /** Creates a new CombinedShoot. */
   public ShootParallel(Turret turret, Conveyor conveyor, Spinster spinster) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new FindApriltag(turret), new TransferFuel(spinster, conveyor, 1, -1));
+    // addCommands(new FindApriltag(turret), new TransferFuel(spinster, conveyor, 1, -1));
+    addCommands(new TransferFuel(spinster, conveyor, 1, -1), new Shoot(turret));
   }
 }
