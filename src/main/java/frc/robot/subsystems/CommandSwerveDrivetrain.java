@@ -167,7 +167,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // This gets each module location in meters from the center of the robot.
     public static final SwerveDriveKinematics kKinematics = new SwerveDriveKinematics(
-        new Translation2d(0.283, 0.273), // The location of the front left module from center of robot in meters.
+        new Translation2d(0.283, 0.283), // The location of the front left module from center of robot in meters.
         new Translation2d(0.283, -0.283), // The location of the front right module from center of robot in meters.
         new Translation2d(-0.283, 0.283), // The location of the back left module from center of robot in meters.
         new Translation2d(-0.283, 0.283) // The location of the back right module from center of robot in meters.
@@ -299,8 +299,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
 
         pathplanner();
-
-        LimelightHelpers.SetIMUMode("limelight-four", 4);
 
         robotFieldCentric = false;
         isBooleanTrue = -1;
@@ -466,21 +464,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 m_hasAppliedOperatorPerspective = true;
             });
         }
-
-        if(LimelightHelpers.getTV("limelight-four")){
-            if(DriverStation.getAlliance().get() == Alliance.Blue){
-                field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
-            }else if(DriverStation.getAlliance().get() == Alliance.Red){
-                field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2("limelight-four").pose);
-            }
-        }else{
-            field.setRobotPose(this.getState().Pose);
-        }
-
-        LimelightHelpers.SetRobotOrientation("limelight-four", this.getState().Pose.getRotation().getDegrees(),this.getPigeon2().getAngularVelocityZWorld().getValueAsDouble(),0,0,0,0);
-        SmartDashboard.putNumber("Current Drive Speed", speedToDouble(m_speed));
-        SmartDashboard.putBoolean("Drive Mode", isFieldCentric());
-        SmartDashboard.putNumber("boolean", isBooleanTrue);
     }
 
     private void startSimThread(){

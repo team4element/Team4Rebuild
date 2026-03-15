@@ -43,11 +43,6 @@ public class TurretConstants {
     public static final double distanceUpperLimit = 210 * inchesToMeters;
     public static final double distanceLowerLimit = 49 * inchesToMeters;
 
-    // How fast the ball travels (roughly) to calculate travel time lead.
-    public static final double estimatedShotVelocity = 15.0; // Meters per second.
-
-    // Offset of the Limelight lens relative to the center of the TURRET pivot.
-    // (Used for setCameraPose_RobotSpace).
-    public static final double turretToLensForward = 0.1; // Meters.
-    public static final double aimTimeout = 1.5; // In seconds.
+    public static final double turretToLensForward = .19; // meters
+    public static final double aimTimeout = 1.5; // In seconds
 }

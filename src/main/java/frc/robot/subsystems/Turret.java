@@ -23,6 +23,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -58,6 +59,8 @@ public class Turret extends SubsystemBase{
 
     CommandSwerveDrivetrain m_drivetrain;
 
+    private int m_visionLostFrames = 0;
+
     // Variables used to update values
     double lastP;
     double lastD;
@@ -71,7 +74,7 @@ public class Turret extends SubsystemBase{
     // Starts the robot's distance from the hub at 0 (since we will be starting flush to the hub).
     private double distance = 0;
     // Determines weather or not limelight sees apriltag
-    private boolean hasTarget; 
+    private boolean hasTarget;
 
     // This should be true only when you want to tune constants through the shuffleboard.
     @SuppressWarnings("unused")
@@ -98,25 +101,26 @@ public class Turret extends SubsystemBase{
         turretConfig = new TalonFXConfiguration();
         shooterConfig = new TalonFXConfiguration();
 
-        // Assigns PID values to the turret for precise speed 
+        // Assigns PID values to the turret for precise speed
         turretConfig.Slot0.kP = TurretConstants.KPTurret; // Controls position error
-        turretConfig.Slot0.kD = TurretConstants.KDTurret; // Controls derivative error 
+        turretConfig.Slot0.kI = 0; // Controls integral error using kP and kD (don't change)
+        turretConfig.Slot0.kD = TurretConstants.KDTurret; // Controls derivative error
         turretConfig.Slot0.kS = TurretConstants.KSTurret;
 
         MotionMagicConfigs mmConfigs = turretConfig.MotionMagic;
         // 1. Cruise Velocity: How fast should the turret spin at top speed?
         // Start slow (e.g., 40 RPS) and increase until it's fast enough to track.
-        mmConfigs.MotionMagicCruiseVelocity = TurretConstants.turretMaxVelocity; 
+        mmConfigs.MotionMagicCruiseVelocity = TurretConstants.turretMaxVelocity;
 
         // 2. Acceleration: How fast should it reach top speed?
         // Usually, set this to 2x or 4x your Cruise Velocity for a snappy feel.
-        mmConfigs.MotionMagicAcceleration = TurretConstants.turretMaxAcceleration; 
+        mmConfigs.MotionMagicAcceleration = TurretConstants.turretMaxAcceleration;
 
         // 3. Jerk: How smooth should the start/stop be?
         // 0 is a trapezoidal profile. 50-200 adds an "S-Curve" to prevent belt skipping.
-        mmConfigs.MotionMagicJerk = TurretConstants.turretMaxJerk; 
+        mmConfigs.MotionMagicJerk = TurretConstants.turretMaxJerk;
 
-        // Assigns PID values to the shooter for precise speed 
+        // Assigns PID values to the shooter for precise speed
         shooterConfig.Slot0.kP = TurretConstants.KPShooter; // Controls position error
         shooterConfig.Slot0.kI = TurretConstants.KIShooter; // Controls integral error using kP and kD (don't change)
         shooterConfig.Slot0.kD = TurretConstants.KDShooter; // Controls derivative error
@@ -149,7 +153,7 @@ public class Turret extends SubsystemBase{
         m_limitConfigShooter.StatorCurrentLimitEnable = true;
         configuratorShooter.apply(m_limitConfigShooter);
 
-        // Puts a filter on what tags the limelight will recognize. 
+        // Puts a filter on what tags the limelight will recognize.
         //LimelightHelpers.SetFiducialIDFiltersOverride("limelight-four", VisionConstants.validIDS);
 
         // Puts the constants onto the shuffleboard which will update periodically.
@@ -159,7 +163,7 @@ public class Turret extends SubsystemBase{
         SmartDashboard.putNumber("Shooter kP", TurretConstants.KPShooter);
         SmartDashboard.putNumber("Shooter kD", TurretConstants.KDShooter);
         SmartDashboard.putNumber("Shooter kV", TurretConstants.KVShooter);
-        LimelightHelpers.SetIMUMode("limelight-four",4);
+        LimelightHelpers.SetIMUMode("limelight-four",0);
     }
 
     /*
@@ -204,7 +208,7 @@ public class Turret extends SubsystemBase{
     }
 
     /*
-     * Stops both the turret and shooter movement.  
+     * Stops both the turret and shooter movement.
      */
     public void stopMotors(){
         m_turret.setControl(m_dutyCycleTurret.withOutput(0));
@@ -224,16 +228,19 @@ public class Turret extends SubsystemBase{
      * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
      * @return degree of turret.
      */
-    public double getTurretDegree(){
-        return m_turret.getPosition().getValue().in(Degrees)/TurretConstants.gearRatio; 
-    }
+public double getTurretDegree(){
+    double motorRotations = m_turret.getPosition().getValueAsDouble();
+    double turretRotations = motorRotations / TurretConstants.gearRatio;
+    double turretDegrees = turretRotations * 360.0;
 
+    return turretDegrees;
+}
     /**
      * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
      * @return the motor rotation of turret.
      */
     public double getTurretRotation(){
-        return m_turret.getPosition().getValueAsDouble()/TurretConstants.gearRatio; 
+        return m_turret.getPosition().getValueAsDouble()/TurretConstants.gearRatio;
     }
 
     /**
@@ -245,7 +252,7 @@ public class Turret extends SubsystemBase{
              double limit = TurretConstants.leftLimit;
 
             if(getTurretDegree() <= limit){
-                setTurretPercentage(0.1);
+                setTurretPercentage(-0.1);
 
             }else if(getTurretDegree() >= limit){
 
@@ -259,7 +266,7 @@ public class Turret extends SubsystemBase{
                 m_turret.set(0);
 
             }else if(getTurretDegree() >= limit){
-                setTurretPercentage(-0.1);
+                setTurretPercentage(0.1);
 
             }
         }else{
@@ -311,7 +318,7 @@ public class Turret extends SubsystemBase{
 
         return RPS;
     }
-    
+
     /**
      * Assigns a speed to run the shooter motor using PID.
      * @param RPS from -1 to 1.
@@ -328,7 +335,7 @@ public class Turret extends SubsystemBase{
     public double findAngleToTarget(){
         if(hasTarget == true){
             double distanceToApriltag = findDistance();
-            double xAngleInRadians = Math.toRadians(TX); 
+            double xAngleInRadians = Math.toRadians(TX);
 
             double xTarget = distanceToApriltag*Math.sin(xAngleInRadians);
             double yTarget = distanceToApriltag*Math.cos(xAngleInRadians);
@@ -339,7 +346,7 @@ public class Turret extends SubsystemBase{
             int apriltagNotFound = 0;
             System.out.println("ERROR: APRILTAG NOT FOUND");
 
-            return apriltagNotFound; 
+            return apriltagNotFound;
         }
     }
 
@@ -369,54 +376,58 @@ public class Turret extends SubsystemBase{
         }
     }
 
-    /*
-     * Adjusts the turret tracking based on the drivebase driving and turning.
-     */
     public void trackAndShoot() {
-        // 1. Get current robot pose and field-relative velocity
-        //shouldn't we be getting this from mt2 since we want to use this when it sees apriltag??
         Pose2d robotPose = m_drivetrain.getState().Pose;
-        
-        ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
-            m_drivetrain.getState().Speeds, 
-            robotPose.getRotation()
-        );
+        var hubPose = m_field_layout.getTagPose(26);
+        if (hubPose.isEmpty()) return;
 
-        // 2. Calculate Distance to Hub
-        var hub = m_field_layout.getTagPose(26).get().toPose2d();
-        double distance = robotPose.getTranslation().getDistance(hub.getTranslation());
+        Translation2d hubLocation = hubPose.get().toPose2d().getTranslation();
     
-        // 3. LEAD COMPENSATION: Calculate where to aim while moving
-        // shotVelocity: horizontal speed of the ball (m/s)
-        double shotVelocity = 15.0; //why
-        double timeToGoal = distance / shotVelocity;
+        // Calculate the 'Ideal' Robot-Relative Angle
+        // This is where the turret SHOULD be based on the map.
+        Rotation2d fieldAngle = hubLocation.minus(robotPose.getTranslation()).getAngle();
 
-        // Virtual target moves opposite to our robot's velocity
-        double virtualX = hub.getX() - (chassisSpeeds.vxMetersPerSecond * timeToGoal); //why would location of the hub from the shot velocity
-        double virtualY = hub.getY() - (chassisSpeeds.vyMetersPerSecond * timeToGoal);
-        Translation2d virtualTarget = new Translation2d(virtualX, virtualY);
-
-        System.out.println("hubX: " + hub.getX() + "hubY: " + hub.getY() + "X: " + robotPose.getX() + " Y: " + robotPose.getY() + " Xv: " + virtualX + " Yv: " + virtualY);
-
-        // 4. Calculate Angles
-        Rotation2d fieldAngle = virtualTarget.minus(robotPose.getTranslation()).getAngle();
         Rotation2d robotRelativeTarget = fieldAngle.minus(robotPose.getRotation());
 
-        // 5. Apply Smart Wrap & Gear Ratio
-        double motorRotations = calculateSmartWrap(robotRelativeTarget);
+        double finalMotorSetpoint;
 
-        // 6. Set Motor with Motion Magic (for smooth tracking)
-        m_turret.setControl(m_positionRequest.withPosition(motorRotations));
-    
-        // 7. Auto-Spin Shooter based on distance
-        double targetRPS = shootingDistance(); 
-        m_shooterLeft.setControl(m_voltage.withVelocity(targetRPS));
+        // Priority 1: Live Vision
+        if (LimelightHelpers.getTV("limelight-four")) {
+            m_visionLostFrames = 0;
+        
+            double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
+            double tx = LimelightHelpers.getTX("limelight-four");
+        
+            // Convert TX to motor rotations
+            double motorError = (tx / 360.0) * TurretConstants.gearRatio;
+
+            // Directly adjust based on what the camera sees
+            finalMotorSetpoint = currentMotorRotations - motorError;
+
+        } else {
+            // Priority 2: Odometry (The Fallback) Estimate the position based on the Supplied Welded Map
+            m_visionLostFrames++;
+        
+            if (m_visionLostFrames < 5) {
+                // Stay put for a split second to avoid "flicker jerks"
+                finalMotorSetpoint = m_turret.getPosition().getValueAsDouble();
+            } else {
+                // Use the Smart Wrap logic to find the best way home
+                finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
+            }
+        }
+
+        // Prevent turret from exceeding limits
+        double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
+
+        // Tell Turret to Move
+        m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));    
     }
 
     private double calculateConstrainedRotation(Rotation2d target) {
         double val = target.getRotations(); // Phoenix 6 likes rotations
-    
-        // Simple wrapping logic: If target is 0.6 rotations (216 deg), 
+
+        // Simple wrapping logic: If target is 0.6 rotations (216 deg),
         // and limit is 0.5 (180 deg), check if -0.4 rotations (-144 deg) is valid.
         if (val > (TurretConstants.leftLimit / 360.0)) val -= 1.0;
         if (val < (TurretConstants.rightLimit / 360.0)) val += 1.0;
@@ -428,7 +439,7 @@ public class Turret extends SubsystemBase{
     private double clampTurretRotations(double targetRotations) {
         double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
         double rightLimitRot = (TurretConstants.rightLimit / 360.0) * TurretConstants.gearRatio;
-    
+
         return MathUtil.clamp(targetRotations, rightLimitRot, leftLimitRot);
     }
 
@@ -438,32 +449,26 @@ public class Turret extends SubsystemBase{
      * @return new turret angle.
      */
     public double calculateSmartWrap(Rotation2d targetAngle) {
-        double targetDeg = targetAngle.getDegrees(); // The "ideal" robot-relative angle
+    // Standardize the target to be between -180 and 180
+    double targetDeg = targetAngle.getDegrees();
+    while (targetDeg > 180) targetDeg -= 360;
+    while (targetDeg < -180) targetDeg += 360;
 
-        // 1. Standardize target to -180 to 180
-        while (targetDeg > 180) targetDeg -= 360;
-        while (targetDeg < -180) targetDeg += 360;
-
-        // 2. Check if current target is within limits
-        if (targetDeg >= TurretConstants.rightLimit && targetDeg <= TurretConstants.leftLimit) {
-            return (targetDeg / 360.0) * TurretConstants.gearRatio;
-        }
-
-        // 3. If not, check the "other side" (add/subtract 360)
-        double alternativeSide;
-        if (targetDeg > 0) {
-            alternativeSide = targetDeg - 360;
+    // Check if it's within your physical constants
+    // If TurretConstants.rightLimit is -150 and target is -170, it's out of bounds
+    if (targetDeg < TurretConstants.rightLimit || targetDeg > TurretConstants.leftLimit) {
+        // It's outside the "legal" zone. Try the other way around.
+        double altTarget = (targetDeg > 0) ? targetDeg - 360 : targetDeg + 360;
+        
+        // If the alternative is legal, use it. Otherwise, clamp to the nearest edge.
+        if (altTarget >= TurretConstants.rightLimit && altTarget <= TurretConstants.leftLimit) {
+            targetDeg = altTarget;
         } else {
-            alternativeSide = targetDeg + 360;
+            targetDeg = MathUtil.clamp(targetDeg, TurretConstants.rightLimit, TurretConstants.leftLimit);
         }
+    }
 
-        // 4. If the alternative is within limits, use it. 
-        // Otherwise, clamp to the closest hard stop.
-        if (alternativeSide >= TurretConstants.rightLimit && alternativeSide <= TurretConstants.leftLimit) {
-        return (alternativeSide / 360.0) * TurretConstants.gearRatio;
-        } else {
-            return (MathUtil.clamp(targetDeg, TurretConstants.rightLimit, TurretConstants.leftLimit) / 360.0) * TurretConstants.gearRatio;
-        }
+        return (targetDeg / 360.0) * TurretConstants.gearRatio;
     }
 
     /**
@@ -473,74 +478,68 @@ public class Turret extends SubsystemBase{
     public boolean isReadyToShoot() {
         double error = Math.abs(m_turret.getClosedLoopError().getValueAsDouble());
         double shooterError = Math.abs(m_shooterLeft.getClosedLoopError().getValueAsDouble());
-    
+
         // Within ~1 degree of target and ~2 RPS of target shooter speed
         return (error < (1.0 / 360.0) * TurretConstants.gearRatio) && (shooterError < 2.0);
     }
 
-    /*
-     * Updates necessary values for the limelight and turret. 
-     */
     public void updateVisionOdometry() {
-        // 1. Get the current turret angle in degrees
-        double turretDegrees = getTurretDegree(); 
-
-        // 2. Dynamically update the camera's position relative to the ROBOT center
-        // We pass the turret's rotation as the YAW (the last parameter)
-        LimelightHelpers.setCameraPose_RobotSpace("limelight-four", 
-            VisionConstants.forwardOffsetMeters, 
-            VisionConstants.sideOffsetMeters, 
-            VisionConstants.altitudeMeters, 
-            VisionConstants.mountedDegree, 
-            0, // Roll
-            turretDegrees // Yaw (this is the key!)
-        );
-
-        // 3. Get the Pose Estimate using MegaTag2
-        // It needs the robot's current gyro yaw to stabilize the vision data
+        // Get the angle of the turret in degrees where 0 is facing "forward"
+        double turretDegrees = getTurretDegree();
+        // Get the rotation of the drivetrain where 0 is forwars
         double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
 
-        // Push the Pigeon 2.0 yaw to the Limelight so MegaTag2 can use it
-        LimelightHelpers.SetRobotOrientation("limelight-four", robotYaw, 0, 0, 0, 0, 0);
+        //Update the position of the camera since it is mounted to the turret (which spins)
+        double pivotX = 0.16;
+        double pivotY = 0.16; 
 
-        // Now the single-parameter method will work correctly
+        LimelightHelpers.setCameraPose_RobotSpace(
+            "limelight-four",
+            pivotX, pivotY, VisionConstants.altitudeMeters,
+            VisionConstants.mountedDegree, 0, turretDegrees
+        );
+
+        // Tells the Limelight which way the drive train is facing.
+        LimelightHelpers.SetRobotOrientation(
+            "limelight-four",
+            robotYaw, // Degrees
+            0, 0, 0, 0, 0
+        );
+
+        // Use the MegaTag 2 Pose
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
 
-        // 4. Feed the result into your Phoenix 6 Swerve Drivetrain
         if (mt2 != null && mt2.tagCount > 0) {
-            // Calculate how far our current Odometry is from what the Vision sees
-            double distanceError = m_drivetrain.getState().Pose.getTranslation().getDistance(mt2.pose.getTranslation());
-
-            // If we are more than 2 meters away from where we should be, "Seed" (Teleport) the robot.
-            // This fixes your X = -3.8 issue instantly the moment it sees a tag.
-            if (distanceError > 2.0) {
-                m_drivetrain.c_seedFieldRelativeWithVision();
-            } else {
-                // If we are already close, just blend the vision in normally
-                m_drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
-            }
+            m_drivetrain.addVisionMeasurement(
+                mt2.pose,
+                mt2.timestampSeconds
+            );
         }
     }
 
     @Override
     public void periodic() {
         updateVisionOdometry();
-        TY = LimelightHelpers.getTY("limelight-four");
-        hasTarget = LimelightHelpers.getTV("limelight-four");
-        SmartDashboard.putNumber("distance", findDistance());
-
-    //  if(debug){
-    //    double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret); 
-    //     double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
-    //     double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
-    //     double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter); 
-    //     double shooterD = SmartDashboard.getNumber("Shooter kD", TurretConstants.KDShooter);
-    //     double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
-    //     double RPS = SmartDashboard.getNumber("Shooter RPS", TurretConstants.shooterSpeed);
-    //     SmartDashboard.putNumber("turret degree", getTurretDegree());
-    //     SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
-
-    //      updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV, RPS);
-    //  }
     }
+
+
+        // public void periodic(){
+    //     //hasTarget = LimelightHelpers.getTV("limelight-four");
+
+    //     if(debug){
+    //         double turretP = SmartDashboard.getNumber("Turret kP", TurretConstants.KPTurret);
+    //         double turretD = SmartDashboard.getNumber("Turret kD", TurretConstants.KDTurret);
+    //         double turretS = SmartDashboard.getNumber("Turret kS", TurretConstants.KSTurret);
+    //         double shooterP = SmartDashboard.getNumber("Shooter kP", TurretConstants.KPShooter);
+    //         double shooterD = SmartDashboard.getNumber("Shooter kD", TurretConstants.KDShooter);
+    //         double shooterV = SmartDashboard.getNumber("Shooter kV", TurretConstants.KVShooter);
+    //         double RPS = SmartDashboard.getNumber("Shooter RPS", TurretConstants.shooterSpeed);
+    //         SmartDashboard.putNumber("turret degree", getTurretDegree());
+    //         SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
+
+    //         updateValues(turretP, turretD, turretS, shooterP, shooterD, shooterV, RPS);
+    //     }
+    //    SmartDashboard.putNumber("distance", findDistance());
+    //    SmartDashboard.putNumber("shooter speed", m_shooterLeft.getVelocity().getValueAsDouble());
+    // }
 }

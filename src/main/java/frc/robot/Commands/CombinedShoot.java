@@ -12,7 +12,6 @@ import frc.robot.Subsystems.Turret;
 public class CombinedShoot extends ParallelCommandGroup {
   /** Creates a new CombinedShoot. */
   public CombinedShoot(Turret turret, Conveyor conveyor, Spinster spinster) {
-    // Add your commands in the addCommands() call, e.g.
     addCommands((new ShootParallel(turret, conveyor, spinster).withTimeout(8)).beforeStarting((new ShootForParallel(turret)).withTimeout(0.3)));
   }
 }

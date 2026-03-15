@@ -15,6 +15,9 @@ import com.pathplanner.lib.auto.NamedCommands;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -145,6 +148,19 @@ public class RobotContainer {
     m_intake.homePivot(m_intake.m_leftPivot);
     m_intake.homePivot(m_intake.m_rightPivot);
     m_turret.resetTurret();
+
+
+
+    m_drivetrain.resetPose(new Pose2d(3.7, 4, Rotation2d.fromDegrees(0)));
+
+
+    // In your constructor or at the start of the match
+    var alliance = DriverStation.getAlliance();
+    if (alliance.isPresent() && ! onBlueTeam()) {
+        m_field_layout.setOrigin(AprilTagFieldLayout.OriginPosition.kRedAllianceWallRightSide);
+    } else {
+        m_field_layout.setOrigin(AprilTagFieldLayout.OriginPosition.kBlueAllianceWallRightSide);
+    }
   }
 
   /*
@@ -169,4 +185,9 @@ public class RobotContainer {
    public Command getAutonomousCommand() {
     return sendableAuton.getSelected();
   }
+
+  public boolean onBlueTeam() {
+    return DriverStation.getAlliance().get() == DriverStation.Alliance.Blue;
+  }
+
 }
