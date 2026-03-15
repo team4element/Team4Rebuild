@@ -17,7 +17,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "Transfer"
+                  "name": "Tap Intake"
                 }
               },
               {
@@ -42,13 +42,25 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "Extend + Intake"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Retract"
+          }
+        },
+        {
           "type": "parallel",
           "data": {
             "commands": [
               {
                 "type": "named",
                 "data": {
-                  "name": "Transfer"
+                  "name": "Tap Intake"
                 }
               },
               {

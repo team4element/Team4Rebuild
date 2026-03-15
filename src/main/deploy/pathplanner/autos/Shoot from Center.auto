@@ -17,13 +17,13 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "Transfer"
+                  "name": "Shoot"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "Shoot"
+                  "name": "Tap Intake"
                 }
               }
             ]

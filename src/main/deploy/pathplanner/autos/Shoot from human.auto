@@ -11,21 +11,40 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "Extend + Intake"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Retract"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Shoot from human pt. 2"
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Transfer"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "Tap Intake"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Shoot"
+                }
+              }
+            ]
           }
         }
       ]
