@@ -83,11 +83,13 @@ public class Intake extends SubsystemBase{
 
         m_limitConfigPivot.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
         m_limitConfigPivot.StatorCurrentLimitEnable = true;
+        m_limitConfigPivot.SupplyCurrentLimit = 50;
+        m_limitConfigPivot.SupplyCurrentLimitEnable = true;
 
         m_leftPivotConfigurator.apply(m_limitConfigPivot);
         m_rightPivotConfigurator.apply(m_limitConfigPivot);
 
-        // Current limmit pivot.
+        // Current limmit intake.
         m_limitConfigIntake = new CurrentLimitsConfigs();
 
         m_leftIntakeConfigurator = m_leftIntake.getConfigurator();
@@ -95,6 +97,8 @@ public class Intake extends SubsystemBase{
 
         m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
         m_limitConfigIntake.StatorCurrentLimitEnable = true;
+        m_limitConfigIntake.SupplyCurrentLimit = 60;
+        m_limitConfigIntake.SupplyCurrentLimitEnable = true;
 
         m_leftPivotConfigurator.apply(m_limitConfigIntake);
         m_rightPivotConfigurator.apply(m_limitConfigIntake);

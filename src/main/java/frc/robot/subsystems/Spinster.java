@@ -33,8 +33,10 @@ public class Spinster extends SubsystemBase{
 
         m_configurator = m_motor.getConfigurator();
     
-        m_currentLimit.StatorCurrentLimit = 80;
+        m_currentLimit.StatorCurrentLimit = 50;
         m_currentLimit.StatorCurrentLimitEnable = true;
+        m_currentLimit.SupplyCurrentLimit = 80;
+        m_currentLimit.SupplyCurrentLimitEnable = true;
 
         m_configurator.apply(m_currentLimit);
     }

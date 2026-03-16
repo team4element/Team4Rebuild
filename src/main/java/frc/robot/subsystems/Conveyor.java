@@ -33,6 +33,8 @@ public class Conveyor extends SubsystemBase{
         m_configurator = m_motor.getConfigurator();
         m_limitConfig.StatorCurrentLimit = ConveyorConstants.statorCurrentLimit;
         m_limitConfig.StatorCurrentLimitEnable = true;
+        m_limitConfig.SupplyCurrentLimit = ConveyorConstants.supplyCurrentLimit;
+        m_limitConfig.SupplyCurrentLimitEnable = true;
         m_configurator.apply(m_limitConfig);
     }
 
