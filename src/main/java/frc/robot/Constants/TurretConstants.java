@@ -12,11 +12,11 @@ public class TurretConstants {
     public static final double dutyCycleTurret = 0.5;
     public static final double dutyCycleShooter = 1;
 
-    public static final double turretStatorLimit = 60;
-    public static final double shooterStatorLimit = 100;
+    public static final double turretStatorLimit = 50;
+    public static final double shooterStatorLimit = 60;
 
-    public static final double turretSupplyLimit = 20;
-    public static final double shooterSupplyLimit = 20;
+    public static final double turretSupplyLimit = 80;
+    public static final double shooterSupplyLimit = 100;
 
     public static final double gearRatio = 11.66667; 
 
@@ -27,9 +27,9 @@ public class TurretConstants {
 
     // Refined Feedback/Feedforward
     public static final double KPTurret = 2.8;  
-    public static final double KDTurret = 0.1;  
+    public static final double KDTurret = 0.1;
     public static final double KSTurret = 0.25; 
-    public static final double KVTurret = 0.11; // 12V / ~105 Max RPS of Kraken/Falcon
+    public static final double KVTurret = 0.11; // 12V / ~105 Max RPS of Kraken/Falcon /0.11
 
     public static final double KPShooter = 0.3; 
     public static final double KIShooter = 0;
