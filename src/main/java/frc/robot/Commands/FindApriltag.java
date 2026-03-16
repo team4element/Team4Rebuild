@@ -32,10 +32,11 @@ public class FindApriltag extends Command {
   @Override
   public void initialize() {
     // Grabs the limelight's data. TX is negative because we want to turn in the opposite direction.
-    TX = -LimelightHelpers.getTX("limelight-four");
     hasTarget = LimelightHelpers.getTV("limelight-four");
     
     if(hasTarget){
+      TX = -LimelightHelpers.getTX("limelight-four");
+
       // This converts the constant into motor rotations.
       double rotationsError = (TX/360)*TurretConstants.gearRatio;
       double currentRotation = m_turret.getTurretRotation();

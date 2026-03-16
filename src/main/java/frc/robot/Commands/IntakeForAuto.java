@@ -5,6 +5,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import frc.robot.Commands.Auton.PivotForAuto;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Subsystems.Intake;
 

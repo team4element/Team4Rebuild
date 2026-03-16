@@ -14,6 +14,8 @@ public class TurretToPosition extends Command {
 
   public TurretToPosition(Turret turret, double position) {
     m_turret = turret;
+    m_position = position;
+
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(turret);
   }
