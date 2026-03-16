@@ -21,6 +21,8 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
@@ -79,6 +81,8 @@ public class Turret extends SubsystemBase {
     
         turretConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.turretStatorLimit;
         turretConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        turretConfig.CurrentLimits.SupplyCurrentLimit = TurretConstants.turretSupplyLimit;
+        turretConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         turretConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
         m_turret.getConfigurator().apply(turretConfig);
@@ -96,6 +100,8 @@ public class Turret extends SubsystemBase {
     
         shooterConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.shooterStatorLimit;
         shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        shooterConfig.CurrentLimits.SupplyCurrentLimit = TurretConstants.shooterSupplyLimit;
+        shooterConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         m_shooterLeft.getConfigurator().apply(shooterConfig);
         m_shooterRight.getConfigurator().apply(shooterConfig);
@@ -112,6 +118,7 @@ public class Turret extends SubsystemBase {
         SmartDashboard.putNumber("Turret kP", lastP);
         SmartDashboard.putNumber("Shooter kV", lastVS);
     
+        // --- Vision Configs ---
         LimelightHelpers.SetIMUMode("limelight-four", 0);
     }
 
@@ -148,12 +155,10 @@ public class Turret extends SubsystemBase {
 
     /**
      * Powers the turret motor through a position in rotations.
-     * @param angle from 0 to 360.
+     * @param angle between limits.
      */
     public void setYaw(double angle) {
-        if(angle <= 210 || angle >= 49){
-          m_turret.setControl(m_positionRequest.withPosition(angle));
-        }
+        m_turret.setControl(m_positionRequest.withPosition(angle*TurretConstants.gearRatio));
     }
 
     /*
@@ -176,19 +181,20 @@ public class Turret extends SubsystemBase {
      * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
      * @return degree of turret.
      */
-public double getTurretDegree(){
-    double motorRotations = m_turret.getPosition().getValueAsDouble();
-    double turretRotations = motorRotations / TurretConstants.gearRatio;
-    double turretDegrees = turretRotations * 360.0;
+    public double getTurretDegree(){
+        double motorRotations = m_turret.getPosition().getValueAsDouble();
+        double turretRotations = motorRotations / TurretConstants.gearRatio;
+        double turretDegrees = turretRotations * 360.0;
 
-    return turretDegrees;
-}
+        return turretDegrees;
+    }
+
     /**
      * Grabs the turret motor's rotation and converts it into the turret's position by dividing with the gear ratio.
      * @return the motor rotation of turret.
      */
     public double getTurretRotation(){
-        return m_turret.getPosition().getValueAsDouble()/TurretConstants.gearRatio;
+        return m_turret.getPosition().getValueAsDouble();
     }
 
     /**
@@ -230,7 +236,7 @@ public double getTurretDegree(){
      */
     public double findDistance(){
         if(hasTarget){
-            double degreesToGoal = VisionConstants.mountedDegree + TY;          
+            double degreesToGoal = 7 + TY;          
             double radiansToGoal = degreesToGoal * (Math.PI/180);
 
             // The formula below can be used to find the degree the limelight is rotated backward from vertical.
@@ -238,11 +244,13 @@ public double getTurretDegree(){
 
             distance = (VisionConstants.hubApriltagHeightMeters - VisionConstants.altitudeMeters)/Math.tan(radiansToGoal);
 
-            // if(distance>=TurretConstants.distanceUpperLimit || distance<=TurretConstants.distanceLowerLimit){
-            //     distance = 0;
+            if(distance>=TurretConstants.distanceUpperLimit || distance<=TurretConstants.distanceLowerLimit){
+               distance = 0;
 
-            // }
-        }  
+            }
+        } else{
+            distance = 2;
+        }
         return distance;
     }
 
@@ -260,7 +268,6 @@ public double getTurretDegree(){
     }
 
     public void startShooter(double RPS) {
-        System.out.println(RPS +  " | " + m_shooterLeft.getVelocity().toString());
         m_shooterLeft.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
     }
 
@@ -312,7 +319,16 @@ public double getTurretDegree(){
 
     public void trackAndShoot() {
         Pose2d robotPose = m_drivetrain.getState().Pose;
-        var hubPose = m_field_layout.getTagPose(26);
+        int ID;
+
+        if(DriverStation.getAlliance().get() == Alliance.Blue){
+           ID = 26;
+        }else{
+           ID = 10;
+        }
+
+        var hubPose = m_field_layout.getTagPose(ID);
+
         if (hubPose.isEmpty()) return;
 
         Translation2d hubLocation = hubPose.get().toPose2d().getTranslation();
@@ -454,5 +470,6 @@ public double getTurretDegree(){
 
         SmartDashboard.putNumber("distance", findDistance());
         updateVisionOdometry();
+        System.out.println(getTurretRotation());
     }
 }

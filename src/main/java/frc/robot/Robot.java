@@ -4,7 +4,13 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.commands.PathPlannerAuto;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -17,6 +23,8 @@ public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
+  PathPlannerAuto auto;
+  Pose2d startPose;
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -60,7 +68,10 @@ public class Robot extends TimedRobot {
   public void autonomousInit() {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     m_robotContainer.c_fieldRelative();
-    m_robotContainer.onEnable();
+
+    auto = new PathPlannerAuto(m_autonomousCommand.getName());
+    startPose = auto.getStartingPose();
+    m_robotContainer.onEnable(startPose);
 
     LimelightHelpers.SetIMUMode("limelight-four", 1);
 
@@ -80,7 +91,16 @@ public class Robot extends TimedRobot {
     // continue until interrupted by another command, remove
     // this line or comment it out.
 
-     m_robotContainer.onEnable();
+    if(startPose == null){
+      if(DriverStation.getAlliance().get() == Alliance.Red){
+        m_robotContainer.onEnable(new Pose2d(12.9, 4.0, new Rotation2d(0)));
+      }else {
+        m_robotContainer.onEnable(new Pose2d(3.65, 4.0, new Rotation2d(0)));
+      }
+
+    } else{
+      m_robotContainer.onEnable(startPose);
+    }
      
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();

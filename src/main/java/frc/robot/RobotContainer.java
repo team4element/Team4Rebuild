@@ -16,7 +16,6 @@ import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -24,15 +23,15 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.ConveyToTurret;
-import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
-import frc.robot.Commands.Shoot;
 import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
+import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.Auton.ShootForAuton;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
@@ -88,7 +87,12 @@ public class RobotContainer {
     m_conveyor = new Conveyor();
 
     // Configure the trigger bindings
-    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_turret, m_conveyor, m_spinster).withTimeout(TurretConstants.shooterTimeout));
+    NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
+    NamedCommands.registerCommand("Short Shot", new ShootForAuton(m_turret, m_conveyor, m_spinster, 70).withTimeout(3));
+    NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
+    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
+    NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14));
+    NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14));
     //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Retract", new PositionPivot(m_intake).withTimeout(IntakeConstants.intakeTimeout));
@@ -105,45 +109,46 @@ public class RobotContainer {
     // These are the subsystem default commands.
     m_drivetrain.setDefaultCommand(
      //  Drivetrain will execute this command periodically
-      m_drivetrain.applyRequest(() ->
-        drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
-             .withVelocityY(ControllerConstants.xTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
-             .withRotationalRate(ControllerConstants.zRotationModifier.apply(
-                -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-      )
-    );
-
-    // These are the driver controls: 
-    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
-    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
+     m_drivetrain.applyRequest(() ->
       fcDrive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
                 -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
               .withVelocityY(ControllerConstants.xTranslationModifier.apply(
                 -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
               .withRotationalRate(ControllerConstants.zRotationModifier.apply(
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
+      )
+    );
+
+    // These are the driver controls: 
+    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
+    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
+        drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
+             .withVelocityY(ControllerConstants.xTranslationModifier.apply(
+                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
+             .withRotationalRate(ControllerConstants.zRotationModifier.apply(
+                -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
     
 
     //DEBUG DO KEEP (PROBABLY)
     // ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
-    ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
-    ControllerConstants.driverController.x().whileTrue(new Shoot(m_turret, 50));
+    //ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
     // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
     // ControllerConstants.driverController.povLeft().whileTrue(new TurretManual(m_turret));
     //END DEBUG
 
+    ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
+
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
-    ControllerConstants.operatorController.x().whileTrue(new TransferFuel(m_spinster, m_conveyor, ConveyorConstants.conveyorSpeed, SpinsterConstants.spinsterSpeed));
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
-    ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
     // ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
 
+    // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
+    // Inverse conveyor systems.
     ControllerConstants.operatorController.povDown().whileTrue(new ConveyToTurret(m_conveyor, -ConveyorConstants.conveyorSpeed));
   
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed));
@@ -152,17 +157,15 @@ public class RobotContainer {
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, IntakeConstants.pivotSpeed));
   }
 
-
   /*
    * This runs in initialize on auton to set the climb and turret's starting position.
    */
-  public void onEnable(){
+  public void onEnable(Pose2d startLocation){
     m_intake.homePivot(m_intake.m_leftPivot);
     m_intake.homePivot(m_intake.m_rightPivot);
     m_turret.resetTurret();
 
-    m_drivetrain.resetPose(new Pose2d(3.7, 4, Rotation2d.fromDegrees(0)));
-
+    m_drivetrain.resetPose(startLocation);
 
     // In your constructor or at the start of the match
     var alliance = DriverStation.getAlliance();
@@ -196,6 +199,7 @@ public class RobotContainer {
     return sendableAuton.getSelected();
   }
 
+  /* */
   public boolean onBlueTeam() {
     return DriverStation.getAlliance().get() == DriverStation.Alliance.Blue;
   }
