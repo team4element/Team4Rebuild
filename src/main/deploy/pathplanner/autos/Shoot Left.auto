@@ -11,22 +11,15 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Retract"
-                }
-              }
-            ]
+            "name": "Turret Left"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Short Shot"
           }
         }
       ]

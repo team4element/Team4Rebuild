@@ -13,13 +13,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Extend + Intake"
+            "name": "Turret from Human"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Retract"
+            "name": "Short Shot"
           }
         },
         {
@@ -29,22 +29,15 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Tap Intake"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              }
-            ]
+            "name": "Turret Right"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Long Shot"
           }
         }
       ]

@@ -11,22 +11,15 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Tap Intake"
-                }
-              }
-            ]
+            "name": "Turret Left"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Short Shot"
           }
         },
         {
@@ -36,40 +29,21 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "Extend + Intake"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Retract"
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "Fuel to shoot position"
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Tap Intake"
-                }
-              }
-            ]
+            "name": "Turret Left"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Short Shot"
           }
         }
       ]

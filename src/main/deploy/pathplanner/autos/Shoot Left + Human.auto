@@ -11,34 +11,33 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Tap Intake"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Climb Left"
+            "name": "Turret Left"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Climb"
+            "name": "Short Shot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Go to Human Left"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Turret from Human"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Long Shot"
           }
         }
       ]

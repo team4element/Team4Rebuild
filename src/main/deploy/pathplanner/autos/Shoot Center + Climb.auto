@@ -17,13 +17,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "Tap Intake"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
+                  "name": "Aim"
                 }
               }
             ]
