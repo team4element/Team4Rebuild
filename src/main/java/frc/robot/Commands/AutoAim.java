@@ -24,21 +24,18 @@ public class AutoAim extends Command {
     m_turret.trackAndShoot();
 
     if (m_turret.isReadyToShoot()) {
-        // Vibrate the operator controller so they know to hit the "Fire" button
-        ControllerConstants.operatorController.getHID()
-            .setRumble(RumbleType.kBothRumble, 0.2);
+        // Vibrate the operator controller so they know to shoot
+        ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0.2);
     } else {
-        ControllerConstants.operatorController.getHID()
-            .setRumble(RumbleType.kBothRumble, 0);
+        ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0);
     }
-}
+  }
 
   @Override
   public void end(boolean interrupted) {
     m_turret.stopMotors(); 
 
-    ControllerConstants.operatorController.getHID()
-            .setRumble(RumbleType.kBothRumble, 0);
+    ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0);
     // Or: m_turret.returnToStartPosition();
   }
 

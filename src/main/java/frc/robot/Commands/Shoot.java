@@ -41,7 +41,8 @@ public class Shoot extends Command {
     double setpoint;
 
     if (m_RPS == let_distance_decide) {
-        setpoint = m_turret.shootingDistance();
+        // setpoint = m_turret.shootingDistance();
+        setpoint = m_turret.shootingDistanceMoving();
     } else {
         setpoint = m_RPS; // This will stay 50 every single loop
     }

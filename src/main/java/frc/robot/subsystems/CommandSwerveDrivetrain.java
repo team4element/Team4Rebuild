@@ -29,6 +29,7 @@ import edu.wpi.first.math.estimator.PoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.numbers.N1;
@@ -529,5 +530,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public Command c_updateSpeed(int speedMode){
         return runOnce(() -> setSpeed(speedMode));
+    }
+
+    // Convert to field-relative using the robot's current rotation
+    public ChassisSpeeds getFieldRelativeVelocity() {
+        var state = this.getState();
+        ChassisSpeeds robotSpeeds = kKinematics.toChassisSpeeds(state.ModuleStates);
+    
+        return ChassisSpeeds.fromRobotRelativeSpeeds(robotSpeeds, state.Pose.getRotation());
     }
 }

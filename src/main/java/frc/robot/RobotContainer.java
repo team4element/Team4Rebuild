@@ -77,14 +77,13 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    m_drivetrain = TunerConstants.createDrivetrain();
-    // Use the drivetrain in the turret.
     m_field_layout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+    m_drivetrain = TunerConstants.createDrivetrain();
     m_turret = new Turret(m_field_layout, m_drivetrain);
-    //m_climb = new Climb();
     m_intake = new Intake();
     m_spinster = new Spinster();
     m_conveyor = new Conveyor();
+    //m_climb = new Climb();
 
     // Configure the trigger bindings
     NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
@@ -119,7 +118,7 @@ public class RobotContainer {
       )
     );
 
-    // These are the driver controls: 
+    // These are the driver controls:
     ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
     ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
         drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
@@ -129,9 +128,9 @@ public class RobotContainer {
              .withRotationalRate(ControllerConstants.zRotationModifier.apply(
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
-    
 
-    //DEBUG DO KEEP (PROBABLY)
+
+    //DEBUG DO NOT KEEP (PROBABLY)
     // ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
     //ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
     // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
@@ -150,7 +149,7 @@ public class RobotContainer {
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
     // Inverse conveyor systems.
     ControllerConstants.operatorController.povDown().whileTrue(new ConveyToTurret(m_conveyor, -ConveyorConstants.conveyorSpeed));
-  
+
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed));
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed));
     ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, IntakeConstants.pivotSpeed));
@@ -167,7 +166,6 @@ public class RobotContainer {
 
     m_drivetrain.resetPose(startLocation);
 
-    // In your constructor or at the start of the match
     var alliance = DriverStation.getAlliance();
     if (alliance.isPresent() && ! onBlueTeam()) {
         m_field_layout.setOrigin(AprilTagFieldLayout.OriginPosition.kRedAllianceWallRightSide);
