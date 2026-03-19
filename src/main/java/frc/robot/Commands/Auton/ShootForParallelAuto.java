@@ -5,19 +5,19 @@
 package frc.robot.Commands.Auton;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Turret;
+import frc.robot.Subsystems.Shooter;
 
 public class ShootForParallelAuto extends Command {
   /** Creates a new Shoot. */
-  public Turret m_turret;
+  public Shooter m_shooter;
   public double m_RPS;
   
-  public ShootForParallelAuto(Turret turret, double RPS) {
-    m_turret = turret;
+  public ShootForParallelAuto(Shooter shooter, double RPS) {
+    m_shooter = shooter;
     m_RPS = RPS;
 
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(turret);
+    addRequirements(m_shooter);
   }
 
   // Called when the command is initially scheduled.
@@ -27,7 +27,7 @@ public class ShootForParallelAuto extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.startShooter(m_RPS);
+    m_shooter.setRPS(m_RPS);
   }
 
   // Called once the command ends or is interrupted.

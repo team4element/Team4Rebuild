@@ -39,11 +39,12 @@ import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
+import frc.robot.Subsystems.Turret;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Spinster;
-import frc.robot.Subsystems.Turret;
+import frc.robot.Subsystems.Shooter;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -73,6 +74,7 @@ public class RobotContainer {
   public final Intake m_intake;
   public final Spinster m_spinster;
   public final Conveyor m_conveyor;
+  public final Shooter m_shooter;
 
   public final AprilTagFieldLayout m_field_layout;
 
@@ -85,10 +87,11 @@ public class RobotContainer {
     m_spinster = new Spinster();
     m_conveyor = new Conveyor();
     //m_climb = new Climb();
+    m_shooter = new Shooter();
 
     // Configure the trigger bindings
-    NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
-    NamedCommands.registerCommand("Short Shot", new ShootForAuton(m_turret, m_conveyor, m_spinster, 70).withTimeout(3));
+    NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
+    NamedCommands.registerCommand("Short Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 70).withTimeout(3));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
     NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14));
@@ -142,7 +145,7 @@ public class RobotContainer {
     //END DEBUG
 
     // These are the operator controls:
-    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
+    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
     // ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
 

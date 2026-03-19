@@ -5,17 +5,21 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import frc.robot.Constants.ConveyorConstants;
+import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Spinster;
 import frc.robot.Subsystems.Turret;
+import frc.robot.Subsystems.Shooter;
 
 public class CombinedShoot extends SequentialCommandGroup {
-  public CombinedShoot(Turret turret, Conveyor conveyor, Spinster spinster) {
+  public CombinedShoot(Shooter shooter, Turret turret, Conveyor conveyor, Spinster spinster) {
     addCommands(
-        new ShootForParallel(turret).withTimeout(0.5), 
+        new ShootForParallel(shooter, turret).withTimeout(0.5), 
 
         new ParallelCommandGroup(
-            new Shoot(turret), 
+            new Shoot(shooter, turret, turret.shootingDistance()), //TODO UPDATE SHOOT DISTANCE AND FIX BUG WHERE SHOOTER SOMETIMES CONTINUES TO RUN 
             new TransferFuel(spinster, conveyor, -SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed)
         ).withTimeout(9.5)
     );

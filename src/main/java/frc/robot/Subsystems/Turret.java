@@ -6,14 +6,10 @@
 package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -36,8 +32,6 @@ import frc.robot.Constants.VisionConstants;
 public class Turret extends SubsystemBase {
     // Hardware
     private final TalonFX m_turret;
-    private final TalonFX m_shooterLeft;
-    private final TalonFX m_shooterRight;
 
     // Control Requests
     private final DutyCycleOut m_dutyCycleTurret;
@@ -46,7 +40,6 @@ public class Turret extends SubsystemBase {
 
     // Configurations
     private final TalonFXConfiguration turretConfig = new TalonFXConfiguration();
-    private final TalonFXConfiguration shooterConfig = new TalonFXConfiguration();
 
     // Dependencies
     private final CommandSwerveDrivetrain m_drivetrain;
@@ -67,8 +60,6 @@ public class Turret extends SubsystemBase {
 
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_turret = new TalonFX(TurretConstants.turretID);
-        m_shooterLeft = new TalonFX(TurretConstants.shooterLeftID);
-        m_shooterRight = new TalonFX(TurretConstants.shooterRightID);
         m_field_layout = field_layout;
         m_drivetrain = drivetrain;
 
@@ -94,36 +85,11 @@ public class Turret extends SubsystemBase {
 
         m_turret.getConfigurator().apply(turretConfig);
 
-        // --- Shooter Config ---
-        shooterConfig.Slot0.kP = TurretConstants.KPShooter;
-        shooterConfig.Slot0.kI = TurretConstants.KIShooter;
-        shooterConfig.Slot0.kD = TurretConstants.KDShooter;
-        shooterConfig.Slot0.kV = TurretConstants.KVShooter;
-    
-        shooterConfig.Feedback.FeedbackSensorSource = com.ctre.phoenix6.signals.FeedbackSensorSourceValue.RotorSensor;
-    
-        shooterConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
-        shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-    
-        shooterConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.shooterStatorLimit;
-        shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-        shooterConfig.CurrentLimits.SupplyCurrentLimit = TurretConstants.shooterSupplyLimit;
-        shooterConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
-
-        m_shooterLeft.getConfigurator().apply(shooterConfig);
-        m_shooterRight.getConfigurator().apply(shooterConfig);
-
-        m_shooterRight.setControl(new Follower(m_shooterLeft.getDeviceID(), MotorAlignmentValue.Opposed));
-
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
         lastS = TurretConstants.KSTurret;
-        lastPS = TurretConstants.KPShooter;
-        lastDS = TurretConstants.KDShooter;
-        lastVS = TurretConstants.KVShooter;
 
         SmartDashboard.putNumber("Turret kP", lastP);
-        SmartDashboard.putNumber("Shooter kV", lastVS);
     
         // --- Vision Configs ---
         LimelightHelpers.SetIMUMode("limelight-four", 0);
@@ -153,14 +119,6 @@ public class Turret extends SubsystemBase {
     }
 
     /**
-     * Gets the rotation per second of shooter leader motor.
-     * @return RPS.
-     */
-    public double getRPS(){
-        return m_shooterLeft.getVelocity().getValueAsDouble();
-    }
-
-    /**
      * Powers the turret motor through a position in rotations.
      * @param angle between limits.
      */
@@ -169,12 +127,10 @@ public class Turret extends SubsystemBase {
     }
 
     /*
-     * Stops both the turret and shooter movement.
+     * Stops both the turret  movement.
      */
     public void stopMotors(){
         m_turret.setControl(m_dutyCycleTurret.withOutput(0));
-        m_shooterLeft.setControl(m_dutyCycleTurret.withOutput(0));
-        m_shooterRight.setControl(m_dutyCycleTurret.withOutput(0));
     }
 
     /*
@@ -320,10 +276,6 @@ public class Turret extends SubsystemBase {
         return targetRPS;
     }
 
-    public void startShooter(double RPS) {
-        m_shooterLeft.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
-    }
-
     /**
      * Gets the degree the robot needs to turn to get to center of apriltag if the apritag is detected.
      * Results in an error if the apriltag isn't there.
@@ -358,12 +310,7 @@ public class Turret extends SubsystemBase {
             turretConfig.Slot0.kP = P;
             turretConfig.Slot0.kD = D;
             turretConfig.Slot0.kS = S;
-            shooterConfig.Slot0.kP = PS;
-            shooterConfig.Slot0.kD = DS;
-            shooterConfig.Slot0.kV = VS;
             m_turret.getConfigurator().apply(turretConfig);
-            m_shooterLeft.getConfigurator().apply(shooterConfig);
-            m_shooterRight.getConfigurator().apply(shooterConfig);
 
             lastP = P; lastD = D; lastS = S; lastPS = PS; lastDS = DS; lastVS = VS;
         }

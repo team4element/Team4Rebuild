@@ -8,23 +8,27 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.TurretConstants;
+import frc.robot.Subsystems.Shooter;
 import frc.robot.Subsystems.Turret;
 
 public class FindApriltag extends Command {
   /** Creates a new FollowApriltag. */
   public Turret m_turret;
+  public Shooter m_shooter;
   public double TX;
   public boolean hasTarget;
   public double currentPose;
   public double FPS;
   public double targetRotation;
   public double distance;
+  
  // private final double kMinCommand = 0.0003;
 
-  public FindApriltag(Turret turret) {
+  public FindApriltag(Shooter shooter, Turret turret) {
     m_turret = turret;
+    m_shooter = shooter;
 
-    // Use addRequirements() here to declare subsystem dependencies.
+    addRequirements(shooter);
     addRequirements(turret);
   }
 
@@ -75,7 +79,7 @@ public class FindApriltag extends Command {
     // This puts the data onto the dashboard.
     if(m_turret.getTurretDegree() >= targetRotation-0.5){
       SmartDashboard.putBoolean("Shoot Ready", true);
-      m_turret.startShooter(distance);
+      m_shooter.setRPS(distance);
     }else {
       SmartDashboard.putBoolean("Shoot Ready", false);
     }

@@ -5,28 +5,31 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Subsystems.Shooter;
 import frc.robot.Subsystems.Turret;
 
 public class Shoot extends Command {
   /** Creates a new Shoot. */
-  public Turret m_turret;
+  private Shooter m_shooter;
+  private Turret m_turret;
   private final double let_distance_decide = -1;
   private double m_RPS;
 
-  public Shoot(Turret turret, double RPS) {
+  public Shoot(Shooter shooter, Turret turret, double RPS) {
     m_turret = turret;
+    m_shooter = shooter;
     m_RPS = RPS;
 
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(turret);
+    addRequirements(shooter);
   }
 
-  public Shoot(Turret turret) {
-      m_turret = turret;
+  public Shoot(Shooter shooter) {
+      m_shooter = shooter;
       m_RPS = let_distance_decide;
 
       // Use addRequirements() here to declare subsystem dependencies.
-      addRequirements(turret);
+      addRequirements(shooter);
   }
 
   // Called when the command is initially scheduled.
@@ -47,13 +50,13 @@ public class Shoot extends Command {
         setpoint = m_RPS; // This will stay 50 every single loop
     }
 
-    m_turret.startShooter(setpoint);
+    m_shooter.setRPS(setpoint);
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors();
+    m_shooter.stop();;
   }
 
   // Returns true when the command should end.

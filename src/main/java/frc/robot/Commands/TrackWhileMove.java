@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.LimelightHelpers;
+import frc.robot.Constants.ShooterConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Turret;
@@ -69,7 +70,7 @@ public class TrackWhileMove extends Command {
     
     if(hasTarget){
       // Places higher pid values to the turret.
-      m_turret.updateValues(3.5, 0.22, 0.8, TurretConstants.KPShooter, TurretConstants.KDShooter, TurretConstants.KVShooter);
+      m_turret.updateValues(3.5, 0.22, 0.8, ShooterConstants.KPShooter, ShooterConstants.KDShooter, ShooterConstants.KVShooter);
 
       double goalAngle = Math.atan2(targetPose.getY() - robotCurrentPose.getY(), targetPose.getX() - robotCurrentPose.getX());
 

@@ -8,13 +8,14 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import frc.robot.Commands.Shoot;
 import frc.robot.Commands.TransferFuel;
 import frc.robot.Subsystems.Conveyor;
+import frc.robot.Subsystems.Shooter;
 import frc.robot.Subsystems.Spinster;
 import frc.robot.Subsystems.Turret;
 
 public class ShootParallelAuto extends ParallelCommandGroup {
   /** Creates a new CombinedShoot. */
-  public ShootParallelAuto(Turret turret, Conveyor conveyor, Spinster spinster, double RPS) {
+  public ShootParallelAuto(Shooter shooter, Turret turret, Conveyor conveyor, Spinster spinster, double RPS) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new TransferFuel(spinster, conveyor, 0.75, -1), new Shoot(turret, RPS));
+    addCommands(new TransferFuel(spinster, conveyor, 0.75, -1), new Shoot(shooter, turret, RPS));
   }
 }
