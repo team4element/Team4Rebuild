@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.ConveyToTurret;
+import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
@@ -131,13 +132,14 @@ public class RobotContainer {
 
 
     //DEBUG DO NOT KEEP (PROBABLY)
-    // ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
+    ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
+      ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
     //ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
     // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
     // ControllerConstants.driverController.povLeft().whileTrue(new TurretManual(m_turret));
     //END DEBUG
-
-    ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));

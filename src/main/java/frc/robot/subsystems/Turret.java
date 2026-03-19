@@ -60,7 +60,7 @@ public class Turret extends SubsystemBase {
     private boolean hasTarget;
 
     // ETC
-    Translation2d virtualHubLocation;
+    Translation2d virtualHubLocation = new Translation2d(0, 0);
 
     @SuppressWarnings("unused")
     private boolean debug = false;
@@ -485,7 +485,7 @@ public class Turret extends SubsystemBase {
             double tx = LimelightHelpers.getTX("limelight-four");
     
             // Convert TX degrees to motor rotations
-            double motorError = (tx / 360.0) * TurretConstants.gearRatio;
+            double motorError = -(tx / 360.0) * TurretConstants.gearRatio;
             finalMotorSetpoint = currentMotorRotations + motorError; 
         } else {
             // MOVING OR NO TARGET: Use Compensated Odometry (Calculated above)
@@ -592,7 +592,6 @@ public class Turret extends SubsystemBase {
 
         // Constants for thresholds
         double turretTolerance = (1.5 / 360.0) * TurretConstants.gearRatio; // 1.5 degrees
-        double shooterTolerance = 2.0; // 2 RPS
         double visualTolerance = 2.0; // 2 degrees on camera
 
         boolean motorsReady = (turretMotorError < turretTolerance);
@@ -610,8 +609,7 @@ public class Turret extends SubsystemBase {
         // Get the angle of the turret in degrees where 0 is facing "forward"
         double turretDegrees = getTurretDegree();
         // Get the rotation of the drivetrain where 0 is forwars
-        // double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
-        double robotYaw = m_drivetrain.getGyroAngle().getDegrees();
+        double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
 
         //Update the position of the camera since it is mounted to the turret (which spins)
         double pivotX = 0.16;

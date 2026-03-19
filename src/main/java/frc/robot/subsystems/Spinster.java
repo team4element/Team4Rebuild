@@ -46,6 +46,8 @@ public class Spinster extends SubsystemBase{
      * @param speedPercentage from -1 to 1.
      */
     public void runMotor(double speedPercentage){
+
+        System.out.println(speedPercentage);
         m_motor.setControl(m_dutyCycle.withOutput(speedPercentage));
     }
 
