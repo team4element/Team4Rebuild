@@ -24,8 +24,9 @@ public class Shoot extends Command {
     addRequirements(shooter);
   }
 
-  public Shoot(Shooter shooter) {
+  public Shoot(Shooter shooter, Turret turret) {
       m_shooter = shooter;
+      m_turret = turret;
       m_RPS = let_distance_decide;
 
       // Use addRequirements() here to declare subsystem dependencies.
@@ -45,7 +46,7 @@ public class Shoot extends Command {
 
     if (m_RPS == let_distance_decide) {
         // setpoint = m_turret.shootingDistance();
-        setpoint = m_turret.shootingDistanceMoving();
+        setpoint = m_turret.shootingDistance();
     } else {
         setpoint = m_RPS; // This will stay 50 every single loop
     }

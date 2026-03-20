@@ -19,7 +19,7 @@ public class CombinedShoot extends SequentialCommandGroup {
         new ShootForParallel(shooter, turret).withTimeout(0.5), 
 
         new ParallelCommandGroup(
-            new Shoot(shooter, turret, turret.shootingDistance()), //TODO UPDATE SHOOT DISTANCE AND FIX BUG WHERE SHOOTER SOMETIMES CONTINUES TO RUN 
+            new Shoot(shooter, turret), 
             new TransferFuel(spinster, conveyor, -SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed)
         ).withTimeout(9.5)
     );

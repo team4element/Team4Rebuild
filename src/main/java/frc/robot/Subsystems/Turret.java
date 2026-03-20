@@ -46,11 +46,12 @@ public class Turret extends SubsystemBase {
     private final AprilTagFieldLayout m_field_layout;
 
     // Logic State
-    private int m_visionLostFrames = 0;
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
     private double TX, TY;
     private double distance = 0;
     private boolean hasTarget;
+    private int m_visionLostCounter = 0;
+    private int kVisionThreshold = 5;
 
     // ETC
     Translation2d virtualHubLocation = new Translation2d(0, 0);
@@ -92,6 +93,7 @@ public class Turret extends SubsystemBase {
         SmartDashboard.putNumber("Turret kP", lastP);
     
         // --- Vision Configs ---
+        m_visionLostCounter = 0;
         LimelightHelpers.SetIMUMode("limelight-four", 0);
     }
 
@@ -216,87 +218,80 @@ public class Turret extends SubsystemBase {
     //     return distance;
     // }
 
-    public double findDistance() {
-        // "targetpose_robotspace" returns [x, y, z, roll, pitch, yaw] in meters and degrees
-        double[] pose = NetworkTableInstance.getDefault()
-            .getTable("limelight")
-            .getEntry("targetpose_robotspace")
-            .getDoubleArray(new double[0]);
-
-        // Check if we actually have data (array will be empty if no target)
-        if (pose.length >= 6) {
-            double x = pose[0]; // Meters (left/right)
-            double y = pose[1]; // Meters (up/down)
-            double z = pose[2]; // Meters (forward/backward)
-
-            // Calculate 2D horizontal distance (floor distance) in meters
-            // This is usually what you want for a shooter or turret.
-            distance = Math.sqrt(Math.pow(x, 2) + Math.pow(z, 2));
-
-            // Range Validation (ensure these constants are also in meters!)
-            if (distance >= TurretConstants.distanceUpperLimit || 
-                distance <= TurretConstants.distanceLowerLimit) {
-                distance = 0;
-            }
-            } else {
-                // No target found
-                distance = 2.0; 
-            }
-    
-        return distance;
-    }
-
-
-    public double shootingDistance() {
-        double distInches = findDistance() * TurretConstants.metersToInches;
-        if (distInches == 0) return 0;
-    
-        double targetRPS = (0.000011 * Math.pow(distInches, 3)) - 
-                       (0.003632 * Math.pow(distInches, 2)) + 
-                       (0.59999 * distInches) + 32.574475;
-                       
-        return targetRPS;
-    }
-
-    public double shootingDistanceMoving() {
-        // Get the Virtual Target
-        Pose2d robotPose = m_drivetrain.getState().Pose;
-    
-        // Use the virtual target that accounts for robot velocity
-        double virtualDistanceMeters = robotPose.getTranslation().getDistance(virtualHubLocation);
-        double distInches = virtualDistanceMeters * TurretConstants.metersToInches;
-
-        if (distInches == 0) return 0;
-
-        //Regrssion formula we got from MatLab (Ask google how to get a regression curve)
-        double targetRPS = (0.000011 * Math.pow(distInches, 3)) - 
-                       (0.003632 * Math.pow(distInches, 2)) + 
-                       (0.59999 * distInches) + 32.574475;
-                       
-        return targetRPS;
-    }
 
     /**
-     * Gets the degree the robot needs to turn to get to center of apriltag if the apritag is detected.
-     * Results in an error if the apriltag isn't there.
-     * @return The degree in radians.
-     */
-    public double findAngleToTarget(){
-        if(hasTarget == true){
-            double distanceToApriltag = findDistance();
-            double xAngleInRadians = Math.toRadians(TX);
+    * ONE function to rule them all. 
+    * Returns distance in METERS using Vision (primary) or Odometry (fallback).
+    */
+    public double getBestDistanceMeters() {
+        boolean seeTag = LimelightHelpers.getTV("limelight-four");
+        double distMeters = 0;
 
-            double xTarget = distanceToApriltag*Math.sin(xAngleInRadians);
-            double yTarget = distanceToApriltag*Math.cos(xAngleInRadians);
-
-            double angle = Math.atan2(xTarget, yTarget);
-            return angle;
-        }else{
-            int apriltagNotFound = 0;
-            System.out.println("ERROR: APRILTAG NOT FOUND");
-
-            return apriltagNotFound;
+        // 1. Update Flicker Protection
+        if (seeTag) {
+            m_visionLostCounter = 0;
+        } else {
+            m_visionLostCounter++;
         }
+
+        // 2. Determine Distance Source
+        if (seeTag && m_visionLostCounter < kVisionThreshold) {
+            // --- VISION STRATEGY ---
+            double[] pose = NetworkTableInstance.getDefault()
+                .getTable("limelight-four")
+                .getEntry("targetpose_robotspace")
+                .getDoubleArray(new double[0]);
+
+            if (pose.length >= 6) {
+                // Targetpose_robotspace: [x, y, z, roll, pitch, yaw]
+                double x = pose[0];
+                double z = pose[2];
+                distMeters = Math.sqrt(Math.pow(x, 2) + Math.pow(z, 2));
+            } else {
+                distMeters = getOdometryDistanceMeters();
+            }
+        } else {
+            // --- ODOMETRY STRATEGY ---
+            distMeters = getOdometryDistanceMeters();
+        }
+
+        // 3. Final Validation
+        if (distMeters > TurretConstants.distanceUpperLimit || distMeters < TurretConstants.distanceLowerLimit) {
+            // If out of physical range, default to Odometry as a safety check
+            return getOdometryDistanceMeters(); 
+        }
+        return distMeters;
+    }
+
+private double getOdometryDistanceMeters() {
+    Pose2d robotPose = m_drivetrain.getState().Pose;
+    var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+    int targetTagID = (alliance == Alliance.Blue) ? 
+                    VisionConstants.centerHubBlueTag : 
+                    VisionConstants.centerHubRedTag;
+
+    var hubPose = m_field_layout.getTagPose(targetTagID);
+    return hubPose.map(value -> robotPose.getTranslation().getDistance(value.toPose2d().getTranslation())).orElse(0.0);
+}
+
+    public double shootingDistance() {
+        double distMeters = getBestDistanceMeters();
+    
+        if (distMeters <= 0) return 0;
+
+        // Convert to inches for the regression formula
+        double distInches = distMeters * TurretConstants.metersToInches;
+
+        // OVERSHOOT FIX:
+        // If you are still overshooting by a lot, try -2.0 or -3.0 here.
+        double adjustedInches = distInches - 1.0; 
+
+        // Your Regression Formula
+        double targetRPS = (0.000011 * Math.pow(adjustedInches, 3)) - 
+                       (0.003632 * Math.pow(adjustedInches, 2)) + 
+                       (0.59999 * adjustedInches) + 32.574475;
+                       
+        return targetRPS;
     }
 
     /**
@@ -427,7 +422,7 @@ public class Turret extends SubsystemBase {
 
         if (LimelightHelpers.getTV("limelight-four") && !isMovingFast) {
             // STATIONARY TRACKING: Use TX for high-frequency "locking"
-            m_visionLostFrames = 0;
+            m_visionLostCounter = 0;
             double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
             double tx = LimelightHelpers.getTX("limelight-four");
     
@@ -438,12 +433,12 @@ public class Turret extends SubsystemBase {
             // MOVING OR NO TARGET: Use Compensated Odometry (Calculated above)
             // This relies on MegaTag 2 having updated your robotPose in the periodic loop
             if (LimelightHelpers.getTV("limelight-four")) {
-                m_visionLostFrames = 0; 
+                m_visionLostCounter = 0; 
             } else {
-                m_visionLostFrames++;
+                m_visionLostCounter++;
             }
 
-            if (m_visionLostFrames < 5 && !isMovingFast) {
+            if (m_visionLostCounter < kVisionThreshold && !isMovingFast) {
                 finalMotorSetpoint = m_turret.getPosition().getValueAsDouble();
             } else {
                 // calculateSmartWrap ensures we take the shortest path to the angle
@@ -598,8 +593,7 @@ public class Turret extends SubsystemBase {
             TY = LimelightHelpers.getTY("limelight-four");
         }
 
-        SmartDashboard.putNumber("distance", findDistance());
+        SmartDashboard.putNumber("distance", getBestDistanceMeters());
         updateVisionOdometry();
-        System.out.println(getTurretRotation());
     }
 }
