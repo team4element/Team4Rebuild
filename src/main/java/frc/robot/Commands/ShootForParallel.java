@@ -34,6 +34,9 @@ public class ShootForParallel extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
+    if(interrupted) {
+      m_shooter.stop();
+    }
   }
 
   // Returns true when the command should end.

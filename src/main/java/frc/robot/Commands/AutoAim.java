@@ -21,7 +21,7 @@ public class AutoAim extends Command {
 
   @Override
   public void execute() {
-    m_turret.trackAndShoot();
+    m_turret.track();
 
     if (m_turret.isReadyToShoot()) {
         // Vibrate the operator controller so they know to shoot

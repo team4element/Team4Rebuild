@@ -36,8 +36,6 @@ public class Intake extends SubsystemBase{
     private TalonFXConfigurator m_rightPivotConfigurator;
     private CurrentLimitsConfigs m_limitConfigPivot;
 
-    private TalonFXConfigurator m_leftIntakeConfigurator;
-    private TalonFXConfigurator m_rightIntakeConfigurator;
     private CurrentLimitsConfigs m_limitConfigIntake;
 
     private TalonFXConfiguration m_pivotLeftConfig;
@@ -92,9 +90,6 @@ public class Intake extends SubsystemBase{
         // Current limmit intake.
         m_limitConfigIntake = new CurrentLimitsConfigs();
 
-        m_leftIntakeConfigurator = m_leftIntake.getConfigurator();
-        m_rightIntakeConfigurator = m_rightIntake.getConfigurator();
-
         m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
         m_limitConfigIntake.StatorCurrentLimitEnable = true;
         m_limitConfigIntake.SupplyCurrentLimit = 60;
@@ -102,10 +97,6 @@ public class Intake extends SubsystemBase{
 
         m_leftPivotConfigurator.apply(m_limitConfigIntake);
         m_rightPivotConfigurator.apply(m_limitConfigIntake);
-
-        // This is used to declare the leader and follower for the pivot and intake.
-        m_leftIntakeConfigurator = m_leftIntake.getConfigurator();
-        m_rightIntakeConfigurator = m_rightIntake.getConfigurator();
 
         // Creates a leader and follower
         m_rightIntake.setControl(new Follower(IntakeConstants.intakeLeftID, MotorAlignmentValue.Opposed));
@@ -117,9 +108,9 @@ public class Intake extends SubsystemBase{
         SmartDashboard.putNumber("Left Pivot S", IntakeConstants.KPRight);
 
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
-        m_leftIntake.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
-        m_rightIntake.setNeutralMode(NeutralModeValue.Brake);
+        m_leftIntake.setNeutralMode(NeutralModeValue.Coast);
+        m_rightIntake.setNeutralMode(NeutralModeValue.Coast);
     }
 
     /**
