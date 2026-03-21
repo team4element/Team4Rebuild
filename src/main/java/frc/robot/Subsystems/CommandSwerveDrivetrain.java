@@ -196,33 +196,33 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * Links the robot odometry to the field using the limelight's data (MegaTag2).
      */
     @SuppressWarnings("unchecked")
-    public void setMegaTag2(){
-        LimelightHelpers.SetRobotOrientation(
-            "limelight-four",
-            m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(),
-            0,
-            0,
-            0,
-            0,
-            0
+public void setMegaTag2() {
+    // 1. Get the rotation directly from the pose. 
+    // This is ALWAYS field-relative (Blue-origin) in Phoenix 6.
+    Rotation2d robotRotation = this.getState().Pose.getRotation();
+
+    LimelightHelpers.SetRobotOrientation(
+        "limelight-four",
+        robotRotation.getDegrees(),
+        0, 0, 0, 0, 0
+    );
+
+    // 2. Use wpiBlue MegaTag2. This ensures the pose is in the Blue coordinate space.
+    var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+
+    // 3. Filter for quality
+    boolean isTurningFast = Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 720; // Increased threshold
+    
+    if (mt2.tagCount > 0 && !isTurningFast) {
+        // Use the native addVisionMeasurement from the parent SwerveDrivetrain class
+        // It is designed to handle the internal pose estimator correctly.
+        this.addVisionMeasurement(
+            mt2.pose, 
+            mt2.timestampSeconds,
+            VecBuilder.fill(0.7, 0.7, 999999) // Trust Gyro for rotation
         );
-
-        mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-
-        if(Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 180){
-            doRejectUpdate = true;
-        }
-        if(mt2.tagCount == 0){
-            doRejectUpdate = true;
-        }
-        if(!doRejectUpdate){
-            m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(0.7, 0.7, 999999));
-            m_poseEstimator.addVisionMeasurement(
-                mt2.pose, 
-                mt2.timestampSeconds
-            );
-        }
     }
+}
 
     /**
      * Inverses the boolean, which starts as false, when the left or right bumpers are triggered (switch from robot centric to field centric).

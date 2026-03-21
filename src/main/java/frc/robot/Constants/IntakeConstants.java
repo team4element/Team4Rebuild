@@ -24,6 +24,6 @@ public class IntakeConstants {
 
     public static final double pivotTimeout = 0.8;    
     public static final double pivotSpeed = 0.1;    
-    public static final double intakeSpeed = .5;      
+    public static final double intakeSpeed = .75;      
     public static final double intakeTimeout = 2;
 }
