@@ -138,20 +138,15 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
 
-    //DEBUG DO NOT KEEP (PROBABLY)
-    ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
-    ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
-    ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
-    ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
-    //ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
-    // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
-    // ControllerConstants.driverController.povLeft().whileTrue(new TurretManual(m_turret));
-    //END DEBUG
+    // ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
+    // ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
-    ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
-    ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
+    ControllerConstants.operatorController.b().whileTrue(new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 200).withTimeout(2));
+    // ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake));
+    ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));

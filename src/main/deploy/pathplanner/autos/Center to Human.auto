@@ -11,16 +11,15 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Aim"
-                }
-              }
-            ]
+            "name": "Aim"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Short Shot"
           }
         },
         {
@@ -30,16 +29,15 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Aim"
-                }
-              }
-            ]
+            "name": "Turret from Human"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Long Shot"
           }
         }
       ]

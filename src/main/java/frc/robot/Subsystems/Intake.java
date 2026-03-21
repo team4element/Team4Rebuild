@@ -141,7 +141,7 @@ public class Intake extends SubsystemBase{
      * @return motor rotations.
      */
     public double getPivotPosition(TalonFX motor){
-        return motor.getPosition().getValueAsDouble();
+        return m_leftPivot.getPosition().getValueAsDouble();
     }
 
     /**
@@ -220,12 +220,8 @@ public class Intake extends SubsystemBase{
             pivotToSetpoint(motor, 18);
             m_holdValue = getPivotPosition(m_leftPivot);
 
-        }else if(ControllerConstants.operatorController.povUp().getAsBoolean()){
-            pivotToSetpoint(motor, 16);
-            m_holdValue = getPivotPosition(m_leftPivot);
-
         }else if(getPivotPosition(motor) > IntakeConstants.pivotMidPoint){
-            pivotToSetpoint(motor, 8);
+            pivotToSetpoint(motor, 1);
             m_holdValue = getPivotPosition(m_leftPivot);
 
         }

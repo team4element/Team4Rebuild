@@ -241,8 +241,8 @@ public class Turret extends SubsystemBase {
         Pose2d robotPose = m_drivetrain.getState().Pose;
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? 
-                        VisionConstants.centerHubBlueTag : 
-                        VisionConstants.centerHubRedTag;
+                    VisionConstants.centerHubBlueTag : 
+                    VisionConstants.centerHubRedTag;
 
         var hubPose = m_field_layout.getTagPose(targetTagID);
         return hubPose.map(value -> robotPose.getTranslation().getDistance(value.toPose2d().getTranslation())).orElse(0.0);
@@ -256,8 +256,7 @@ public class Turret extends SubsystemBase {
         // Convert to inches for the regression formula
         double distInches = distMeters * TurretConstants.metersToInches;
 
-        // OVERSHOOT FIX:
-        // If you are still overshooting by a lot, try -2.0 or -3.0 here.
+        // Extra inch b/c we are aiming at the target
         double adjustedInches = distInches - 1.0; 
 
         // Your Regression Formula
@@ -349,15 +348,16 @@ public class Turret extends SubsystemBase {
     */
 
     //NOTE IF THIS DOESN"T WORK THEN MAKE SURE ROBOT VELOCITY IS FIELD RELATIVE
-    public void trackAndShoot() {
-        // 1. Get Current Robot State
+
+    public void track() {
+        // Get Current Robot State
         Pose2d robotPose = m_drivetrain.getState().Pose;
         // Velocity must be Field-Relative (m/s)
         var fieldSpeeds = m_drivetrain.getFieldRelativeVelocity(); //Robot Velocity Relative to the Field
         double vxField = fieldSpeeds.vxMetersPerSecond;
         double vyField = fieldSpeeds.vyMetersPerSecond;
 
-        // 2. Identify Target (Alliance Aware)
+        // Identify Target
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
 
@@ -419,21 +419,9 @@ public class Turret extends SubsystemBase {
             }
         }
 
-        // 7. Output to Hardware
+        // Output to Hardware
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
         m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));    
-    }
-
-    private double calculateConstrainedRotation(Rotation2d target) {
-        double val = target.getRotations(); // Phoenix 6 likes rotations
-
-        // Simple wrapping logic: If target is 0.6 rotations (216 deg),
-        // and limit is 0.5 (180 deg), check if -0.4 rotations (-144 deg) is valid.
-        if (val > (TurretConstants.leftLimit / 360.0)) val -= 1.0;
-        if (val < (TurretConstants.rightLimit / 360.0)) val += 1.0;
-
-        // Final safety clamp
-        return MathUtil.clamp(val, TurretConstants.rightLimit / 360.0, TurretConstants.leftLimit / 360.0);
     }
 
     private double clampTurretRotations(double targetRotations) {
@@ -442,8 +430,9 @@ public class Turret extends SubsystemBase {
         return MathUtil.clamp(targetRotations, rightLimitRot, leftLimitRot);
     }
 
+
     public double calculateSmartWrap(Rotation2d targetAngle) {
-        // 1. Get current motor position in DEGREES
+        // Get current motor position in DEGREES
         double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
         double currentMotorDegrees = (currentMotorRotations / TurretConstants.gearRatio) * 360.0;
 
@@ -520,7 +509,8 @@ public class Turret extends SubsystemBase {
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
 
         if (mt2 != null && mt2.tagCount > 0) {
-            var trust = .7;
+            final double trust = .7;
+            //9999999 apparently tells vision to trust our gyro instead of the limeligt since its turret mounted
             m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(trust, trust, 999999));
 
             m_drivetrain.addVisionMeasurement(
@@ -532,7 +522,7 @@ public class Turret extends SubsystemBase {
 
     @Override   
     public void periodic() {
-        // 1. Refresh vision state so findDistance() and trackAndShoot() use fresh data
+        // Refresh vision state so findDistance() and trackAndShoot() use fresh data
         hasTarget = LimelightHelpers.getTV("limelight-four");
 
         if (hasTarget) {
