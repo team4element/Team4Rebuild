@@ -443,6 +443,7 @@ public class Turret extends SubsystemBase {
         // Use the MegaTag 2 Pose
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
 
+
         if (mt2 != null && mt2.tagCount > 0) {
             final double trust = .7;
             //9999999 apparently tells vision to trust our gyro instead of the limeligt since its turret mounted

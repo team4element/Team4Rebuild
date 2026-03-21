@@ -130,6 +130,13 @@ public class Intake extends SubsystemBase{
         return motor.getPosition().getValueAsDouble();
     }
 
+
+    public void pivotOn(double percentage) {
+        System.out.println("PERCENT :" + percentage);
+        setPivotPercentage(m_leftPivot, percentage);
+        setPivotPercentage(m_rightPivot, percentage);
+    }
+
     /**
      * This applies a certain power percentage to a motor.
      * @param motor to power.
@@ -197,8 +204,6 @@ public class Intake extends SubsystemBase{
     public void resetPivot(){
         pivotToSetpoint(m_leftIntake, 0);
         pivotToSetpoint(m_rightIntake, 0);
-        m_rightPivot.setNeutralMode(NeutralModeValue.Coast);
-        m_leftPivot.setNeutralMode(NeutralModeValue.Coast);
     }
 
     /**
@@ -209,6 +214,11 @@ public class Intake extends SubsystemBase{
         m_leftIntake.setControl(m_dutyCycleRollers.withOutput(speedPercentage));
     }
 
+    public void pivotOff(){
+        m_leftPivot.set(0);
+        m_rightPivot.set(0);
+    } 
+
     /**
      * Stops the intake motors and holds position of the pivot motor.
      */
@@ -216,11 +226,6 @@ public class Intake extends SubsystemBase{
         m_leftPivot.setControl(m_dutyCyclePivot.withOutput(0));
         m_rightPivot.setControl(m_dutyCyclePivot.withOutput(0));
         m_leftIntake.setControl(m_dutyCyclePivot.withOutput(0));
-
-        // m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
-        // m_leftIntake.setNeutralMode(NeutralModeValue.Brake);
-        // m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
-        // m_rightIntake.setNeutralMode(NeutralModeValue.Brake);
     }
 
     /**

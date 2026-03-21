@@ -27,14 +27,13 @@ public class RetractIntake extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_intake.extendIntake(m_intake.m_leftPivot, v_speedPercentagePivot);
-    m_intake.extendIntake(m_intake.m_rightPivot, v_speedPercentagePivot);
+    m_intake.pivotOn(v_speedPercentagePivot);
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_intake.stopMotors();
+    m_intake.pivotOff();
   }
 
   // Returns true when the command should end.
