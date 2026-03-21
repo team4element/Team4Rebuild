@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.ConveyToTurret;
+import frc.robot.Commands.FreePivot;
 import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
@@ -93,9 +94,10 @@ public class RobotContainer {
     NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
     NamedCommands.registerCommand("Short Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 70).withTimeout(3));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
+    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
-    NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14));
-    NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14));
+    NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14).withTimeout(0.5));
+    NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14).withTimeout(0.5));
     //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Retract", new PositionPivot(m_intake).withTimeout(IntakeConstants.intakeTimeout));
@@ -121,6 +123,9 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
       )
     );
+    
+    m_intake.setDefaultCommand(m_intake.c_hold(m_intake.m_leftPivot));
+    m_intake.setDefaultCommand(m_intake.c_hold(m_intake.m_rightPivot));
 
     // These are the driver controls:
     ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
@@ -133,12 +138,11 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
 
-
     //DEBUG DO NOT KEEP (PROBABLY)
     ControllerConstants.driverController.a().whileTrue(new AutoAim(m_turret));
     ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
     ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
-      ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.driverController.y().whileTrue(new AutoAim(m_turret));
     //ControllerConstants.driverController.b().whileTrue(new CombinedShoot(m_turret, m_conveyor, m_spinster));
     // ControllerConstants.driverController.povRight().whileTrue(new TurretManual(m_turret));
     // ControllerConstants.driverController.povLeft().whileTrue(new TurretManual(m_turret));
@@ -147,13 +151,15 @@ public class RobotContainer {
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
-    // ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
+    ControllerConstants.operatorController.a().onTrue(new PositionPivot(m_intake).withTimeout(IntakeConstants.pivotTimeout));
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
+    ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_intake, IntakeConstants.pivotSpeed));
     // Inverse conveyor systems.
-    ControllerConstants.operatorController.povDown().whileTrue(new ConveyToTurret(m_conveyor, -ConveyorConstants.conveyorSpeed));
+    ControllerConstants.operatorController.start().whileTrue(new ConveyToTurret(m_conveyor, -ConveyorConstants.conveyorSpeed));
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed));
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed));
@@ -184,7 +190,6 @@ public class RobotContainer {
    */
   public void onDisable(){
     m_turret.returnToStartPosition();
-   // m_intake.resetPivot();
   }
 
   /*

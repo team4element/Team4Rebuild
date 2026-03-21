@@ -8,10 +8,12 @@ public class IntakeConstants {
     public static final int intakeRightID = 9;
 
     public static final double dutyCyclePivot = 0.5; // Limits the motor to use half speed.
-    public static final double dutyCycleRollers = 0.5; // Limits the motor to use half speed.
+    public static final double dutyCycleRollers = 1; // Limits the motor to use half speed.
 
     public static final double KPLeft = 0.4;
+    public static final double KDLeft = 0.05;
     public static final double KPRight = 0.35;
+    public static final double KDRight = 0.05;
     
     public static final int currentLimitPivot = 30;    
     public static final int currentLimitRollers = 20; 

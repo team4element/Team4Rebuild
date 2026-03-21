@@ -16,7 +16,7 @@ import frc.robot.Subsystems.Shooter;
 public class CombinedShoot extends SequentialCommandGroup {
   public CombinedShoot(Shooter shooter, Turret turret, Conveyor conveyor, Spinster spinster) {
     addCommands(
-        new ShootForParallel(shooter, turret).withTimeout(0.5), 
+        new ShootForParallel(shooter, turret), 
 
         new ParallelCommandGroup(
             new Shoot(shooter, turret), 
