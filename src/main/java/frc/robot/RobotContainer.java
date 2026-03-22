@@ -31,6 +31,7 @@ import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
+import frc.robot.Commands.StopPivot;
 import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
@@ -59,7 +60,7 @@ public class RobotContainer {
 // The robot's subsystems and commands are defined here.
   SendableChooser<Command> sendableAuton;
 
-  private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)*0.5; // kSpeedAt12Volts desired top speed
+  private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
   private double MaxAngularRate = RotationsPerSecond.of(0.60).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
   // Setting up bindings for necessary control of the swerve drive platform */
@@ -93,8 +94,8 @@ public class RobotContainer {
     m_shooter = new Shooter();
 
     // Configure the trigger bindings
-    NamedCommands.registerCommand("Long Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 90).withTimeout(8));
-    NamedCommands.registerCommand("Short Shot", new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 70).withTimeout(3));
+    NamedCommands.registerCommand("Long Shot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(12));
+    NamedCommands.registerCommand("Short Shot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
@@ -102,7 +103,7 @@ public class RobotContainer {
     NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14).withTimeout(0.5));
     //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, 10.5).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, 0.1).withTimeout(IntakeConstants.intakeTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
@@ -125,9 +126,6 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
       )
     );
-    
-    m_intake.setDefaultCommand(m_intake.c_hold(m_intake.m_leftPivot));
-    m_intake.setDefaultCommand(m_intake.c_hold(m_intake.m_rightPivot));
 
     // These are the driver controls:
     ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
@@ -145,23 +143,22 @@ public class RobotContainer {
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
-    ControllerConstants.operatorController.b().whileTrue(new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 200).withTimeout(2));
-    // ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
-    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake));
+    ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, 18));
     ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
-    ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_intake, IntakeConstants.pivotSpeed));
-    ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_intake, 0.1));
+    ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_intake, 0.1));
     // Inverse conveyor systems.
-    ControllerConstants.operatorController.start().whileTrue(new ConveyToTurret(m_conveyor, -ConveyorConstants.conveyorSpeed));
+    ControllerConstants.operatorController.start().whileTrue(new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 200).withTimeout(2));
 
-    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed));
-    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed));
-    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, -IntakeConstants.pivotSpeed));
-    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -60));
+    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, 60));
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, -0.1));
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, 0.1));
   }
 
   // /*
@@ -182,6 +179,8 @@ public class RobotContainer {
 
 public void onEnable(Pose2d startLocation) {
     m_turret.resetTurret();
+    m_intake.homePivot(m_intake.m_leftPivot);
+    m_intake.homePivot(m_intake.m_rightPivot);
     
     // Use orElse to prevent crashes if DS is not connected
     var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
@@ -220,6 +219,12 @@ public void onEnable(Pose2d startLocation) {
    */
   public void onDisable(){
     m_turret.returnToStartPosition();
+    new StopPivot(m_intake);
+  }
+
+  public void disable(){
+    m_turret.returnToStartPosition();
+    new StopPivot(m_intake);
   }
 
   /*

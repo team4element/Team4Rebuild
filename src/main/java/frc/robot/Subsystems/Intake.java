@@ -11,6 +11,7 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -32,19 +33,24 @@ public class Intake extends SubsystemBase{
     private DutyCycleOut m_dutyCyclePivot, m_dutyCycleRollers;
     // Used to control motor's rotation (position) with a given speed.
     private PositionVoltage m_positionRequest;
+    private VelocityVoltage m_voltageRequest;
     // Used to current limits.
     private TalonFXConfigurator m_leftPivotConfigurator;
     private TalonFXConfigurator m_rightPivotConfigurator;
+    private TalonFXConfigurator m_leftIntakeConfigurator;
+    private TalonFXConfigurator m_rightIntakeConfigurator;
     private CurrentLimitsConfigs m_limitConfigPivot;
 
     private CurrentLimitsConfigs m_limitConfigIntake;
 
     private TalonFXConfiguration m_pivotLeftConfig;
     private TalonFXConfiguration m_pivotRightConfig;
+    private TalonFXConfiguration m_rollerConfig;
 
     double lastPLeft;
     double lastPRight;
-    double m_holdValue;
+    double m_holdValueLeft;
+    double m_holdValueRight;
 
     boolean debug = false;
     boolean down = false;
@@ -62,16 +68,22 @@ public class Intake extends SubsystemBase{
         m_dutyCycleRollers = new DutyCycleOut(IntakeConstants.dutyCycleRollers);
 
         m_positionRequest = new PositionVoltage(0).withSlot(0);
+        m_voltageRequest = new VelocityVoltage(0).withSlot(0);
 
         // Sets the PID values and reverses motor.
         m_pivotLeftConfig = new TalonFXConfiguration();
         m_pivotRightConfig = new TalonFXConfiguration();
+
+        m_rollerConfig = new TalonFXConfiguration();
 
         m_pivotLeftConfig.Slot0.kP = IntakeConstants.KPLeft;
         m_pivotLeftConfig.Slot0.kD = IntakeConstants.KDLeft;
 
         m_pivotRightConfig.Slot0.kP = IntakeConstants.KPRight;
         m_pivotRightConfig.Slot0.kD = IntakeConstants.KDRight;
+
+        m_rollerConfig.Slot0.kP = 0.5;
+
         m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
 
         m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
@@ -94,20 +106,26 @@ public class Intake extends SubsystemBase{
         // Current limmit intake.
         m_limitConfigIntake = new CurrentLimitsConfigs();
 
+        m_leftIntakeConfigurator = m_leftPivot.getConfigurator();
+        m_rightIntakeConfigurator = m_rightPivot.getConfigurator();
+
         m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
         m_limitConfigIntake.StatorCurrentLimitEnable = true;
-        m_limitConfigIntake.SupplyCurrentLimit = 60;
+        m_limitConfigIntake.SupplyCurrentLimit = 100;
         m_limitConfigIntake.SupplyCurrentLimitEnable = true;
 
-        m_leftIntakeConfigurator.apply(m_limitConfigIntake);
-        m_rightIntakeConfigurator.apply(m_limitConfigIntake);
+         m_leftIntakeConfigurator.apply(m_limitConfigIntake);
+         m_rightIntakeConfigurator.apply(m_limitConfigIntake);
 
         // Creates a leader and follower
         m_rightIntake.setControl(new Follower(IntakeConstants.intakeLeftID, MotorAlignmentValue.Opposed));
 
+        m_leftIntake.getConfigurator().apply(m_rollerConfig);
+
         lastPLeft = IntakeConstants.KPLeft;
         lastPRight = IntakeConstants.KPRight;
-        m_holdValue = 0;
+        m_holdValueLeft = 12;
+        m_holdValueRight = 12;
 
         SmartDashboard.putNumber("Left Pivot P", IntakeConstants.KPLeft);
         SmartDashboard.putNumber("Left Pivot S", IntakeConstants.KPRight);
@@ -138,8 +156,16 @@ public class Intake extends SubsystemBase{
 
     public void pivotOn(double percentage) {
         System.out.println("PERCENT :" + percentage);
-        setPivotPercentage(m_leftPivot, percentage);
-        setPivotPercentage(m_rightPivot, percentage);
+        if(getPivotPosition(m_leftPivot) > IntakeConstants.upperPivotLimit && getPivotPosition(m_leftPivot) < IntakeConstants.lowerPivotLimit){
+            setPivotPercentage(m_leftPivot, percentage);
+            setPivotPercentage(m_rightPivot, percentage);
+        } else if(getPivotPosition(m_leftPivot) <= IntakeConstants.upperPivotLimit && percentage > 0){ // RT (down)
+            setPivotPercentage(m_leftPivot, percentage);
+            setPivotPercentage(m_rightPivot, percentage);
+        }else if (getPivotPosition(m_leftPivot) >= IntakeConstants.lowerPivotLimit && percentage < 0){ // LT (up)
+            setPivotPercentage(m_leftPivot, percentage);
+            setPivotPercentage(m_rightPivot, percentage);
+        }
     }
 
     /**
@@ -149,7 +175,8 @@ public class Intake extends SubsystemBase{
      */
     public void setPivotPercentage(TalonFX motor, double percentage){
         motor.setControl(m_dutyCyclePivot.withOutput(percentage));
-        m_holdValue = getPivotPosition(m_leftPivot);
+        m_holdValueLeft = getPivotPosition(m_leftPivot);
+        m_holdValueRight = getPivotPosition(m_rightPivot);
     }
     
     /**
@@ -168,7 +195,8 @@ public class Intake extends SubsystemBase{
                 setPivotPercentage(motor, 0);
 
             }
-             m_holdValue = getPivotPosition(m_leftPivot);
+             m_holdValueLeft = getPivotPosition(m_leftPivot);
+             m_holdValueRight = getPivotPosition(m_rightPivot);
         }else if(ControllerConstants.operatorController.leftTrigger().getAsBoolean()){
              double limit = IntakeConstants.upperPivotLimit;
 
@@ -179,21 +207,24 @@ public class Intake extends SubsystemBase{
                 setPivotPercentage(motor, -speedPercentage);
 
             }
-            m_holdValue = getPivotPosition(m_leftPivot);
+            m_holdValueLeft = getPivotPosition(m_leftPivot);
+            m_holdValueRight = getPivotPosition(m_rightPivot);
         }else{
             setPivotPercentage(motor, 0);
         }
     }
 
     public void manualIntake(TalonFX motor, double speedPercentage){
-        if(ControllerConstants.operatorController.povUp().getAsBoolean()){
+        if(ControllerConstants.operatorController.povDown().getAsBoolean()){
             setPivotPercentage(motor, speedPercentage);
-            m_holdValue = getPivotPosition(m_leftPivot);
+            m_holdValueLeft = getPivotPosition(m_leftPivot);
+            m_holdValueRight = getPivotPosition(m_rightPivot);
 
         }
-        else if(ControllerConstants.operatorController.povDown().getAsBoolean()){
+        else if(ControllerConstants.operatorController.povUp().getAsBoolean()){
             setPivotPercentage(motor, -speedPercentage);
-            m_holdValue = getPivotPosition(m_leftPivot);
+            m_holdValueLeft = getPivotPosition(m_leftPivot);
+            m_holdValueRight = getPivotPosition(m_rightPivot);
 
         }else{
             setPivotPercentage(motor, 0);
@@ -213,16 +244,10 @@ public class Intake extends SubsystemBase{
      * This moves a motor from the pivot of the intake to the desired position based on it's distance from the midpoint.
      * @param motor to use.
      */
-    public void automaticPivot(TalonFX motor){
-        if(getPivotPosition(motor) <= IntakeConstants.pivotMidPoint){
-            pivotToSetpoint(motor, 18);
-            m_holdValue = getPivotPosition(m_leftPivot);
-
-        }else if(getPivotPosition(motor) > IntakeConstants.pivotMidPoint){
-            pivotToSetpoint(motor, 1);
-            m_holdValue = getPivotPosition(m_leftPivot);
-
-        }
+    public void automaticPivot(TalonFX motor, double setpoint){
+            pivotToSetpoint(motor, setpoint);
+            m_holdValueLeft = getPivotPosition(m_leftPivot);
+            m_holdValueRight = getPivotPosition(m_rightPivot);
     }
 
     /**
@@ -230,7 +255,7 @@ public class Intake extends SubsystemBase{
      * @param speedPercentage from -1 to 1.
      */
     public void runRollers(double speedPercentage){
-        m_leftIntake.setControl(m_dutyCycleRollers.withOutput(speedPercentage));
+        m_leftIntake.setControl(m_voltageRequest.withVelocity(speedPercentage));
     }
 
     public void pivotOff(){
@@ -265,8 +290,9 @@ public class Intake extends SubsystemBase{
         }
     }
 
-    public Command c_hold(TalonFX motor){
-        return startEnd( () -> pivotToSetpoint(motor, m_holdValue), () -> stopMotors());
+    public void holdPose(){
+        pivotToSetpoint(m_leftPivot, m_holdValueLeft);
+        pivotToSetpoint(m_rightPivot, m_holdValueRight);
     }
 
     public void periodic(){
@@ -284,5 +310,8 @@ public class Intake extends SubsystemBase{
         }
 
         SmartDashboard.putBoolean("Pivot lowered", down);
+
+        System.out.println("rotation L" + getPivotPosition(m_leftPivot) + "| rotation R" + getPivotPosition(m_rightPivot));
+
     }
 }

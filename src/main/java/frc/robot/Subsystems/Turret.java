@@ -347,12 +347,13 @@ public class Turret extends SubsystemBase {
             }
 
             if (m_visionLostCounter < kVisionThreshold && !isMovingFast) {
-                finalMotorSetpoint = m_turret.getPosition().getValueAsDouble();
+                finalMotorSetpoint = -m_turret.getPosition().getValueAsDouble();
             } else {
                 // calculateSmartWrap ensures we take the shortest path to the angle
                 finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
             }
         }
+        System.out.println("bot pose" + robotPose.getX() + "|" + robotPose.getY());
 
         // Output to Hardware
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
@@ -453,6 +454,8 @@ public class Turret extends SubsystemBase {
                 mt2.timestampSeconds
             );
         }
+
+        System.out.println("robot yaw: " + robotYaw);
     }
 
     @Override   

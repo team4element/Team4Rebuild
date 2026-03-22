@@ -8,14 +8,12 @@ package frc.robot.Commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Intake;
 
-public class PositionPivot extends Command {
+public class StopPivot extends Command {
   /** Creates a new Intake. */
   public Intake m_intake;
-  public double m_setpoint;
 
-  public PositionPivot(Intake intake, double setpoint) {
+  public StopPivot(Intake intake) {
     m_intake = intake;
-    m_setpoint = setpoint;
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(intake);
@@ -24,8 +22,7 @@ public class PositionPivot extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    m_intake.automaticPivot(m_intake.m_leftPivot, m_setpoint-2);
-    m_intake.automaticPivot(m_intake.m_rightPivot, m_setpoint);
+    m_intake.stopMotors();
   }
 
   // Called every time the scheduler runs while the command is scheduled.

@@ -21,7 +21,7 @@ public class TurretConstants {
     public static final double turretMaxJerk = 800.0;         // S-Curve smoothing to protect the gearbox.
 
     // Refined Feedback/Feedforward
-    public static final double KPTurret = 2.8;  
+    public static final double KPTurret = 3.8;
     public static final double KDTurret = 0.1;
     public static final double KSTurret = 0.25; 
     public static final double KVTurret = 0.11; // 12V / ~105 Max RPS of Kraken/Falcon /0.11

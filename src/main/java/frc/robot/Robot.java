@@ -61,7 +61,9 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+    m_robotContainer.disable();
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
@@ -91,16 +93,16 @@ public class Robot extends TimedRobot {
     // continue until interrupted by another command, remove
     // this line or comment it out.
 
-    if(startPose == null){
-      if(DriverStation.getAlliance().get() == Alliance.Red){
-        m_robotContainer.onEnable(new Pose2d(12.9, 4.0, new Rotation2d(0)));
-      }else {
-        m_robotContainer.onEnable(new Pose2d(3.65, 4.0, new Rotation2d(0)));
-      }
+    // if(startPose == null){
+    //   if(DriverStation.getAlliance().get() == Alliance.Red){
+    //     m_robotContainer.onEnable(new Pose2d(12.9, 4.0, new Rotation2d(0)));
+    //   }else {
+    //     m_robotContainer.onEnable(new Pose2d(3.65, 4.0, new Rotation2d(0)));
+    //   }
 
-    } else{
-      m_robotContainer.onEnable(startPose);
-    }
+    // } else{
+    //   m_robotContainer.onEnable(startPose);
+    // }
      
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();

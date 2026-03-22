@@ -219,7 +219,7 @@ public void setMegaTag2() {
         this.addVisionMeasurement(
             mt2.pose, 
             mt2.timestampSeconds,
-            VecBuilder.fill(0.7, 0.7, 999999) // Trust Gyro for rotation
+            VecBuilder.fill(0.7, 0.7, 999999) // Trust Gyro for rotation // tune to full robot pose later
         );
     }
 }
