@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from left"
+            "pathName": "Shoot from Right"
           }
         },
         {
@@ -19,13 +19,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Short Shot"
+            "name": "Shoot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": "Right",
   "choreoAuto": false
 }

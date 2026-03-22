@@ -19,7 +19,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Short Shot"
+            "name": "Shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Retract"
           }
         },
         {
@@ -31,7 +37,7 @@
         {
           "type": "named",
           "data": {
-            "name": "Turret from Human"
+            "name": "Aim"
           }
         },
         {

@@ -23,6 +23,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "Retract"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "human right"
@@ -32,6 +38,18 @@
           "type": "named",
           "data": {
             "name": "Turret from Human"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
           }
         },
         {

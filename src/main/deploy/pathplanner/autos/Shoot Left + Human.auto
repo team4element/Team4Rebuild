@@ -23,6 +23,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "Retract"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "Go to Human Left"
@@ -37,7 +43,7 @@
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "Long Shot"
           }
         }
       ]
