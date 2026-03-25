@@ -170,6 +170,9 @@ public class RobotContainer {
           initialized = true;
           var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
+          LimelightHelpers.SetIMUMode("limelight-four", 4);
+          LimelightHelpers.SetIMUAssistAlpha("limelight-four", .01);
+
           // 1. Determine the Pose: Start with a hardcoded default
           Pose2d startPose = (alliance == Alliance.Red) 
               ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) 
@@ -199,6 +202,8 @@ public class RobotContainer {
   public void onDisable(){
     m_turret.returnToStartPosition();
     initialized = false;
+    LimelightHelpers.SetIMUMode("limelight-four", 1);
+
   }
 
   /*

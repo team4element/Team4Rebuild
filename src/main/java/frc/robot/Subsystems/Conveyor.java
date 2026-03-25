@@ -6,10 +6,12 @@
 package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ConveyorConstants;
@@ -23,9 +25,12 @@ public class Conveyor extends SubsystemBase{
     // Used as an additional limit to the amount of voltage the motor could use that helps prevent brownout
     private CurrentLimitsConfigs m_limitConfig = new CurrentLimitsConfigs();
     private TalonFXConfigurator m_configurator;
+    private TalonFXConfiguration m_configuration = new TalonFXConfiguration();
 
     public Conveyor(){
         m_motor = new TalonFX(ConveyorConstants.conveyorID);
+
+        m_configuration.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
 
         // The motor will start with half speed
         m_dutyCycle = new DutyCycleOut(ConveyorConstants.dutyCycle);

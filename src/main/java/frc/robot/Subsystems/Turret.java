@@ -14,11 +14,11 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -51,6 +51,9 @@ public class Turret extends SubsystemBase {
 
     // ETC
     Translation2d virtualHubLocation = new Translation2d(0, 0);
+
+    StructPublisher<Pose2d> publisher;
+    StructPublisher<Pose2d> limelightPublisher;
 
     @SuppressWarnings("unused")
     private boolean debug = false;
@@ -89,8 +92,10 @@ public class Turret extends SubsystemBase {
         SmartDashboard.putNumber("Turret kP", lastP);
     
         // --- Vision Configs ---
+        LimelightHelpers.SetIMUMode("limelight-four", 1); //Gets updated in enable/disable 
         m_visionLostCounter = 0;
-        LimelightHelpers.SetIMUMode("limelight-four", 0);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
     /*
@@ -389,36 +394,49 @@ public class Turret extends SubsystemBase {
 
     public void updateVisionOdometry() {
         double turretDegrees = getTurretDegree();
-        // Use the Pose from the drivetrain (the 'Truth' according to the gyro/encoders)
-        Pose2d currentRobotPose = m_drivetrain.getState().Pose;
-        double robotYaw = currentRobotPose.getRotation().getDegrees();
+        // Limelight usually uses standard geometry where 0 is forward, CCW is positive
+        double turretRadians = Math.toRadians(turretDegrees);
         
-        // 1. Where is the camera ON THE ROBOT? (Turret rotation)
+        // Calculate the camera's position relative to the ROBOT CENTER
+        // We start at the turret center and "swing" out by the camera radius
+        double cameraX = VisionConstants.turretOffsetX - (VisionConstants.cameraRadius * Math.sin(turretRadians));
+        double cameraY = VisionConstants.turretOffsetY + (VisionConstants.cameraRadius * Math.cos(turretRadians));
+
+        // System.out.println(getTurretDegree() + " | " + cameraX + " | " + cameraY);
+        
+        // 1. Tell Limelight where it is physically located on the robot AT THIS MOMENT
         LimelightHelpers.setCameraPose_RobotSpace(
             "limelight-four",
-            0.16, 0.16, VisionConstants.altitudeMeters,
-            VisionConstants.mountedDegree, 0, turretDegrees 
+            cameraX, 
+            cameraY, 
+            VisionConstants.altitudeMeters,
+            0, 
+            VisionConstants.mountedDegree, 
+            turretDegrees// The yaw of the camera relative to the robot
         );
         
-        // 2. Where is the ROBOT facing on the FIELD? (Drivetrain rotation)
-        // MegaTag2 uses this to stabilize the calculation.
-        LimelightHelpers.SetRobotOrientation(
-            "limelight-four", 
-            robotYaw, 
-            0, 0, 0, 0, 0
-        );
+        // 2. Feed the Robot's Gyro Yaw to MegaTag2 (Crucial for filtering)
+        // double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
+        // LimelightHelpers.SetRobotOrientation(
+        //     "limelight-four", 
+        //     robotYaw, 
+        //     0, 0, 0, 0, 0
+        // );
         
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        var mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
         
-        if (mt2 != null && mt2.tagCount > 0) {
-            // Apply the measurement to the drivetrain
-            m_drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
+        if (mt1 != null && mt1.tagCount > 0) {
+            m_drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
+            limelightPublisher.set(mt1.pose);
         }
+
+        publisher.set(m_drivetrain.getState().Pose);
     }
+
 
     @Override   
     public void periodic() {
-        
+
         SmartDashboard.putNumber("distance", getBestDistanceMeters());
         updateVisionOdometry();
     }
