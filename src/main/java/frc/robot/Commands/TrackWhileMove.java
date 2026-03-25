@@ -83,8 +83,6 @@ public class TrackWhileMove extends Command {
       double currentTargetRotation = currentRotation + currentRotationsError;
       double targetRotation = currentTargetRotation + rotationsError;
 
-      // This is used for testing.
-      System.out.println(targetRotation + " | " + rotationsError + " | " + goalAngle + " | " + robotCurrentPose);
       
       if(Math.abs(rotationsError) > .05){
         m_turret.setYaw(targetRotation);

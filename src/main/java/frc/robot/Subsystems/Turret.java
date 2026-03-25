@@ -17,7 +17,6 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -47,9 +46,6 @@ public class Turret extends SubsystemBase {
 
     // Logic State
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
-    private double TX, TY;
-    private double distance = 0;
-    private boolean hasTarget;
     private int m_visionLostCounter = 0;
     private int kVisionThreshold = 5;
 
@@ -194,7 +190,6 @@ public class Turret extends SubsystemBase {
     }
 
     /**
-    * ONE function to rule them all. 
     * Returns distance in METERS using Vision (primary) or Odometry (fallback).
     */
     public double getBestDistanceMeters() {
@@ -284,80 +279,76 @@ public class Turret extends SubsystemBase {
         }
     }
 
+    /**
+     * Main tracking logic. 
+     * High-priority: Vision (TX)
+     * Low-priority: Odometry (Field Position)
+     */
     public void track() {
-        // Get Current Robot State
-        Pose2d robotPose = m_drivetrain.getState().Pose;
-        // Velocity must be Field-Relative (m/s)
-        var fieldSpeeds = m_drivetrain.getFieldRelativeVelocity(); //Robot Velocity Relative to the Field
-        double vxField = fieldSpeeds.vxMetersPerSecond;
-        double vyField = fieldSpeeds.vyMetersPerSecond;
-
-        // Identify Target
+        // Calculate the Odometry-based angle
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-        int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
+        int targetTagID = (alliance == Alliance.Blue) ? 
+                          VisionConstants.centerHubBlueTag : 
+                          VisionConstants.centerHubRedTag;
 
         var hubPose = m_field_layout.getTagPose(targetTagID);
         if (hubPose.isEmpty()) return;
 
-        // Apply Goal Center Offset
-        // Shifts the target from the Tag face to the center of the opening
-        double depthOffsetMeters = -0.15; // The goal is ~ .15 meters behind the Apriltag
-        Pose2d tagPose = hubPose.get().toPose2d();
-        Translation2d realHubLocation = tagPose.transformBy(
-        new Transform2d(new Translation2d(depthOffsetMeters, 0), new Rotation2d())).getTranslation();
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+        Translation2d hubLocation = hubPose.get().toPose2d().getTranslation();
 
-        // Calculate Velocity Compensation (Shooting on the Move)
-        double distanceMeters = robotPose.getTranslation().getDistance(realHubLocation);
-    
-        // Time of Flight = Distance / Exit Velocity (Approx 12 m/s - tune this!)
-        double shotTimeOfFlight = distanceMeters / 6.0; 
-
-        // Virtual Target = Real Hub - (Robot Velocity * Time)
-        // This tells the turret to aim where the hub "will be" relative to the ball
-        Translation2d virtualHubLocation = new Translation2d(
-            realHubLocation.getX() - (vxField * shotTimeOfFlight),
-            realHubLocation.getY() - (vyField * shotTimeOfFlight)
-        );
-
-        // Determine the Final Target Angle
-        Rotation2d fieldAngle = virtualHubLocation.minus(robotPose.getTranslation()).getAngle();
+        Rotation2d fieldAngle = hubLocation.minus(robotPose.getTranslation()).getAngle();
         Rotation2d robotRelativeTarget = fieldAngle.minus(robotPose.getRotation());
 
         double finalMotorSetpoint;
 
-        // If moving significantly, we MUST use Odometry because TX doesn't know about velocity
-        boolean isMovingFast = (Math.abs(vxField) > 0.2 || Math.abs(vyField) > 0.2);
+        // Determine if we use Vision or Odometry
+        if (LimelightHelpers.getTV("limelight-four")) {
+            // --- CASE: WE SEE THE TARGET ---
+            m_visionLostCounter = 0; 
 
-        if (LimelightHelpers.getTV("limelight-four") && !isMovingFast) {
-            // STATIONARY TRACKING: Use TX for high-frequency "locking"
-            m_visionLostCounter = 0;
             double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
             double tx = LimelightHelpers.getTX("limelight-four");
-    
-            // Convert TX degrees to motor rotations
+
+            // Convert TX (degrees) to motor rotations
             double motorError = -(tx / 360.0) * TurretConstants.gearRatio;
             finalMotorSetpoint = currentMotorRotations + motorError; 
+
         } else {
-            // MOVING OR NO TARGET: Use Compensated Odometry (Calculated above)
-            // This relies on MegaTag 2 having updated your robotPose in the periodic loop
-            if (LimelightHelpers.getTV("limelight-four")) {
-                m_visionLostCounter = 0; 
-            } else {
-                m_visionLostCounter++;
+            // --- CASE: VISION LOST / FLICKER ---
+            m_visionLostCounter++;
+
+            // FLICKER PROTECTION: If lost for < 0.1s, do nothing (don't twitch)
+            if (m_visionLostCounter < 5) {
+                return; 
             }
 
-            if (m_visionLostCounter < kVisionThreshold && !isMovingFast) {
-                finalMotorSetpoint = -m_turret.getPosition().getValueAsDouble();
-            } else {
-                // calculateSmartWrap ensures we take the shortest path to the angle
-                finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
-            }
+            // After 5 frames, use Odometry to keep the turret pointed at the goal
+            finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
         }
-        System.out.println("bot pose" + robotPose.getX() + "|" + robotPose.getY());
-
-        // Output to Hardware
+    
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
         m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));    
+    }
+
+    /**
+     * Checks if the turret is physically and visually aligned.
+     * Used by the command to trigger rumble.
+     */
+    public boolean isReadyToShoot() {
+        boolean hasTarget = LimelightHelpers.getTV("limelight-four");
+        double tx = LimelightHelpers.getTX("limelight-four");
+
+        // Check if the motor is actually at its setpoint
+        double turretMotorError = Math.abs(m_turret.getClosedLoopError().getValueAsDouble());
+        double turretTolerance = (1.5 / 360.0) * TurretConstants.gearRatio;
+
+        // We are ready if:
+        // 1. We actually see a tag (not flickering)
+        // 2. The crosshair error (TX) is small
+        // 3. The motor has finished its move
+        return (m_visionLostCounter == 0) && hasTarget && 
+               (Math.abs(tx) < 2.0) && (turretMotorError < turretTolerance);
     }
 
     private double clampTurretRotations(double targetRotations) {
@@ -396,78 +387,38 @@ public class Turret extends SubsystemBase {
         return (closestTarget / 360.0) * TurretConstants.gearRatio;
     }
 
-    public boolean isReadyToShoot() {
-        // Motor Error: Is the motor physically at the setpoint we gave it?
-        double turretMotorError = Math.abs(m_turret.getClosedLoopError().getValueAsDouble());
-
-        double tx = LimelightHelpers.getTX("limelight-four");
-        boolean hasTarget = LimelightHelpers.getTV("limelight-four");
-
-        // Constants for thresholds
-        double turretTolerance = (1.5 / 360.0) * TurretConstants.gearRatio; // 1.5 degrees
-        double visualTolerance = 2.0; // 2 degrees on camera
-
-        boolean motorsReady = (turretMotorError < turretTolerance);
-    
-        // If we have vision, ensure we are visually lined up. 
-        // If we DON'T have vision, trust the Odometry (motorsReady).
-        if (hasTarget) {
-            return motorsReady && (Math.abs(tx) < visualTolerance);
-        } else {
-            return motorsReady;
-        }
-    }
-
     public void updateVisionOdometry() {
-        // Get the angle of the turret in degrees where 0 is facing "forward"
         double turretDegrees = getTurretDegree();
-        // Get the rotation of the drivetrain where 0 is forwars
-        double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
-
-        //Update the position of the camera since it is mounted to the turret (which spins)
-        double pivotX = 0.16;
-        double pivotY = 0.16; 
-
+        // Use the Pose from the drivetrain (the 'Truth' according to the gyro/encoders)
+        Pose2d currentRobotPose = m_drivetrain.getState().Pose;
+        double robotYaw = currentRobotPose.getRotation().getDegrees();
+        
+        // 1. Where is the camera ON THE ROBOT? (Turret rotation)
         LimelightHelpers.setCameraPose_RobotSpace(
             "limelight-four",
-            pivotX, pivotY, VisionConstants.altitudeMeters,
-            VisionConstants.mountedDegree, 0, turretDegrees
+            0.16, 0.16, VisionConstants.altitudeMeters,
+            VisionConstants.mountedDegree, 0, turretDegrees 
         );
-
-        // Tells the Limelight which way the drive train is facing.
+        
+        // 2. Where is the ROBOT facing on the FIELD? (Drivetrain rotation)
+        // MegaTag2 uses this to stabilize the calculation.
         LimelightHelpers.SetRobotOrientation(
-            "limelight-four",
-            robotYaw, // Degrees
+            "limelight-four", 
+            robotYaw, 
             0, 0, 0, 0, 0
         );
-
-        // Use the MegaTag 2 Pose
+        
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-
+        
         if (mt2 != null && mt2.tagCount > 0) {
-            final double trust = .7;
-            //9999999 apparently tells vision to trust our gyro instead of the limeligt since its turret mounted
-            m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(trust, trust, 999999));
-
-            m_drivetrain.addVisionMeasurement(
-                mt2.pose,
-                mt2.timestampSeconds
-            );
+            // Apply the measurement to the drivetrain
+            m_drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
         }
-
-        System.out.println("robot yaw: " + robotYaw);
     }
 
     @Override   
     public void periodic() {
-        // Refresh vision state so findDistance() and trackAndShoot() use fresh data
-        hasTarget = LimelightHelpers.getTV("limelight-four");
-
-        if (hasTarget) {
-            TX = LimelightHelpers.getTX("limelight-four");
-            TY = LimelightHelpers.getTY("limelight-four");
-        }
-
+        
         SmartDashboard.putNumber("distance", getBestDistanceMeters());
         updateVisionOdometry();
     }

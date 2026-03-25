@@ -15,8 +15,6 @@ public class AutoAim extends Command {
 
   @Override
   public void initialize() {
-    // Optional: Set a specific Limelight pipeline for tracking
-    // LimelightHelpers.setPipelineIndex("limelight-four", 0);
   }
 
   @Override
@@ -24,7 +22,6 @@ public class AutoAim extends Command {
     m_turret.track();
 
     if (m_turret.isReadyToShoot()) {
-        // Vibrate the operator controller so they know to shoot
         ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0.2);
     } else {
         ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0);
@@ -33,14 +30,13 @@ public class AutoAim extends Command {
 
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors(); 
+    m_turret.stopMotors();
 
     ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0);
-    // Or: m_turret.returnToStartPosition();
   }
 
   @Override
   public boolean isFinished() {
-    return false; // Run until the button is released
+    return false; 
   }
 }

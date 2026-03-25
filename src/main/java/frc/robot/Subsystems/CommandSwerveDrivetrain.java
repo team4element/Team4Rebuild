@@ -192,38 +192,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return TunerConstants.m_pigeon.getRotation2d();
     }
 
-    /*
-     * Links the robot odometry to the field using the limelight's data (MegaTag2).
-     */
-    @SuppressWarnings("unchecked")
-public void setMegaTag2() {
-    // 1. Get the rotation directly from the pose. 
-    // This is ALWAYS field-relative (Blue-origin) in Phoenix 6.
-    Rotation2d robotRotation = this.getState().Pose.getRotation();
-
-    LimelightHelpers.SetRobotOrientation(
-        "limelight-four",
-        robotRotation.getDegrees(),
-        0, 0, 0, 0, 0
-    );
-
-    // 2. Use wpiBlue MegaTag2. This ensures the pose is in the Blue coordinate space.
-    var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
-
-    // 3. Filter for quality
-    boolean isTurningFast = Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 720; // Increased threshold
-    
-    if (mt2.tagCount > 0 && !isTurningFast) {
-        // Use the native addVisionMeasurement from the parent SwerveDrivetrain class
-        // It is designed to handle the internal pose estimator correctly.
-        this.addVisionMeasurement(
-            mt2.pose, 
-            mt2.timestampSeconds,
-            VecBuilder.fill(0.7, 0.7, 999999) // Trust Gyro for rotation // tune to full robot pose later
-        );
-    }
-}
-
     /**
      * Inverses the boolean, which starts as false, when the left or right bumpers are triggered (switch from robot centric to field centric).
      * @return weather or not robot is driving robot centric or field centric.
@@ -498,11 +466,13 @@ public void setMegaTag2() {
         return 1;
     }
 
+    public void setVisionMeasurementStdDevs(Vector<N3> stdDevs) {
+        super.setVisionMeasurementStdDevs(stdDevs);
+    }
 
+    @Override
     public void addVisionMeasurement(Pose2d robotPose, double timestamp) {
-        // Note: We set the Rotation (Theta) standard deviation very high (999999) 
-        // because the Pigeon2 is much more trustworthy for heading than the Limelight.
-        this.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(0.7, 0.7, 999999)); 
+        super.addVisionMeasurement(robotPose, timestamp);
     }
 
     /**

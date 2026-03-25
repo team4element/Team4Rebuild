@@ -310,8 +310,5 @@ public class Intake extends SubsystemBase{
         }
 
         SmartDashboard.putBoolean("Pivot lowered", down);
-
-        System.out.println("rotation L" + getPivotPosition(m_leftPivot) + "| rotation R" + getPivotPosition(m_rightPivot));
-
     }
 }
