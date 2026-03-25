@@ -7,10 +7,7 @@ package frc.robot;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -21,10 +18,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
  */
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
-
   private final RobotContainer m_robotContainer;
-  PathPlannerAuto auto;
-  Pose2d startPose;
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -62,20 +56,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {
-    m_robotContainer.disable();
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-    m_robotContainer.c_fieldRelative();
-
-    auto = new PathPlannerAuto(m_autonomousCommand.getName());
-    startPose = auto.getStartingPose();
-    m_robotContainer.onEnable(startPose);
-
-    LimelightHelpers.SetIMUMode("limelight-four", 1);
+    m_robotContainer.onEnable(getAutoStartPose());
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
@@ -88,22 +75,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+    m_robotContainer.onEnable(getAutoStartPose());
+
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
 
-    // if(startPose == null){
-    //   if(DriverStation.getAlliance().get() == Alliance.Red){
-    //     m_robotContainer.onEnable(new Pose2d(12.9, 4.0, new Rotation2d(0)));
-    //   }else {
-    //     m_robotContainer.onEnable(new Pose2d(3.65, 4.0, new Rotation2d(0)));
-    //   }
-
-    // } else{
-    //   m_robotContainer.onEnable(startPose);
-    // }
-     
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
@@ -130,4 +108,13 @@ public class Robot extends TimedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {}
+
+  public Pose2d getAutoStartPose() {
+      // Check if the command exists and is actually a PathPlannerAuto
+      if (m_autonomousCommand instanceof PathPlannerAuto auto) {
+          return auto.getStartingPose();
+      }
+
+      return null; 
+  }
 }

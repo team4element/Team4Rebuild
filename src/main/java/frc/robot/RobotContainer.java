@@ -82,6 +82,8 @@ public class RobotContainer {
 
   public final AprilTagFieldLayout m_field_layout;
 
+  private boolean initialized;
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     m_field_layout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
@@ -92,6 +94,8 @@ public class RobotContainer {
     m_conveyor = new Conveyor();
     //m_climb = new Climb();
     m_shooter = new Shooter();
+
+    initialized = false;
 
     // Configure the trigger bindings
     NamedCommands.registerCommand("Long Shot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(12));
@@ -139,7 +143,7 @@ public class RobotContainer {
     ));
 
     // ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
-    // ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
+    ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
@@ -161,70 +165,40 @@ public class RobotContainer {
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, 0.1));
   }
 
-  // /*
-  //  * This runs in initialize on auton to set the climb and turret's starting position.
-  //  */
-  // public void onEnable(Pose2d startLocation){
-  //   // m_intake.homePivot(m_intake.m_leftPivot);
-  //   // m_intake.homePivot(m_intake.m_rightPivot);
-  //   m_turret.resetTurret();
+  public void onEnable(Pose2d startLocation) {
+      if(!initialized) {
+          initialized = true;
+          var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
-  //   var angle = startLocation.getRotation();
-  //   System.out.println("TEST: " + angle.getRotations());
-    
-  //   m_drivetrain.resetPose(startLocation);
-  //   m_field_layout.setOrigin(AprilTagFieldLayout.OriginPosition.kBlueAllianceWallRightSide);
+          // 1. Determine the Pose: Start with a hardcoded default
+          Pose2d startPose = (alliance == Alliance.Red) 
+              ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) 
+              : new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
+      
+          // 2. If PathPlanner provided a specific start, override the default
+          if (startLocation != null) {
+              startPose = startLocation;
+          }
 
-  // }
+          // 3. APPLY the pose to the hardware (This needs to happen regardless)
+          m_turret.resetTurret();
+          m_drivetrain.resetPose(startPose);
 
-public void onEnable(Pose2d startLocation) {
-    m_turret.resetTurret();
-    m_intake.homePivot(m_intake.m_leftPivot);
-    m_intake.homePivot(m_intake.m_rightPivot);
-    
-    // Use orElse to prevent crashes if DS is not connected
-    var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-    boolean isRed = (alliance == Alliance.Red);
+          // 4. Set Perspective: This makes sure "Forward" on the joystick is correct
+          m_drivetrain.setOperatorPerspectiveForward(
+              alliance == Alliance.Red ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
+          );
 
-    Pose2d finalStartPose;
-
-    //SUPER BAINDAID BAD, FIX ME AT SOME POINT
-    if (startLocation != null) {
-        // PathPlanner is providing a pose. 
-        // If it's Red but giving 0, we force the 180 flip for the Map.
-        if (isRed && Math.abs(startLocation.getRotation().getDegrees()) < 1.0) {
-            finalStartPose = new Pose2d(startLocation.getTranslation(), Rotation2d.fromDegrees(180));
-        } else {
-            finalStartPose = startLocation;
-        }
-    } else {
-        // no start lovation
-        finalStartPose = isRed 
-            ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) //12.9
-            : new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
-    }
-
-    // 1. Set the physical Pose (Blue-Map Relative)
-    m_drivetrain.resetPose(finalStartPose);
-
-    // 2. Set the Operator Perspective
-    // This makes "Forward" on the joystick drive toward the Blue Goal
-    m_drivetrain.setOperatorPerspectiveForward(finalStartPose.getRotation());
-    
-    System.out.println("Enabling on " + alliance + " at " + finalStartPose.getRotation().getDegrees() + " degrees | " + finalStartPose.getX());
-}
+          System.out.println("Robot Initialized at: " + startPose.toString() + " | Alliance: " + alliance);
+      }
+  }
 
   /*
    * This resets the turret's position to 0 when the robot disables.
    */
   public void onDisable(){
     m_turret.returnToStartPosition();
-    new StopPivot(m_intake);
-  }
-
-  public void disable(){
-    m_turret.returnToStartPosition();
-    new StopPivot(m_intake);
+    initialized = false;
   }
 
   /*
@@ -241,10 +215,4 @@ public void onEnable(Pose2d startLocation) {
    public Command getAutonomousCommand() {
     return sendableAuton.getSelected();
   }
-
-  /* */
-  public boolean onBlueTeam() {
-    return DriverStation.getAlliance().get() == DriverStation.Alliance.Blue;
-  }
-
 }
