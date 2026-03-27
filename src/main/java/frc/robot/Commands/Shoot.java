@@ -15,8 +15,8 @@ public class Shoot extends Command {
   private final double let_distance_decide = -1;
   private double m_RPS;
 
-  public Shoot(Shooter shooter, Turret turret, double RPS) {
-    m_turret = turret;
+  public Shoot(Shooter shooter, double RPS) {
+    m_turret = null;
     m_shooter = shooter;
     m_RPS = RPS;
 
@@ -44,7 +44,7 @@ public class Shoot extends Command {
   public void execute() {
     double setpoint;
 
-    if (m_RPS == let_distance_decide) {
+    if (m_RPS == let_distance_decide || m_turret != null) {
         // setpoint = m_turret.shootingDistance();
         setpoint = m_turret.shootingDistance();
     } else {

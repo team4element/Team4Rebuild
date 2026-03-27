@@ -16,6 +16,6 @@ public class ShootParallelAuto extends ParallelCommandGroup {
   /** Creates a new CombinedShoot. */
   public ShootParallelAuto(Shooter shooter, Turret turret, Conveyor conveyor, Spinster spinster, double RPS) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new TransferFuel(spinster, conveyor, -0.75, 1), new Shoot(shooter, turret, RPS));
+    addCommands(new TransferFuel(spinster, conveyor, -0.75, 1), new Shoot(shooter, turret));
   }
 }

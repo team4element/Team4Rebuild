@@ -62,7 +62,6 @@ public class Climb extends SubsystemBase{
        if(debug == true){
        double currentRotation = m_motor.getPosition().getValueAsDouble();
        System.out.println("CLIMB POSITION: " + currentRotation); 
-
        }
     }
 

@@ -26,6 +26,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.PoseEstimator;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -182,14 +183,50 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         new Pose2d()
     );
 
-    @SuppressWarnings("rawtypes")
-    public PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
-
     /**
      * @return the pigeon's rotation.
      */
     public Rotation2d getGyroAngle(){
         return TunerConstants.m_pigeon.getRotation2d();
+    }
+
+    //public SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(kKinematics, getGyroAngle(), getModuleLocations(), m_odometry);
+
+    public void setVisionPose(){
+        PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+
+        doRejectUpdate = false;
+
+        if(mt1 == null || mt1.tagCount == 0){
+         doRejectUpdate = true;
+        }
+
+        if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1){
+            if(mt1.rawFiducials[0].ambiguity > 0.7){
+                doRejectUpdate = true;
+            }
+            if(mt1.rawFiducials[0].distToCamera > 4){
+                 doRejectUpdate = true;
+            }
+        }
+
+        if(mt1.pose.getTranslation().getDistance(
+            this.getState().Pose.getTranslation()) > 3.0){
+            doRejectUpdate = true;
+        }
+
+        if(!doRejectUpdate){
+            double xyStdDev = 0.2 / mt1.tagCount * mt1.avgTagDist;
+            double thetaStdDev = mt1.tagCount >= 2 ? 0.2 : 999999;
+
+            this.addVisionMeasurement(
+            mt1.pose,
+            mt1.timestampSeconds,
+            VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
+            );
+
+            getState().Pose = mt1.pose;
+        }
     }
 
     /**
@@ -275,7 +312,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
     }
 
     /**
@@ -311,7 +348,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
     }
 
     /**
@@ -361,7 +398,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
     }
 
     /**
@@ -403,7 +440,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     public Command c_seedFieldRelativeWithVision() {
     return runOnce(() -> {
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
         if (mt2.tagCount > 0) {
             // This resets X, Y, and Rotation to the Vision's "Truth"
             this.resetPose(mt2.pose); 
@@ -413,6 +450,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic(){
+        setVisionPose();
+
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply
@@ -432,7 +471,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                                : kBlueAlliancePerspectiveRotation);
                 m_hasAppliedOperatorPerspective = true;
             });
-        }
+        }     
     }
 
     private void startSimThread(){
@@ -457,7 +496,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public double speedToDouble(SPEED speed){
         switch (speed) {
             case SLOW:
-                return .5;
+                return .25;
             case FAST:
                 return .75;
             case VERY_FAST:

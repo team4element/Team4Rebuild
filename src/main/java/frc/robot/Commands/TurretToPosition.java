@@ -5,6 +5,7 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants.ControllerConstants;
 import frc.robot.Subsystems.Turret;
 
 public class TurretToPosition extends Command {
@@ -27,7 +28,15 @@ public class TurretToPosition extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.setYaw(m_position);
+    if(ControllerConstants.operatorController.getLeftX() >= 0.2){
+      m_turret.setYaw(-0.1);
+
+    } else if(ControllerConstants.operatorController.getLeftX() < -0.2){
+      m_turret.setYaw(0.1);
+
+    } else{
+      m_turret.setYaw(m_position);
+    }
   }
 
   // Called once the command ends or is interrupted.

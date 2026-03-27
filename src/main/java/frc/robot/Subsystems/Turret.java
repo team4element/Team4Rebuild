@@ -5,6 +5,8 @@
 
 package frc.robot.Subsystems;
 
+import java.util.Optional;
+
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -14,7 +16,9 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -52,6 +56,8 @@ public class Turret extends SubsystemBase {
     // ETC
     Translation2d virtualHubLocation = new Translation2d(0, 0);
 
+    Pose2d robotPose; 
+
     StructPublisher<Pose2d> publisher;
     StructPublisher<Pose2d> limelightPublisher;
 
@@ -62,6 +68,8 @@ public class Turret extends SubsystemBase {
         m_turret = new TalonFX(TurretConstants.turretID);
         m_field_layout = field_layout;
         m_drivetrain = drivetrain;
+
+        robotPose = m_drivetrain.getState().Pose;
 
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
         m_positionRequest = new PositionVoltage(0).withSlot(0);
@@ -299,7 +307,6 @@ public class Turret extends SubsystemBase {
         var hubPose = m_field_layout.getTagPose(targetTagID);
         if (hubPose.isEmpty()) return;
 
-        Pose2d robotPose = m_drivetrain.getState().Pose;
         Translation2d hubLocation = hubPose.get().toPose2d().getTranslation();
 
         Rotation2d fieldAngle = hubLocation.minus(robotPose.getTranslation()).getAngle();
@@ -315,23 +322,30 @@ public class Turret extends SubsystemBase {
             double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
             double tx = LimelightHelpers.getTX("limelight-four");
 
-            // Convert TX (degrees) to motor rotations
+            // Convert TX (degrees) to motor rotations.
             double motorError = -(tx / 360.0) * TurretConstants.gearRatio;
             finalMotorSetpoint = currentMotorRotations + motorError; 
+
+            // Update our robot's position when in sight of an apriltag (seeding). 
+            robotPose = LimelightHelpers.getBotPose2d_wpiBlue("limelight-four");
 
         } else {
             // --- CASE: VISION LOST / FLICKER ---
             m_visionLostCounter++;
 
-            // FLICKER PROTECTION: If lost for < 0.1s, do nothing (don't twitch)
+            // FLICKER PROTECTION: If lost for < 0.1s, do nothing (don't twitch).
             if (m_visionLostCounter < 5) {
                 return; 
             }
 
-            // After 5 frames, use Odometry to keep the turret pointed at the goal
+            // After 5 frames, use Odometry to keep the turret pointed at the goal.
             finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
+
+            // Defaults to use coordinate odometry.
+            robotPose = m_drivetrain.getState().Pose;
         }
     
+        System.out.println("Bot Pose: " + robotPose);
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
         m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));    
     }
@@ -401,8 +415,6 @@ public class Turret extends SubsystemBase {
         // We start at the turret center and "swing" out by the camera radius
         double cameraX = VisionConstants.turretOffsetX - (VisionConstants.cameraRadius * Math.sin(turretRadians));
         double cameraY = VisionConstants.turretOffsetY + (VisionConstants.cameraRadius * Math.cos(turretRadians));
-
-        // System.out.println(getTurretDegree() + " | " + cameraX + " | " + cameraY);
         
         // 1. Tell Limelight where it is physically located on the robot AT THIS MOMENT
         LimelightHelpers.setCameraPose_RobotSpace(
@@ -427,6 +439,7 @@ public class Turret extends SubsystemBase {
         
         if (mt1 != null && mt1.tagCount > 0) {
             m_drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
+            m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(0.2, 0.2, 999999));
             limelightPublisher.set(mt1.pose);
         }
 

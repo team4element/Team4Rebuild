@@ -8,14 +8,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Shooter;
 import frc.robot.Subsystems.Turret;
 
-public class ShootForParallel extends Command {
+public class ShootNoEndCorner extends Command {
   /** Creates a new Shoot. */
   public Turret m_turret;
   public Shooter m_shooter;
   
-  public ShootForParallel(Shooter shooter, Turret turret) {
+  public ShootNoEndCorner(Shooter shooter) {
     m_shooter = shooter;
-    m_turret = turret;
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(shooter);
@@ -28,7 +27,7 @@ public class ShootForParallel extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_shooter.setRPS(m_turret.shootingDistance());
+    m_shooter.setRPS(100);
   }
 
   // Called once the command ends or is interrupted.

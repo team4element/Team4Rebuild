@@ -18,7 +18,6 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.IntakeConstants;
@@ -156,7 +155,6 @@ public class Intake extends SubsystemBase{
 
 
     public void pivotOn(double percentage) {
-        System.out.println("PERCENT :" + percentage);
         if(getPivotPosition(m_leftPivot) > IntakeConstants.upperPivotLimit && getPivotPosition(m_leftPivot) < IntakeConstants.lowerPivotLimit){
             setPivotPercentage(m_leftPivot, percentage);
             setPivotPercentage(m_rightPivot, percentage);
@@ -189,6 +187,7 @@ public class Intake extends SubsystemBase{
              double limit = IntakeConstants.lowerPivotLimit;
 
             if(getPivotPosition(motor) < limit){
+                runRollers(10);
                 setPivotPercentage(motor, speedPercentage);
         
 
@@ -205,6 +204,7 @@ public class Intake extends SubsystemBase{
                 setPivotPercentage(motor, 0);
 
             }else if(getPivotPosition(motor) > limit){
+                runRollers(-10);
                 setPivotPercentage(motor, -speedPercentage);
 
             }
@@ -218,12 +218,14 @@ public class Intake extends SubsystemBase{
     public void manualIntake(TalonFX motor, double speedPercentage){
         if(ControllerConstants.operatorController.povDown().getAsBoolean()){
             setPivotPercentage(motor, speedPercentage);
+            runRollers(-10);
             m_holdValueLeft = getPivotPosition(m_leftPivot);
             m_holdValueRight = getPivotPosition(m_rightPivot);
 
         }
         else if(ControllerConstants.operatorController.povUp().getAsBoolean()){
             setPivotPercentage(motor, -speedPercentage);
+            runRollers(10);
             m_holdValueLeft = getPivotPosition(m_leftPivot);
             m_holdValueRight = getPivotPosition(m_rightPivot);
 

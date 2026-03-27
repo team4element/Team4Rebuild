@@ -42,13 +42,11 @@ public class Shooter extends SubsystemBase {
 
         // Mechanical Settings
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-        shooterConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        shooterConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         
         // Apply config to both motors
         m_leftMotor.getConfigurator().apply(shooterConfig);
         m_rightMotor.getConfigurator().apply(shooterConfig);
-
-    
 
         /* * Set up Follower: Right motor will mimic the Left motor.
          * If your motors are facing each other, one usually needs to be opposed.

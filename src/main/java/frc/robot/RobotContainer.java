@@ -23,26 +23,21 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
-import frc.robot.Commands.CombinedShoot;
+import frc.robot.Commands.CombinedTapShoot;
 import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.FreePivot;
-import frc.robot.Commands.GumballRotation;
 import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
-import frc.robot.Commands.StopPivot;
 import frc.robot.Commands.TapPivot;
-import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.Auton.CornerScore;
 import frc.robot.Commands.Auton.ShootForAuton;
 import frc.robot.Constants.ControllerConstants;
-import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
-import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Constants.TunerConstants;
-import frc.robot.Constants.TurretConstants;
 import frc.robot.Subsystems.Turret;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Conveyor;
@@ -61,7 +56,7 @@ public class RobotContainer {
   SendableChooser<Command> sendableAuton;
 
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(0.60).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double MaxAngularRate = RotationsPerSecond.of(0.80).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
   // Setting up bindings for necessary control of the swerve drive platform */
   private final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
@@ -98,17 +93,15 @@ public class RobotContainer {
     initialized = false;
 
     // Configure the trigger bindings
-    NamedCommands.registerCommand("Long Shot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(12));
-    NamedCommands.registerCommand("Short Shot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
+    NamedCommands.registerCommand("Long Shot", new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake).withTimeout(12));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
-    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
+    NamedCommands.registerCommand("Shoot", new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
-    NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14).withTimeout(0.5));
-    NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14).withTimeout(0.5));
     //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
-    NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, 10.5).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, 0.1).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, 10.5).withTimeout(2));
+    NamedCommands.registerCommand("Up", new PositionPivot(m_intake, 0).withTimeout(2));
+    NamedCommands.registerCommand("Pivot", new TapPivot(m_intake).withTimeout(IntakeConstants.intakeTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Chooser", sendableAuton);
@@ -144,10 +137,12 @@ public class RobotContainer {
 
     // ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
     ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
+    ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2));
+    ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(1));
 
     // These are the operator controls:
-    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
-    ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, IntakeConstants.pivotSpeed));
+    ControllerConstants.operatorController.y().whileTrue(new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake));
+    ControllerConstants.operatorController.b().whileTrue(new CornerScore(m_shooter, m_turret, m_conveyor, m_spinster, m_intake));
     ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, 18));
     ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
 
