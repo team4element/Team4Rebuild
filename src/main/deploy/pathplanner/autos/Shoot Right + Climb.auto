@@ -11,27 +11,9 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "Turret Right"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Short Shot"
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "Climb Right"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Climb"
           }
         }
       ]

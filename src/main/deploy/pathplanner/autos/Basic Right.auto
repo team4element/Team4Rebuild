@@ -23,39 +23,34 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Retract"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "human right"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Turret from Human"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "human right"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Retract"
+                }
+              }
+            ]
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "Aim"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "Long Shot"
           }
         }
       ]

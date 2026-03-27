@@ -29,21 +29,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Pivot"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Retract"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "left return"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "left return"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Up"
+                }
+              }
+            ]
           }
         },
         {
@@ -53,9 +54,16 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Shoot"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "Shoot"
+                }
+              }
+            ]
           }
         }
       ]

@@ -11,18 +11,6 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "Turret Left"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Short Shot"
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "Collect fuel"
@@ -32,18 +20,6 @@
           "type": "path",
           "data": {
             "pathName": "Fuel to shoot position"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Turret Left"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Short Shot"
           }
         },
         {

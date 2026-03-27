@@ -17,21 +17,9 @@
           }
         },
         {
-          "type": "named",
-          "data": {
-            "name": "Short Shot"
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "Shoot from human pt. 2"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Turret Right"
           }
         },
         {
