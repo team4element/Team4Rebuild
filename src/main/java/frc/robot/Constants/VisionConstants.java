@@ -14,4 +14,6 @@ public class VisionConstants {
 
     public static final int centerHubBlueTag = 26;
     public static final int centerHubRedTag = 10;
+
+    public static final double acceptedAvgDistance = 3.0;
 }

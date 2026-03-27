@@ -512,7 +512,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public void addVisionMeasurement(Pose2d robotPose, double timestamp) {
         var trust = .5;
-        var use_gyro_heading = 9999;
+        var use_gyro_heading = 999999;
         super.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(trust, trust, use_gyro_heading));
     }
 

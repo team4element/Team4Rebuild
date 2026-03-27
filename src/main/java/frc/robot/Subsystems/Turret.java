@@ -28,6 +28,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
+import frc.robot.LimelightHelpers.PoseEstimate;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
@@ -60,6 +61,9 @@ public class Turret extends SubsystemBase {
 
     StructPublisher<Pose2d> publisher;
     StructPublisher<Pose2d> limelightPublisher;
+    StructPublisher<Pose2d> publisher_2;
+
+    PoseEstimate mt2;
 
     @SuppressWarnings("unused")
     private boolean debug = false;
@@ -104,6 +108,7 @@ public class Turret extends SubsystemBase {
         m_visionLostCounter = 0;
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /*
@@ -248,12 +253,28 @@ public class Turret extends SubsystemBase {
     private double getOdometryDistanceMeters() {
         Pose2d robotPose = m_drivetrain.getState().Pose;
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+        
         int targetTagID = (alliance == Alliance.Blue) ? 
                     VisionConstants.centerHubBlueTag : 
                     VisionConstants.centerHubRedTag;
 
-        var hubPose = m_field_layout.getTagPose(targetTagID);
-        return hubPose.map(value -> robotPose.getTranslation().getDistance(value.toPose2d().getTranslation())).orElse(0.0);
+        var hubPoseEntry = m_field_layout.getTagPose(targetTagID);
+        
+        if (hubPoseEntry.isEmpty()) return 0.0;
+
+        // Get the actual Tag Position
+        Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
+
+        double centerOffsetMeters = 0.65; // Adjust this based on your specific goal depth
+        double xOffset = (alliance == Alliance.Blue) ? -centerOffsetMeters : centerOffsetMeters;
+
+        Translation2d hubCenterLocation = new Translation2d(
+            tagLocation.getX() + xOffset,
+            tagLocation.getY() // Keep Y the same if the tag is centered on the goal
+        );
+
+        // Calculate distance to the VIRTUAL center, not the physical tag
+        return robotPose.getTranslation().getDistance(hubCenterLocation);
     }
 
     public double shootingDistance() {
@@ -298,54 +319,52 @@ public class Turret extends SubsystemBase {
      * Low-priority: Odometry (Field Position)
      */
     public void track() {
-        // Calculate the Odometry-based angle
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? 
                           VisionConstants.centerHubBlueTag : 
                           VisionConstants.centerHubRedTag;
 
-        var hubPose = m_field_layout.getTagPose(targetTagID);
-        if (hubPose.isEmpty()) return;
+        var hubPoseEntry = m_field_layout.getTagPose(targetTagID);
+        if (hubPoseEntry.isEmpty()) return;
 
-        Translation2d hubLocation = hubPose.get().toPose2d().getTranslation();
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+        
+        // 1. Get the physical Tag Location
+        Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
 
-        Rotation2d fieldAngle = hubLocation.minus(robotPose.getTranslation()).getAngle();
+        // 2. Calculate the Hub Center (Offsetting from the tag)
+        // double centerOffset = 0.8;
+        double centerOffset = 0.0;
+
+        double xOffset = (alliance == Alliance.Blue) ? -centerOffset : centerOffset;
+
+        Translation2d hubCenter = new Translation2d(
+            tagLocation.getX() + xOffset,
+            tagLocation.getY() // Usually tags are centered on the Y-axis of the goal
+        );
+
+        // 3. Use hubCenter for the Odometry-based angle calculation
+        Rotation2d fieldAngle = hubCenter.minus(robotPose.getTranslation()).getAngle();
         Rotation2d robotRelativeTarget = fieldAngle.minus(robotPose.getRotation());
 
-        double finalMotorSetpoint;
-
-        // Determine if we use Vision or Odometry
-        if (LimelightHelpers.getTV("limelight-four")) {
-            // --- CASE: WE SEE THE TARGET ---
+        double finalMotorSetpoint = 0;
+        
+        if (mt2 != null && mt2.tagCount > 0 && (mt2.avgTagDist < VisionConstants.acceptedAvgDistance)) {
+            // --- VISION STRATEGY (Points directly at the crosshair/tag) ---
             m_visionLostCounter = 0; 
-
             double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
             double tx = LimelightHelpers.getTX("limelight-four");
-
-            // Convert TX (degrees) to motor rotations.
             double motorError = -(tx / 360.0) * TurretConstants.gearRatio;
             finalMotorSetpoint = currentMotorRotations + motorError; 
-
-            // Update our robot's position when in sight of an apriltag (seeding). 
-            robotPose = LimelightHelpers.getBotPose2d_wpiBlue("limelight-four");
-
         } else {
-            // --- CASE: VISION LOST / FLICKER ---
+            // --- ODOMETRY FALLBACK (Points at the hubCenter calculated above) ---
             m_visionLostCounter++;
-
-            // FLICKER PROTECTION: If lost for < 0.1s, do nothing (don't twitch).
-            if (m_visionLostCounter < 5) {
-                return; 
-            }
-
-            // After 5 frames, use Odometry to keep the turret pointed at the goal.
+            if (m_visionLostCounter < 5) return; 
             finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
 
             // Defaults to use coordinate odometry.
             robotPose = m_drivetrain.getState().Pose;
         }
-    
-        System.out.println("Bot Pose: " + robotPose);
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
         m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));    
     }
@@ -427,23 +446,32 @@ public class Turret extends SubsystemBase {
             turretDegrees// The yaw of the camera relative to the robot
         );
         
-        // 2. Feed the Robot's Gyro Yaw to MegaTag2 (Crucial for filtering)
-        // double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-four", 
-        //     robotYaw, 
-        //     0, 0, 0, 0, 0
-        // );
+        var odometryPose = m_drivetrain.getState().Pose;
+
+        //2. Feed the Robot's Gyro Yaw to MegaTag2 (Crucial for filtering)
+        double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
+        LimelightHelpers.SetRobotOrientation(
+            "limelight-four", 
+            robotYaw, 
+            0, 0, 0, 0, 0
+        );
         
-        var mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+        mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+
+        System.out.println("eeeeee: " + mt2.avgTagDist);
         
-        if (mt1 != null && mt1.tagCount > 0) {
-            m_drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
-            m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(0.2, 0.2, 999999));
-            limelightPublisher.set(mt1.pose);
+        if (mt2 != null && mt2.tagCount > 0) {
+            if (mt2.avgTagDist < VisionConstants.acceptedAvgDistance) {
+                // var pose = new Pose2d(mt2.pose.getX(), mt2.pose.getY(), odometryPose.getRotation());
+                // mt2.pose.rotateBy(new Rotation2d(180)); 
+                // m_drivetrain.resetPose(mt2.pose);
+                // publisher_2.set(pose);
+                m_drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
+                limelightPublisher.set(mt2.pose);
+            }
         }
 
-        publisher.set(m_drivetrain.getState().Pose);
+        publisher.set(odometryPose);
     }
 
 
