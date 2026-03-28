@@ -221,11 +221,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
             this.addVisionMeasurement(
             mt1.pose,
-            mt1.timestampSeconds,
+            Utils.fpgaToCurrentTime(mt1.timestampSeconds), // REMEMBER THIS TIME UNIT CONVERSION, OTHERWISE CTRE SWERVE WILL DISREGARD THE POSE
             VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
-
-            getState().Pose = mt1.pose;
         }
     }
 

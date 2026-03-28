@@ -98,7 +98,7 @@ public class RobotContainer {
     NamedCommands.registerCommand("Shoot", new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
     //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
-    NamedCommands.registerCommand("Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Intake", new IntakeForAuto(m_intake));
     NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, 10.5).withTimeout(2));
     NamedCommands.registerCommand("Up", new PositionPivot(m_intake, 0).withTimeout(2));
     NamedCommands.registerCommand("Pivot", new TapPivot(m_intake).withTimeout(IntakeConstants.intakeTimeout));
