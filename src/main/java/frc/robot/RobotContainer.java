@@ -137,13 +137,14 @@ public class RobotContainer {
 
     // ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
     ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
+    // ControllerConstants.driverController.a().whileTrue(new TurretToPosition(m_turret, 0));
     ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2));
     ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(1));
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake));
     ControllerConstants.operatorController.b().whileTrue(new CornerScore(m_shooter, m_turret, m_conveyor, m_spinster, m_intake));
-    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, 18));
+    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, 20));
     ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
 
     // Move turret manually.

@@ -52,7 +52,6 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledInit() {
     m_robotContainer.onDisable();
-    m_robotContainer.onEnable(getAutoStartPose());
   }
 
   @Override

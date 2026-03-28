@@ -7,6 +7,7 @@ package frc.robot.Subsystems;
 
 import java.util.Optional;
 
+import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -59,10 +60,6 @@ public class Turret extends SubsystemBase {
 
     Pose2d robotPose; 
 
-    StructPublisher<Pose2d> publisher;
-    StructPublisher<Pose2d> limelightPublisher;
-    StructPublisher<Pose2d> publisher_2;
-
     PoseEstimate mt2;
 
     @SuppressWarnings("unused")
@@ -106,9 +103,6 @@ public class Turret extends SubsystemBase {
         // --- Vision Configs ---
         LimelightHelpers.SetIMUMode("limelight-four", 1); //Gets updated in enable/disable 
         m_visionLostCounter = 0;
-        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
-        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
-        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /*
@@ -332,6 +326,8 @@ public class Turret extends SubsystemBase {
         // 1. Get the physical Tag Location
         Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
 
+        boolean isCorrectTag = (LimelightHelpers.getFiducialID("limelight-four") == targetTagID);
+
         // 2. Calculate the Hub Center (Offsetting from the tag)
         // double centerOffset = 0.8;
         double centerOffset = 0.0;
@@ -349,7 +345,7 @@ public class Turret extends SubsystemBase {
 
         double finalMotorSetpoint = 0;
         
-        if (mt2 != null && mt2.tagCount > 0 && (mt2.avgTagDist < VisionConstants.acceptedAvgDistance)) {
+        if (mt2 != null && mt2.tagCount > 0 && (mt2.avgTagDist < VisionConstants.acceptedAvgDistance) && (isCorrectTag)) {
             // --- VISION STRATEGY (Points directly at the crosshair/tag) ---
             m_visionLostCounter = 0; 
             double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
@@ -427,15 +423,15 @@ public class Turret extends SubsystemBase {
 
     public void updateVisionOdometry() {
         double turretDegrees = getTurretDegree();
-        // Limelight usually uses standard geometry where 0 is forward, CCW is positive
+        // // Limelight usually uses standard geometry where 0 is forward, CCW is positive
         double turretRadians = Math.toRadians(turretDegrees);
         
-        // Calculate the camera's position relative to the ROBOT CENTER
-        // We start at the turret center and "swing" out by the camera radius
+        // // Calculate the camera's position relative to the ROBOT CENTER
+        // // We start at the turret center and "swing" out by the camera radius
         double cameraX = VisionConstants.turretOffsetX - (VisionConstants.cameraRadius * Math.sin(turretRadians));
         double cameraY = VisionConstants.turretOffsetY + (VisionConstants.cameraRadius * Math.cos(turretRadians));
         
-        // 1. Tell Limelight where it is physically located on the robot AT THIS MOMENT
+        // // 1. Tell Limelight where it is physically located on the robot AT THIS MOMENT
         LimelightHelpers.setCameraPose_RobotSpace(
             "limelight-four",
             cameraX, 
@@ -446,32 +442,34 @@ public class Turret extends SubsystemBase {
             turretDegrees// The yaw of the camera relative to the robot
         );
         
-        var odometryPose = m_drivetrain.getState().Pose;
+        // var odometryPose = m_drivetrain.getState().Pose;
 
-        //2. Feed the Robot's Gyro Yaw to MegaTag2 (Crucial for filtering)
-        double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
-        LimelightHelpers.SetRobotOrientation(
-            "limelight-four", 
-            robotYaw, 
-            0, 0, 0, 0, 0
-        );
+        // //2. Feed the Robot's Gyro Yaw to MegaTag2 (Crucial for filtering)
+        // double robotYaw = m_drivetrain.getState().Pose.getRotation().getDegrees();
+        // LimelightHelpers.SetRobotOrientation(
+        //     "limelight-four", 
+        //     robotYaw, 
+        //     0, 0, 0, 0, 0
+        // );
         
         mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
 
-        System.out.println("eeeeee: " + mt2.avgTagDist);
+        // // System.out.println("eeeeee: " + mt2.avgTagDist);
         
-        if (mt2 != null && mt2.tagCount > 0) {
-            if (mt2.avgTagDist < VisionConstants.acceptedAvgDistance) {
-                // var pose = new Pose2d(mt2.pose.getX(), mt2.pose.getY(), odometryPose.getRotation());
-                // mt2.pose.rotateBy(new Rotation2d(180)); 
-                // m_drivetrain.resetPose(mt2.pose);
-                // publisher_2.set(pose);
-                m_drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
-                limelightPublisher.set(mt2.pose);
-            }
-        }
-
-        publisher.set(odometryPose);
+        // if (mt2 != null && mt2.tagCount > 0) {
+        //     if (mt2.avgTagDist < VisionConstants.acceptedAvgDistance) {
+        //         double xyStdDev = 0.2 / mt2.tagCount * mt2.avgTagDist;
+        //         double thetaStdDev = mt2.tagCount >= 2 ? 0.2 : 0.5;
+        //         // var pose = new Pose2d(mt2.pose.getX(), mt2.pose.getY(), odometryPose.getRotation());
+        //         // mt2.pose.rotateBy(new Rotation2d(180)); 
+        //         // m_drivetrain.resetPose(mt2.pose);
+        //         // publisher_2.set(pose);
+        //         m_drivetrain.addVisionMeasurement(
+        //             mt2.pose,
+        //             Utils.fpgaToCurrentTime(mt2.timestampSeconds), // REMEMBER THIS TIME UNIT CONVERSION, OTHERWISE CTRE SWERVE WILL DISREGARD THE POSE
+        //             VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev));
+        //     }
+        // }
     }
 
 
@@ -479,6 +477,7 @@ public class Turret extends SubsystemBase {
     public void periodic() {
 
         SmartDashboard.putNumber("distance", getBestDistanceMeters());
+       // mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
         updateVisionOdometry();
     }
 

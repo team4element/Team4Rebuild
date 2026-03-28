@@ -29,10 +29,10 @@ public class TurretToPosition extends Command {
   @Override
   public void execute() {
     if(ControllerConstants.operatorController.getLeftX() >= 0.2){
-      m_turret.setYaw(-0.15);
+      m_turret.setYaw(-0.09);
 
     } else if(ControllerConstants.operatorController.getLeftX() < -0.2){
-      m_turret.setYaw(0.15);
+      m_turret.setYaw(0.09);
 
     } else{
       m_turret.setYaw(m_position);

@@ -24,7 +24,7 @@ public class TapPivot extends Command {
   @Override
   public void initialize() {
     initPose = m_intake.getPivotPosition(m_intake.m_leftPivot);
-    targetPose = initPose + 5.5;
+    targetPose = initPose - 5.5;
     m_intake.pivotToSetpoint(m_intake.m_leftPivot, targetPose-2);
     m_intake.pivotToSetpoint(m_intake.m_rightPivot, targetPose);
   }
@@ -32,8 +32,8 @@ public class TapPivot extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    if(m_intake.getPivotPosition(m_intake.m_leftPivot) >= initPose+2){
-      targetPose = initPose - 9.5;
+    if(m_intake.getPivotPosition(m_intake.m_leftPivot) <= initPose-2){
+      targetPose = initPose + 9.5;
       Thread.currentThread();
 
       try {
@@ -44,8 +44,8 @@ public class TapPivot extends Command {
       
       m_intake.pivotToSetpoint(m_intake.m_leftPivot, targetPose-2);
       m_intake.pivotToSetpoint(m_intake.m_rightPivot, targetPose);
-    } else if(m_intake.getPivotPosition(m_intake.m_leftPivot) >= initPose-5){
-      targetPose = initPose + 9.5;
+    } else if(m_intake.getPivotPosition(m_intake.m_leftPivot) >= initPose+5){
+      targetPose = initPose - 9.5;
       Thread.currentThread();
 
       try {

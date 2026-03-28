@@ -36,6 +36,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -49,6 +51,7 @@ import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers.PoseEstimate;
 
 /** Add your docs here. */
@@ -87,10 +90,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
+    StructPublisher<Pose2d> publisher; 
+    StructPublisher<Pose2d> limelightPublisher;
+    StructPublisher<Pose2d> publisher_2;
 
     // This is indicates how much 'trust' or reliability is put into the limelight's data for mt2. Smaller numbers mean more trust. 
-    private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
-    private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+  //  private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+  //  private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
         .withDeadband(.6).withRotationalDeadband(.6)
@@ -194,6 +200,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     public void setVisionPose(){
         PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+        var odometryPose = this.getState().Pose;
+
+        publisher.set(odometryPose);
+        limelightPublisher.set(mt1.pose);
 
         doRejectUpdate = false;
 
@@ -201,6 +211,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
          doRejectUpdate = true;
         }
 
+
+       // We start at the turret center and "swing" out by the camera radius
         if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1){
             if(mt1.rawFiducials[0].ambiguity > 0.7){
                 doRejectUpdate = true;
@@ -217,13 +229,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         if(!doRejectUpdate){
             double xyStdDev = 0.2 / mt1.tagCount * mt1.avgTagDist;
-            double thetaStdDev = mt1.tagCount >= 2 ? 0.2 : 999999;
+            double thetaStdDev = mt1.tagCount >= 2 ? 0.2 : 9999;
 
             this.addVisionMeasurement(
             mt1.pose,
             Utils.fpgaToCurrentTime(mt1.timestampSeconds), // REMEMBER THIS TIME UNIT CONVERSION, OTHERWISE CTRE SWERVE WILL DISREGARD THE POSE
             VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
+        }else {
+            field.setRobotPose(odometryPose);
         }
     }
 
@@ -311,6 +325,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SmartDashboard.putData("Field", field);
 
         field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -347,6 +364,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SmartDashboard.putData("Field", field);
 
         field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -397,6 +417,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SmartDashboard.putData("Field", field);
 
         field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -449,6 +472,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public void periodic(){
         setVisionPose();
+        System.out.println(getGyroAngle());
 
         /*
          * Periodically try to apply the operator perspective.
