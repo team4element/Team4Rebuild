@@ -18,7 +18,6 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.IntakeConstants;
@@ -95,10 +94,10 @@ public class Intake extends SubsystemBase{
         m_leftPivotConfigurator = m_leftPivot.getConfigurator();
         m_rightPivotConfigurator = m_rightPivot.getConfigurator();
 
-        m_limitConfigPivot.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
-        m_limitConfigPivot.StatorCurrentLimitEnable = true;
-        m_limitConfigPivot.SupplyCurrentLimit = 50;
-        m_limitConfigPivot.SupplyCurrentLimitEnable = true;
+        // m_limitConfigPivot.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
+        // m_limitConfigPivot.StatorCurrentLimitEnable = true;
+        // m_limitConfigPivot.SupplyCurrentLimit = 50;
+        // m_limitConfigPivot.SupplyCurrentLimitEnable = true;
 
         m_leftPivotConfigurator.apply(m_limitConfigPivot);
         m_rightPivotConfigurator.apply(m_limitConfigPivot);
@@ -109,16 +108,16 @@ public class Intake extends SubsystemBase{
         m_leftIntakeConfigurator = m_leftPivot.getConfigurator();
         m_rightIntakeConfigurator = m_rightPivot.getConfigurator();
 
-        m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
-        m_limitConfigIntake.StatorCurrentLimitEnable = true;
-        m_limitConfigIntake.SupplyCurrentLimit = 100;
-        m_limitConfigIntake.SupplyCurrentLimitEnable = true;
+        // m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
+        // m_limitConfigIntake.StatorCurrentLimitEnable = true;
+        // m_limitConfigIntake.SupplyCurrentLimit = 100;
+        // m_limitConfigIntake.SupplyCurrentLimitEnable = true;
 
          m_leftIntakeConfigurator.apply(m_limitConfigIntake);
          m_rightIntakeConfigurator.apply(m_limitConfigIntake);
 
         // Creates a leader and follower
-        m_rightIntake.setControl(new Follower(IntakeConstants.intakeLeftID, MotorAlignmentValue.Opposed));
+       // m_rightIntake.setControl(new Follower(IntakeConstants.intakeLeftID, MotorAlignmentValue.Opposed));
 
         m_leftIntake.getConfigurator().apply(m_rollerConfig);
 
@@ -155,16 +154,22 @@ public class Intake extends SubsystemBase{
 
 
     public void pivotOn(double percentage) {
-        System.out.println("PERCENT :" + percentage);
+      //  System.out.println("PERCENT :" + percentage);
         if(getPivotPosition(m_leftPivot) > IntakeConstants.upperPivotLimit && getPivotPosition(m_leftPivot) < IntakeConstants.lowerPivotLimit){
             setPivotPercentage(m_leftPivot, percentage);
             setPivotPercentage(m_rightPivot, percentage);
-        } else if(getPivotPosition(m_leftPivot) <= IntakeConstants.upperPivotLimit && percentage > 0){ // RT (down)
+            if(percentage <= 0){
+                runRollers(30);
+            }else{
+                runRollers(-30);
+            }
+        } else if(getPivotPosition(m_leftPivot) <= IntakeConstants.upperPivotLimit && percentage > 0 ){ // RT (down)
             setPivotPercentage(m_leftPivot, percentage);
             setPivotPercentage(m_rightPivot, percentage);
         }else if (getPivotPosition(m_leftPivot) >= IntakeConstants.lowerPivotLimit && percentage < 0){ // LT (up)
             setPivotPercentage(m_leftPivot, percentage);
             setPivotPercentage(m_rightPivot, percentage);
+           // runRollers(30);
         }
     }
 
@@ -256,6 +261,7 @@ public class Intake extends SubsystemBase{
      */
     public void runRollers(double speedPercentage){
         m_leftIntake.setControl(m_voltageRequest.withVelocity(speedPercentage));
+        m_rightIntake.setControl(m_voltageRequest.withVelocity(-speedPercentage));
     }
 
     public void pivotOff(){
@@ -270,6 +276,7 @@ public class Intake extends SubsystemBase{
         m_leftPivot.setControl(m_dutyCyclePivot.withOutput(0));
         m_rightPivot.setControl(m_dutyCyclePivot.withOutput(0));
         m_leftIntake.setControl(m_dutyCyclePivot.withOutput(0));
+        m_rightIntake.setControl(m_voltageRequest.withVelocity(0));
     }
 
     /**
@@ -311,7 +318,7 @@ public class Intake extends SubsystemBase{
 
         SmartDashboard.putBoolean("Pivot lowered", down);
 
-        System.out.println("rotation L" + getPivotPosition(m_leftPivot) + "| rotation R" + getPivotPosition(m_rightPivot));
+        //System.out.println("rotation L" + getPivotPosition(m_leftPivot) + "| rotation R" + getPivotPosition(m_rightPivot));
 
     }
 }

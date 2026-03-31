@@ -30,12 +30,12 @@ public class Conveyor extends SubsystemBase{
         // The motor will start with half speed
         m_dutyCycle = new DutyCycleOut(ConveyorConstants.dutyCycle);
 
-        m_configurator = m_motor.getConfigurator();
-        m_limitConfig.StatorCurrentLimit = ConveyorConstants.statorCurrentLimit;
-        m_limitConfig.StatorCurrentLimitEnable = true;
-        m_limitConfig.SupplyCurrentLimit = ConveyorConstants.supplyCurrentLimit;
-        m_limitConfig.SupplyCurrentLimitEnable = true;
-        m_configurator.apply(m_limitConfig);
+        // m_configurator = m_motor.getConfigurator();
+        // m_limitConfig.StatorCurrentLimit = ConveyorConstants.statorCurrentLimit;
+        // m_limitConfig.StatorCurrentLimitEnable = true;
+        // m_limitConfig.SupplyCurrentLimit = ConveyorConstants.supplyCurrentLimit;
+        // m_limitConfig.SupplyCurrentLimitEnable = true;
+        // m_configurator.apply(m_limitConfig);
     }
 
     /**

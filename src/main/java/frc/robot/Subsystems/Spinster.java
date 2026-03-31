@@ -31,14 +31,14 @@ public class Spinster extends SubsystemBase{
         m_dutyCycle = new DutyCycleOut(SpinsterConstants.dutyCycle);
         m_currentLimit = new CurrentLimitsConfigs();
 
-        m_configurator = m_motor.getConfigurator();
+        // m_configurator = m_motor.getConfigurator();
     
-        m_currentLimit.StatorCurrentLimit = 50;
-        m_currentLimit.StatorCurrentLimitEnable = true;
-        m_currentLimit.SupplyCurrentLimit = 80;
-        m_currentLimit.SupplyCurrentLimitEnable = true;
+        // m_currentLimit.StatorCurrentLimit = 50;
+        // m_currentLimit.StatorCurrentLimitEnable = true;
+        // m_currentLimit.SupplyCurrentLimit = 80;
+        // m_currentLimit.SupplyCurrentLimitEnable = true;
 
-        m_configurator.apply(m_currentLimit);
+        // m_configurator.apply(m_currentLimit);
     }
 
     /**
@@ -47,7 +47,7 @@ public class Spinster extends SubsystemBase{
      */
     public void runMotor(double speedPercentage){
 
-        System.out.println(speedPercentage);
+       // System.out.println(speedPercentage);
         m_motor.setControl(m_dutyCycle.withOutput(speedPercentage));
     }
 

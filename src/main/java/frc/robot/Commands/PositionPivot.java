@@ -24,6 +24,11 @@ public class PositionPivot extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
+    if(m_setpoint <= 3){
+      m_intake.runRollers(-30);
+    } else{
+      m_intake.runRollers(30);
+    }
     m_intake.automaticPivot(m_intake.m_leftPivot, m_setpoint-2);
     m_intake.automaticPivot(m_intake.m_rightPivot, m_setpoint);
   }

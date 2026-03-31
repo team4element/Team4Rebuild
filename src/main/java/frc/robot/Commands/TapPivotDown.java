@@ -1,5 +1,5 @@
 /*
- * This command manually moves the pivot on the intake between it's limits.
+ * This command moves the pivot for the intake back and forth in order to keep the fuel going through the spindexer.
  */
 
 package frc.robot.Commands;
@@ -7,14 +7,14 @@ package frc.robot.Commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Intake;
 
-public class RetractIntake extends Command {
+public class TapPivotDown extends Command {
   /** Creates a new Intake. */
   public Intake m_intake;
-  public double v_speedPercentagePivot;
+  public double initPose;
+  public double targetPose;
 
-  public RetractIntake(Intake intake, double speedPercentagePivot) {
+  public TapPivotDown(Intake intake) {
     m_intake = intake;
-    v_speedPercentagePivot = speedPercentagePivot;
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(intake);
@@ -22,12 +22,20 @@ public class RetractIntake extends Command {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
+  public void initialize() {
+
+  }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_intake.pivotOn(v_speedPercentagePivot);
+    if(m_intake.getPivotPosition(m_intake.m_leftPivot) >= 8){
+
+      m_intake.pivotToSetpoint(m_intake.m_leftPivot, 3);
+      m_intake.pivotToSetpoint(m_intake.m_rightPivot, 3);
+
+    }
+    
   }
 
   // Called once the command ends or is interrupted.

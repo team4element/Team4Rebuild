@@ -26,6 +26,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.estimator.PoseEstimator;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -34,7 +35,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -86,10 +88,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
+    StructPublisher<Pose2d> publisher; 
+    StructPublisher<Pose2d> limelightPublisher;
+    StructPublisher<Pose2d> publisher_2;
 
     // This is indicates how much 'trust' or reliability is put into the limelight's data for mt2. Smaller numbers mean more trust. 
-    private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
-    private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+  //  private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+  //  private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
         .withDeadband(.6).withRotationalDeadband(.6)
@@ -182,9 +187,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         new Pose2d()
     );
 
-    @SuppressWarnings("rawtypes")
-    public PoseEstimator m_poseEstimator = new PoseEstimator<>(kKinematics, m_odometry, stateStdDevs, visionMeasurementStdDevs);
-
     /**
      * @return the pigeon's rotation.
      */
@@ -192,37 +194,50 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return TunerConstants.m_pigeon.getRotation2d();
     }
 
-    /*
-     * Links the robot odometry to the field using the limelight's data (MegaTag2).
-     */
-    @SuppressWarnings("unchecked")
-public void setMegaTag2() {
-    // 1. Get the rotation directly from the pose. 
-    // This is ALWAYS field-relative (Blue-origin) in Phoenix 6.
-    Rotation2d robotRotation = this.getState().Pose.getRotation();
+    //public SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(kKinematics, getGyroAngle(), getModuleLocations(), m_odometry);
 
-    LimelightHelpers.SetRobotOrientation(
-        "limelight-four",
-        robotRotation.getDegrees(),
-        0, 0, 0, 0, 0
-    );
+    public void setVisionPose(){
+        PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+        var odometryPose = this.getState().Pose;
 
-    // 2. Use wpiBlue MegaTag2. This ensures the pose is in the Blue coordinate space.
-    var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        publisher.set(odometryPose);
+        limelightPublisher.set(mt1.pose);
 
-    // 3. Filter for quality
-    boolean isTurningFast = Math.abs(TunerConstants.m_pigeon.getAngularVelocityZWorld().getValueAsDouble()) > 720; // Increased threshold
-    
-    if (mt2.tagCount > 0 && !isTurningFast) {
-        // Use the native addVisionMeasurement from the parent SwerveDrivetrain class
-        // It is designed to handle the internal pose estimator correctly.
-        this.addVisionMeasurement(
-            mt2.pose, 
-            mt2.timestampSeconds,
-            VecBuilder.fill(0.7, 0.7, 999999) // Trust Gyro for rotation // tune to full robot pose later
-        );
+        doRejectUpdate = false;
+
+        if(mt1 == null || mt1.tagCount == 0){
+         doRejectUpdate = true;
+        }
+
+
+       // We start at the turret center and "swing" out by the camera radius
+        if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1){
+            if(mt1.rawFiducials[0].ambiguity > 0.7){
+                doRejectUpdate = true;
+            }
+            if(mt1.rawFiducials[0].distToCamera > 4){
+                 doRejectUpdate = true;
+            }
+        }
+
+        if(mt1.pose.getTranslation().getDistance(
+            this.getState().Pose.getTranslation()) > 3.0){
+            doRejectUpdate = true;
+        }
+
+        if(!doRejectUpdate){
+            double xyStdDev = 0.2 / mt1.tagCount * mt1.avgTagDist;
+            double thetaStdDev = mt1.tagCount >= 2 ? 0.2 : 9999;
+
+            this.addVisionMeasurement(
+            mt1.pose,
+            Utils.fpgaToCurrentTime(mt1.timestampSeconds), // REMEMBER THIS TIME UNIT CONVERSION, OTHERWISE CTRE SWERVE WILL DISREGARD THE POSE
+            VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
+            );
+        }else {
+            field.setRobotPose(odometryPose);
+        }
     }
-}
 
     /**
      * Inverses the boolean, which starts as false, when the left or right bumpers are triggered (switch from robot centric to field centric).
@@ -307,7 +322,10 @@ public void setMegaTag2() {
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -343,7 +361,10 @@ public void setMegaTag2() {
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -393,7 +414,10 @@ public void setMegaTag2() {
         field = new Field2d();
         SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four").pose);
+        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
+        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -435,7 +459,7 @@ public void setMegaTag2() {
 
     public Command c_seedFieldRelativeWithVision() {
     return runOnce(() -> {
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-four");
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
         if (mt2.tagCount > 0) {
             // This resets X, Y, and Rotation to the Vision's "Truth"
             this.resetPose(mt2.pose); 
@@ -445,6 +469,9 @@ public void setMegaTag2() {
 
     @Override
     public void periodic(){
+        setVisionPose();
+       // System.out.println(getGyroAngle());
+
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply
@@ -464,7 +491,7 @@ public void setMegaTag2() {
                                : kBlueAlliancePerspectiveRotation);
                 m_hasAppliedOperatorPerspective = true;
             });
-        }
+        }     
     }
 
     private void startSimThread(){
@@ -489,7 +516,7 @@ public void setMegaTag2() {
     public double speedToDouble(SPEED speed){
         switch (speed) {
             case SLOW:
-                return .5;
+                return .25;
             case FAST:
                 return .75;
             case VERY_FAST:
@@ -498,11 +525,15 @@ public void setMegaTag2() {
         return 1;
     }
 
+    public void setVisionMeasurementStdDevs(Vector<N3> stdDevs) {
+        super.setVisionMeasurementStdDevs(stdDevs);
+    }
 
+    @Override
     public void addVisionMeasurement(Pose2d robotPose, double timestamp) {
-        // Note: We set the Rotation (Theta) standard deviation very high (999999) 
-        // because the Pigeon2 is much more trustworthy for heading than the Limelight.
-        this.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(0.7, 0.7, 999999)); 
+        var trust = .5;
+        var use_gyro_heading = 999999;
+        super.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(trust, trust, use_gyro_heading));
     }
 
     /**

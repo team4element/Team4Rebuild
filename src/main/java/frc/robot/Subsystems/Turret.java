@@ -20,6 +20,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -47,19 +48,22 @@ public class Turret extends SubsystemBase {
 
     // Logic State
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
-    private double TX, TY;
-    private double distance = 0;
-    private boolean hasTarget;
     private int m_visionLostCounter = 0;
     private int kVisionThreshold = 5;
 
     // ETC
     Translation2d virtualHubLocation = new Translation2d(0, 0);
 
+    StructPublisher<Pose2d> publisher;
+    StructPublisher<Pose2d> limeLightPublisher;
+
     @SuppressWarnings("unused")
     private boolean debug = false;
 
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
+        publisher          = NetworkTableInstance.getDefault().getStructTopic("botPose", Pose2d.struct).publish();
+        limeLightPublisher = NetworkTableInstance.getDefault().getStructTopic("limelightPose", Pose2d.struct).publish();
+
         m_turret = new TalonFX(TurretConstants.turretID);
         m_field_layout = field_layout;
         m_drivetrain = drivetrain;
@@ -353,7 +357,7 @@ public class Turret extends SubsystemBase {
                 finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
             }
         }
-        System.out.println("bot pose" + robotPose.getX() + "|" + robotPose.getY());
+       // System.out.println("bot pose" + robotPose.getX() + "|" + robotPose.getY());
 
         // Output to Hardware
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
@@ -455,19 +459,14 @@ public class Turret extends SubsystemBase {
             );
         }
 
-        System.out.println("robot yaw: " + robotYaw);
+        publisher.set(m_drivetrain.getState().Pose);
+        limeLightPublisher.set(mt2.pose);
+
+       // System.out.println("robot yaw: " + robotYaw);
     }
 
     @Override   
     public void periodic() {
-        // Refresh vision state so findDistance() and trackAndShoot() use fresh data
-        hasTarget = LimelightHelpers.getTV("limelight-four");
-
-        if (hasTarget) {
-            TX = LimelightHelpers.getTX("limelight-four");
-            TY = LimelightHelpers.getTY("limelight-four");
-        }
-
         SmartDashboard.putNumber("distance", getBestDistanceMeters());
         updateVisionOdometry();
     }
