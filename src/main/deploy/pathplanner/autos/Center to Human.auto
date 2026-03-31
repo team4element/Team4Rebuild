@@ -23,15 +23,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Retract"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "to human player"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "to human player"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Retract"
+                }
+              }
+            ]
           }
         },
         {
