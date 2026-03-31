@@ -34,4 +34,7 @@ public class TurretConstants {
 
     public static final double turretToLensForward = .19; // meters
     public static final double aimTimeout = 1.5; // In seconds
+
+    public static final double leftCornerPose = -0.118;
+    public static final double rightCornerPose = 0.118;
 }

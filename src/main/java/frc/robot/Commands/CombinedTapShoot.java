@@ -22,7 +22,7 @@ public class CombinedTapShoot extends SequentialCommandGroup {
         new ParallelCommandGroup(
             new Shoot(shooter, turret), 
             new TransferFuel(spinster, conveyor, -SpinsterConstants.spinsterSpeed, ConveyorConstants.conveyorSpeed),
-            new TapPivot(intake, 1).repeatedly().withTimeout(3)
+            new TapPivot(intake).repeatedly().withTimeout(3)
         ).withTimeout(9.5)
     );
   }

@@ -25,19 +25,20 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.CombinedTapShoot;
-import frc.robot.Commands.FreePivot;
 import frc.robot.Commands.IntakeForAuto;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
-import frc.robot.Commands.StopPivot;
 import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
 import frc.robot.Commands.Auton.ShootForAuton;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.IntakeConstants;
+import frc.robot.Constants.ShooterConstants;
 import frc.robot.Constants.TunerConstants;
+import frc.robot.Constants.TurretConstants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.Subsystems.Turret;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Conveyor;
@@ -69,13 +70,14 @@ public class RobotContainer {
 
   public final CommandSwerveDrivetrain m_drivetrain;
   public final Turret m_turret;
-  //public final Climb m_climb;
   public final Intake m_intake;
   public final Spinster m_spinster;
   public final Conveyor m_conveyor;
   public final Shooter m_shooter;
 
   public final AprilTagFieldLayout m_field_layout;
+
+  private boolean initialized;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -85,21 +87,18 @@ public class RobotContainer {
     m_intake = new Intake();
     m_spinster = new Spinster();
     m_conveyor = new Conveyor();
-    //m_climb = new Climb();
     m_shooter = new Shooter();
+
+    initialized = false;
 
     // Configure the trigger bindings
     NamedCommands.registerCommand("Long Shot", new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake).withTimeout(12));
-    NamedCommands.registerCommand("Short Shot", new CombinedTapShoot(m_shooter, m_turret, m_conveyor, m_spinster, m_intake).withTimeout(3));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster).withTimeout(3));
-    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, 0.118).withTimeout(0.5));
-    NamedCommands.registerCommand("Turret Left", new TurretToPosition(m_turret, -0.14).withTimeout(0.5));
-    NamedCommands.registerCommand("Turret Right", new TurretToPosition(m_turret, 0.14).withTimeout(0.5));
-    //NamedCommands.registerCommand("Climb", new ManualClimbDown(m_climb, ClimbConstants.climbSpeed).withTimeout(ClimbConstants.climbTimeout));
+    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerPose).withTimeout(0.5));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, 10.5).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, 0.1).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, IntakeConstants.poseForAuto).withTimeout(IntakeConstants.intakeTimeout));
+    NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake).repeatedly().withTimeout(IntakeConstants.intakeTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
     SmartDashboard.putData("Auto Chooser", sendableAuton);
@@ -133,109 +132,74 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
 
-    ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2));
-    ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(0));
+    ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2)); // Raises the driver's speed to full.
+    ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(0)); // Lowers the driver's speed to 1/4.
 
-   // ControllerConstants.driverController.a().onTrue(new TurretToPosition(m_turret, 0.12).withTimeout(0.5));
-
-    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, -0.119));
-    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, 0.119));
-
-    // ControllerConstants.driverController.x().whileTrue(new GumballRotation(m_spinster, .75));
-    // ControllerConstants.driverController.b().whileTrue(new ConveyToTurret(m_conveyor, .75));
+    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerPose)); // Rotates pivot for the left corner shot.
+    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerPose)); // Rotates pivot for the right corner shot.
 
     // These are the operator controls:
-     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
-    ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake,0).repeatedly());
-   // ControllerConstants.operatorController.b().whileTrue(new TurretToPosition(m_turret, 0));
-    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, 18));
+    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_turret, m_conveyor, m_spinster));
+    ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake).repeatedly());
+    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, IntakeConstants.poseToIntake)); // Lowers pivot to be ready to intake.
     ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
-    ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
-    ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_intake, 0.1));
-    ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_intake, 0.1));
-    // Inverse conveyor systems.
-    ControllerConstants.operatorController.start().whileTrue(new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, 87).withTimeout(5));
-    ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0));
+    ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret)); 
 
-    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -60));
-    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, 60));
-    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, -0.1));
-    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, 0.1));
+    // Inverse conveyor systems.
+    ControllerConstants.operatorController.start().whileTrue(new ShootForAuton(m_shooter, m_turret, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
+    ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
+
+    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.outtakeSpeed)); // Runs the outtake.
+    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, -IntakeConstants.pivotSpeed)); // Lowers the pivot of the intake.
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, IntakeConstants.pivotSpeed)); // Raises the pivot of the intake.
   }
 
-  // /*
-  //  * This runs in initialize on auton to set the climb and turret's starting position.
-  //  */
-  // public void onEnable(Pose2d startLocation){
-  //   // m_intake.homePivot(m_intake.m_leftPivot);
-  //   // m_intake.homePivot(m_intake.m_rightPivot);
-  //   m_turret.resetTurret();
+  public void onEnable(Pose2d startLocation) {
+    if(!initialized) {
+      initialized = true;
+      var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
-  //   var angle = startLocation.getRotation();
-  //   System.out.println("TEST: " + angle.getRotations());
-    
-  //   m_drivetrain.resetPose(startLocation);
-  //   m_field_layout.setOrigin(AprilTagFieldLayout.OriginPosition.kBlueAllianceWallRightSide);
+      LimelightHelpers.SetIMUMode("limelight-four", VisionConstants.initialIMUMode);
+      LimelightHelpers.SetIMUAssistAlpha("limelight-four", 0.001); // Adds a correction on the IMU mode.
 
-  // }
+      // 1. Determine the Pose: Start with a hardcoded default.
+      Pose2d startPose = (alliance == Alliance.Red)
+        ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) // Robot starting in front of the center of red hub.
+        : new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0)); // Robot starting in front of the center of blue hub.
 
-public void onEnable(Pose2d startLocation) {
-    m_turret.resetTurret();
-    m_intake.homePivot(m_intake.m_leftPivot);
-    m_intake.homePivot(m_intake.m_rightPivot);
-    
-    // Use orElse to prevent crashes if DS is not connected
-    var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-    boolean isRed = (alliance == Alliance.Red);
+      // 2. If PathPlanner provided a specific start, override the default.
+      if(startLocation != null) {
+        startPose = startLocation;
+      }
 
-    Pose2d finalStartPose;
+      // 3. APPLY the pose to the hardware (This needs to happen regardless)
+      m_turret.resetTurret();
+      m_drivetrain.resetPose(startPose);
 
-    //SUPER BAINDAID BAD, FIX ME AT SOME POINT
-    if (startLocation != null) {
-        // PathPlanner is providing a pose. 
-        // If it's Red but giving 0, we force the 180 flip for the Map.
-        if (isRed && Math.abs(startLocation.getRotation().getDegrees()) < 1.0) {
-            finalStartPose = new Pose2d(startLocation.getTranslation(), Rotation2d.fromDegrees(180));
-        } else {
-            finalStartPose = startLocation;
-        }
-    } else {
-        // no start lovation
-        finalStartPose = isRed 
-            ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) //12.9
-            : new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
+      // 4. Set Perspective: This makes sure "Forward" on the joystick is correct
+      m_drivetrain.setOperatorPerspectiveForward(
+        alliance == Alliance.Red ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
+      );
+
+      System.out.println("Robot Initialized at: " + startPose.toString() + " | Alliance: " + alliance);
     }
-
-    // 1. Set the physical Pose (Blue-Map Relative)
-    m_drivetrain.resetPose(finalStartPose);
-
-    // 2. Set the Operator Perspective
-    // This makes "Forward" on the joystick drive toward the Blue Goal
-    m_drivetrain.setOperatorPerspectiveForward(finalStartPose.getRotation());
-    
-    System.out.println("Enabling on " + alliance + " at " + finalStartPose.getRotation().getDegrees() + " degrees | " + finalStartPose.getX());
-}
+  }
 
   /*
    * This resets the turret's position to 0 when the robot disables.
    */
-  public void onDisable(){
+  public void onDisable() {
     m_turret.returnToStartPosition();
-    new StopPivot(m_intake);
-  }
-
-  public void disable(){
-    m_turret.returnToStartPosition();
-    new StopPivot(m_intake);
   }
 
   /*
    * Switches the drivetrain's forward to be relative to the field (toward the opposing alliance).
    */
-  public Command c_fieldRelative(){
+  public Command c_fieldRelative() {
      return m_drivetrain.applyRequest(() -> fcDrive);
   }
 
@@ -251,5 +215,4 @@ public void onEnable(Pose2d startLocation) {
   public boolean onBlueTeam() {
     return DriverStation.getAlliance().get() == DriverStation.Alliance.Blue;
   }
-
 }

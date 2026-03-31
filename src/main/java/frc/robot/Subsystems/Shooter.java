@@ -34,12 +34,6 @@ public class Shooter extends SubsystemBase {
         shooterConfig.Slot0.kD = ShooterConstants.KDShooter;
         shooterConfig.Slot0.kV = ShooterConstants.KVShooter; 
 
-        // Current Limits
-        shooterConfig.CurrentLimits.StatorCurrentLimit = ShooterConstants.shooterStatorLimit;
-        shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-        shooterConfig.CurrentLimits.SupplyCurrentLimit = ShooterConstants.shooterSupplyLimit;
-        shooterConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
-
         // Mechanical Settings
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         shooterConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
@@ -47,8 +41,6 @@ public class Shooter extends SubsystemBase {
         // Apply config to both motors
         m_leftMotor.getConfigurator().apply(shooterConfig);
         m_rightMotor.getConfigurator().apply(shooterConfig);
-
-    
 
         /* * Set up Follower: Right motor will mimic the Left motor.
          * If your motors are facing each other, one usually needs to be opposed.

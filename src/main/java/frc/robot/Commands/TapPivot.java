@@ -10,9 +10,8 @@ import frc.robot.Subsystems.Intake;
 public class TapPivot extends SequentialCommandGroup {
   /** Creates a new Intake. */
   public Intake m_intake;
-  public double v_speedPercentagePivot;
 
-  public TapPivot(Intake intake, double speedPercentagePivot) {
+  public TapPivot(Intake intake) {
     // Use addRequirements() here to declare subsystem dependencies.
     addCommands(new PositionPivot(intake, 12).withTimeout(0.2), new PositionPivot(intake, 1.5).withTimeout(0.2));
   }

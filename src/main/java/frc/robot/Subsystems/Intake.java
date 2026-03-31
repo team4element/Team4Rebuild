@@ -5,16 +5,12 @@
 
 package frc.robot.Subsystems;
 
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,18 +25,10 @@ public class Intake extends SubsystemBase{
     public TalonFX m_leftPivot, m_rightPivot;
 
     // Used to control the speed of motors.
-    private DutyCycleOut m_dutyCyclePivot, m_dutyCycleRollers;
+    private DutyCycleOut m_dutyCyclePivot;
     // Used to control motor's rotation (position) with a given speed.
     private PositionVoltage m_positionRequest;
     private VelocityVoltage m_voltageRequest;
-    // Used to current limits.
-    private TalonFXConfigurator m_leftPivotConfigurator;
-    private TalonFXConfigurator m_rightPivotConfigurator;
-    private TalonFXConfigurator m_leftIntakeConfigurator;
-    private TalonFXConfigurator m_rightIntakeConfigurator;
-    private CurrentLimitsConfigs m_limitConfigPivot;
-
-    private CurrentLimitsConfigs m_limitConfigIntake;
 
     private TalonFXConfiguration m_pivotLeftConfig;
     private TalonFXConfiguration m_pivotRightConfig;
@@ -64,7 +52,6 @@ public class Intake extends SubsystemBase{
 
         // The pivot and roller motors will start with half speed.
         m_dutyCyclePivot = new DutyCycleOut(IntakeConstants.dutyCyclePivot);
-        m_dutyCycleRollers = new DutyCycleOut(IntakeConstants.dutyCycleRollers);
 
         m_positionRequest = new PositionVoltage(0).withSlot(0);
         m_voltageRequest = new VelocityVoltage(0).withSlot(0);
@@ -87,37 +74,6 @@ public class Intake extends SubsystemBase{
 
         m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
         m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
-
-        // Current limmit pivot.
-        m_limitConfigPivot = new CurrentLimitsConfigs();
-
-        m_leftPivotConfigurator = m_leftPivot.getConfigurator();
-        m_rightPivotConfigurator = m_rightPivot.getConfigurator();
-
-        // m_limitConfigPivot.StatorCurrentLimit = IntakeConstants.currentLimitPivot;
-        // m_limitConfigPivot.StatorCurrentLimitEnable = true;
-        // m_limitConfigPivot.SupplyCurrentLimit = 50;
-        // m_limitConfigPivot.SupplyCurrentLimitEnable = true;
-
-        m_leftPivotConfigurator.apply(m_limitConfigPivot);
-        m_rightPivotConfigurator.apply(m_limitConfigPivot);
-
-        // Current limmit intake.
-        m_limitConfigIntake = new CurrentLimitsConfigs();
-
-        m_leftIntakeConfigurator = m_leftPivot.getConfigurator();
-        m_rightIntakeConfigurator = m_rightPivot.getConfigurator();
-
-        // m_limitConfigIntake.StatorCurrentLimit = IntakeConstants.currentLimitRollers;
-        // m_limitConfigIntake.StatorCurrentLimitEnable = true;
-        // m_limitConfigIntake.SupplyCurrentLimit = 100;
-        // m_limitConfigIntake.SupplyCurrentLimitEnable = true;
-
-         m_leftIntakeConfigurator.apply(m_limitConfigIntake);
-         m_rightIntakeConfigurator.apply(m_limitConfigIntake);
-
-        // Creates a leader and follower
-       // m_rightIntake.setControl(new Follower(IntakeConstants.intakeLeftID, MotorAlignmentValue.Opposed));
 
         m_leftIntake.getConfigurator().apply(m_rollerConfig);
 
@@ -152,7 +108,6 @@ public class Intake extends SubsystemBase{
         return m_leftPivot.getPosition().getValueAsDouble();
     }
 
-
     public void pivotOn(double percentage) {
       //  System.out.println("PERCENT :" + percentage);
         if(getPivotPosition(m_leftPivot) > IntakeConstants.upperPivotLimit && getPivotPosition(m_leftPivot) < IntakeConstants.lowerPivotLimit){
@@ -169,7 +124,6 @@ public class Intake extends SubsystemBase{
         }else if (getPivotPosition(m_leftPivot) >= IntakeConstants.lowerPivotLimit && percentage < 0){ // LT (up)
             setPivotPercentage(m_leftPivot, percentage);
             setPivotPercentage(m_rightPivot, percentage);
-           // runRollers(30);
         }
     }
 
@@ -317,8 +271,5 @@ public class Intake extends SubsystemBase{
         }
 
         SmartDashboard.putBoolean("Pivot lowered", down);
-
-        //System.out.println("rotation L" + getPivotPosition(m_leftPivot) + "| rotation R" + getPivotPosition(m_rightPivot));
-
     }
 }
