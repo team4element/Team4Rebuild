@@ -9,8 +9,8 @@ import frc.robot.Subsystems.Spinster;
 
 public class GumballRotation extends Command {
   /** Creates a new TransferFuel. */
-  public Spinster m_spinster;
-  public double m_percentage;
+  private Spinster m_spinster;
+  private double m_percentage;
   
   public GumballRotation(Spinster spinster, double percentage) {
     m_spinster = spinster;

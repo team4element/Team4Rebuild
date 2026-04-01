@@ -9,8 +9,8 @@ import frc.robot.Subsystems.Intake;
 
 public class IntakeFuel extends Command {
   /** Creates a new Intake. */
-  public Intake m_intake;
-  public double v_speedPercentageIntake;
+  private Intake m_intake;
+  private double v_speedPercentageIntake;
 
   public IntakeFuel(Intake intake, double speedPercentageIntake) {
     m_intake = intake;

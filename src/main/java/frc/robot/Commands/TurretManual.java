@@ -9,7 +9,7 @@ import frc.robot.Subsystems.Turret;
 
 public class TurretManual extends Command {
   /** Creates a new TurretManual. */
-  Turret m_turret;
+  private Turret m_turret;
 
   public TurretManual(Turret turret) {
     m_turret = turret;
@@ -30,7 +30,7 @@ public class TurretManual extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors();
+    m_turret.stopMotor();
   }
 
   // Returns true when the command should end.

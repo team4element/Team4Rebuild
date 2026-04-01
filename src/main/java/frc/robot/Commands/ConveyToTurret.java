@@ -9,9 +9,8 @@ import frc.robot.Subsystems.Conveyor;
 
 public class ConveyToTurret extends Command {
   /** Creates a new TransferFuel. */
-  public Conveyor m_conveyor;
-
-  public double v_speedPercentage;
+  private Conveyor m_conveyor;
+  private double v_speedPercentage;
   
   public ConveyToTurret(Conveyor conveyor, double speedPercentage) {
     m_conveyor = conveyor;

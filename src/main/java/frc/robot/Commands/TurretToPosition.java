@@ -9,8 +9,8 @@ import frc.robot.Subsystems.Turret;
 
 public class TurretToPosition extends Command {
   /** Creates a new TurretToPosition. */
-  Turret m_turret;
-  double m_position;
+  private Turret m_turret;
+  private double m_position;
 
   public TurretToPosition(Turret turret, double position) {
     m_turret = turret;
@@ -33,7 +33,7 @@ public class TurretToPosition extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors();
+    m_turret.stopMotor();
   }
 
   // Returns true when the command should end.

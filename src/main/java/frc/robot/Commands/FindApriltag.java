@@ -13,14 +13,12 @@ import frc.robot.Subsystems.Turret;
 
 public class FindApriltag extends Command {
   /** Creates a new FollowApriltag. */
-  public Turret m_turret;
-  public Shooter m_shooter;
-  public double TX;
-  public boolean hasTarget;
-  public double currentPose;
-  public double FPS;
-  public double targetRotation;
-  public double distance;
+  private Turret m_turret;
+  private Shooter m_shooter;
+  private double TX;
+  private boolean hasTarget;
+  private double targetRotation;
+  private double distance;
   
  // private final double kMinCommand = 0.0003;
 
@@ -70,7 +68,7 @@ public class FindApriltag extends Command {
       m_turret.setTurretPercentage(searchSpeed);
     }
 
-    distance = m_turret.shootingDistance();
+    distance = m_shooter.shootingDistance();
   }
 
   // Called every time the scheduler runs while the command is scheduled.
@@ -89,7 +87,7 @@ public class FindApriltag extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors();
+    m_turret.stopMotor();
   }
 
   // Returns true when the command should end.
