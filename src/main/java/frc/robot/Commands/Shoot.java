@@ -6,17 +6,14 @@ package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Shooter;
-import frc.robot.Subsystems.Turret;
 
 public class Shoot extends Command {
   /** Creates a new Shoot. */
   private Shooter m_shooter;
-  private Turret m_turret;
   private final double let_distance_decide = -1;
   private double m_RPS;
 
-  public Shoot(Shooter shooter, Turret turret, double RPS) {
-    m_turret = turret;
+  public Shoot(Shooter shooter, double RPS) {
     m_shooter = shooter;
     m_RPS = RPS;
 
@@ -24,9 +21,8 @@ public class Shoot extends Command {
     addRequirements(shooter);
   }
 
-  public Shoot(Shooter shooter, Turret turret) {
+  public Shoot(Shooter shooter) {
       m_shooter = shooter;
-      m_turret = turret;
       m_RPS = let_distance_decide;
 
       // Use addRequirements() here to declare subsystem dependencies.
@@ -35,9 +31,7 @@ public class Shoot extends Command {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {
-    // distance = m_turret.shootingDistance();
-  }
+  public void initialize() {}
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
@@ -45,8 +39,7 @@ public class Shoot extends Command {
     double setpoint;
 
     if (m_RPS == let_distance_decide) {
-        // setpoint = m_turret.shootingDistance();
-        setpoint = m_turret.shootingDistance();
+        setpoint = m_shooter.shootingDistance();
     } else {
         setpoint = m_RPS; // This will stay 50 every single loop
     }

@@ -10,16 +10,15 @@ import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Spinster;
-import frc.robot.Subsystems.Turret;
 import frc.robot.Subsystems.Shooter;
 
 public class CombinedShoot extends SequentialCommandGroup {
-  public CombinedShoot(Shooter shooter, Turret turret, Conveyor conveyor, Spinster spinster) {
+  public CombinedShoot(Shooter shooter, Conveyor conveyor, Spinster spinster) {
     addCommands(
-        new ShootForParallel(shooter, turret).withTimeout(0.25), 
+        new ShootWithoutEnd(shooter).withTimeout(0.25), 
 
         new ParallelCommandGroup(
-            new Shoot(shooter, turret), 
+            new Shoot(shooter), 
             new TransferFuel(spinster, conveyor, -SpinsterConstants.spinsterSpeed, ConveyorConstants.conveyorSpeed)
         ).withTimeout(9.5)
     );

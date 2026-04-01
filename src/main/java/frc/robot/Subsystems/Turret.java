@@ -31,7 +31,7 @@ import frc.robot.Constants.VisionConstants;
 
 public class Turret extends SubsystemBase {
     // Hardware
-    private final TalonFX m_turret;
+    private final TalonFX m_motor;
 
     // Control Requests
     private final DutyCycleOut m_dutyCycleTurret;
@@ -48,12 +48,10 @@ public class Turret extends SubsystemBase {
     // Logic State
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
     private int m_visionLostCounter = 0;
-    private int kVisionThreshold = 5;
 
     // ETC
     Translation2d virtualHubLocation = new Translation2d(0, 0);
 
-    Pose2d robotPose; 
     PoseEstimate mt1;
 
     StructPublisher<Pose2d> publisher;
@@ -63,14 +61,9 @@ public class Turret extends SubsystemBase {
     private boolean debug = false;
 
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
-        publisher          = NetworkTableInstance.getDefault().getStructTopic("botPose", Pose2d.struct).publish();
-        limeLightPublisher = NetworkTableInstance.getDefault().getStructTopic("limelightPose", Pose2d.struct).publish();
-
-        m_turret = new TalonFX(TurretConstants.turretID);
+        m_motor = new TalonFX(TurretConstants.turretID);
         m_field_layout = field_layout;
         m_drivetrain = drivetrain;
-
-        robotPose = m_drivetrain.getState().Pose;
 
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
         m_positionRequest = new PositionVoltage(0).withSlot(0);
@@ -92,7 +85,7 @@ public class Turret extends SubsystemBase {
         turretConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         turretConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
-        m_turret.getConfigurator().apply(turretConfig);
+        m_motor.getConfigurator().apply(turretConfig);
 
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
@@ -103,13 +96,16 @@ public class Turret extends SubsystemBase {
         // --- Vision Configs ---
         m_visionLostCounter = 0;
         LimelightHelpers.SetIMUMode("limelight-four", 0);
+
+        publisher          = NetworkTableInstance.getDefault().getStructTopic("botPose", Pose2d.struct).publish();
+        limeLightPublisher = NetworkTableInstance.getDefault().getStructTopic("limelightPose", Pose2d.struct).publish();
     }
 
     /*
      * Sets the turret's starting position. (Homing)
      */
     public void resetTurret(){
-        m_turret.setPosition(0);
+        m_motor.setPosition(0);
     }
 
     /**
@@ -117,7 +113,7 @@ public class Turret extends SubsystemBase {
      * @param RPS from 0 to 200.
      */
     public void spinTurret(double RPS){
-        m_turret.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
+        m_motor.setControl(m_velocityRequest.withVelocity(RPS).withSlot(0));
     }
 
     /**
@@ -125,7 +121,7 @@ public class Turret extends SubsystemBase {
      * @param percentage from -1 to 1.
      */
     public void setTurretPercentage(double percentage){
-        m_turret.setControl(m_dutyCycleTurret.withOutput(percentage));
+        m_motor.setControl(m_dutyCycleTurret.withOutput(percentage));
     }
 
     /**
@@ -133,21 +129,14 @@ public class Turret extends SubsystemBase {
      * @param angle between limits.
      */
     public void setYaw(double angle) {
-        m_turret.setControl(m_positionRequest.withPosition(angle*TurretConstants.gearRatio));
+        m_motor.setControl(m_positionRequest.withPosition(angle*TurretConstants.gearRatio));
     }
 
     /*
      * Stops both the turret  movement.
      */
-    public void stopMotors(){
-        m_turret.setControl(m_dutyCycleTurret.withOutput(0));
-    }
-
-    /*
-     * Moves the turret to it's 0 position (facing forward).
-     */
-    public void returnToStartPosition(){
-        m_turret.setControl(m_positionRequest.withPosition(0));
+    public void stopMotor(){
+        m_motor.setControl(m_dutyCycleTurret.withOutput(0));
     }
 
     /**
@@ -155,7 +144,7 @@ public class Turret extends SubsystemBase {
      * @return degree of turret.
      */
     public double getTurretDegree(){
-        double motorRotations = m_turret.getPosition().getValueAsDouble();
+        double motorRotations = m_motor.getPosition().getValueAsDouble();
         double turretRotations = motorRotations / TurretConstants.gearRatio;
         double turretDegrees = turretRotations * 360.0;
 
@@ -167,7 +156,7 @@ public class Turret extends SubsystemBase {
      * @return the motor rotation of turret.
      */
     public double getTurretRotation(){
-        return m_turret.getPosition().getValueAsDouble();
+        return m_motor.getPosition().getValueAsDouble();
     }
 
     /**
@@ -182,113 +171,22 @@ public class Turret extends SubsystemBase {
                 setTurretPercentage(-0.1);
 
             }else if(getTurretDegree() >= limit){
-
-                m_turret.set(0);
+               stopMotor();
 
             }
         }else if(ControllerConstants.operatorController.povLeft().getAsBoolean()){
              double limit = TurretConstants.rightLimit;
 
             if(getTurretDegree() <= limit){
-                m_turret.set(0);
+                stopMotor();
 
             }else if(getTurretDegree() >= limit){
                 setTurretPercentage(0.1);
 
             }
         }else{
-            m_turret.set(0);
+            stopMotor();
         }
-    }
-
-    /**
-    * ONE function to rule them all. 
-    * Returns distance in METERS using Vision (primary) or Odometry (fallback).
-    */
-    public double getBestDistanceMeters() {
-        boolean seeTag = LimelightHelpers.getTV("limelight-four");
-        double distMeters = 0;
-
-        // 1. Update Flicker Protection
-        if (seeTag) {
-            m_visionLostCounter = 0;
-        } else {
-            m_visionLostCounter++;
-        }
-
-        // 2. Determine Distance Source
-        if (seeTag && m_visionLostCounter < kVisionThreshold) {
-            // --- VISION STRATEGY ---
-            double[] pose = NetworkTableInstance.getDefault()
-                .getTable("limelight-four")
-                .getEntry("targetpose_robotspace")
-                .getDoubleArray(new double[0]);
-
-            if (pose.length >= 6) {
-                // Targetpose_robotspace: [x, y, z, roll, pitch, yaw]
-                double x = pose[0];
-                double z = pose[2];
-                distMeters = Math.sqrt(Math.pow(x, 2) + Math.pow(z, 2));
-            } else {
-                distMeters = getOdometryDistanceMeters();
-            }
-        } else {
-            // --- ODOMETRY STRATEGY ---
-            distMeters = getOdometryDistanceMeters();
-        }
-
-        // 3. Final Validation
-        if (distMeters > TurretConstants.distanceUpperLimit || distMeters < TurretConstants.distanceLowerLimit) {
-            // If out of physical range, default to Odometry as a safety check
-            return getOdometryDistanceMeters(); 
-        }
-        return distMeters;
-    }
-
-    private double getOdometryDistanceMeters() {
-        Pose2d robotPose = m_drivetrain.getState().Pose;
-        var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-        
-        int targetTagID = (alliance == Alliance.Blue) ? 
-                    VisionConstants.centerHubBlueTag : 
-                    VisionConstants.centerHubRedTag;
-
-        var hubPoseEntry = m_field_layout.getTagPose(targetTagID);
-        
-        if (hubPoseEntry.isEmpty()) return 0.0;
-
-        // Get the actual Tag Position
-        Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
-
-        double centerOffsetMeters = 0.65; // Adjust this based on your specific goal depth
-        double xOffset = (alliance == Alliance.Blue) ? -centerOffsetMeters : centerOffsetMeters;
-
-        Translation2d hubCenterLocation = new Translation2d(
-            tagLocation.getX() + xOffset,
-            tagLocation.getY() // Keep Y the same if the tag is centered on the goal
-        );
-
-        // Calculate distance to the VIRTUAL center, not the physical tag
-        return robotPose.getTranslation().getDistance(hubCenterLocation);
-    }
-
-    public double shootingDistance() {
-        double distMeters = getBestDistanceMeters();
-    
-        if (distMeters <= 0) return 0;
-
-        // Convert to inches for the regression formula
-        double distInches = distMeters * TurretConstants.metersToInches;
-
-        // Extra inch b/c we are aiming at the target
-        double adjustedInches = distInches - 1.0; 
-
-        // Your Regression Formula
-        double targetRPS = (0.000011 * Math.pow(adjustedInches, 3)) - 
-                       (0.003632 * Math.pow(adjustedInches, 2)) + 
-                       (0.59999 * adjustedInches) + 32.574475;
-                       
-        return targetRPS;
     }
 
     /**
@@ -302,7 +200,7 @@ public class Turret extends SubsystemBase {
             turretConfig.Slot0.kP = P;
             turretConfig.Slot0.kD = D;
             turretConfig.Slot0.kS = S;
-            m_turret.getConfigurator().apply(turretConfig);
+            m_motor.getConfigurator().apply(turretConfig);
 
             lastP = P; lastD = D; lastS = S; lastPS = PS; lastDS = DS; lastVS = VS;
         }
@@ -324,7 +222,7 @@ public class Turret extends SubsystemBase {
         // Get Current Robot State
         Pose2d robotPose = m_drivetrain.getState().Pose;
 
-             // 1. Get the physical Tag Location
+        // 1. Get the physical Tag Location
         Translation2d tagLocation = hubPose.get().toPose2d().getTranslation();
 
         boolean isCorrectTag = (LimelightHelpers.getFiducialID("limelight-four") == targetTagID);
@@ -359,7 +257,7 @@ public class Turret extends SubsystemBase {
         finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
 
         double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
-        m_turret.setControl(m_positionRequest.withPosition(safeSetpoint));
+        m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
     }
 
     private double clampTurretRotations(double targetRotations) {
@@ -370,7 +268,7 @@ public class Turret extends SubsystemBase {
 
     public double calculateSmartWrap(Rotation2d targetAngle) {
         // Get current motor position in DEGREES
-        double currentMotorRotations = m_turret.getPosition().getValueAsDouble();
+        double currentMotorRotations = m_motor.getPosition().getValueAsDouble();
         double currentMotorDegrees = (currentMotorRotations / TurretConstants.gearRatio) * 360.0;
 
         // Find the closest equivalent angle to our current position (handles the "jumping" across the 180/-180 line)
@@ -402,7 +300,7 @@ public class Turret extends SubsystemBase {
         double tx = LimelightHelpers.getTX("limelight-four");
 
         // Check if the motor is actually at its setpoint
-        double turretMotorError = Math.abs(m_turret.getClosedLoopError().getValueAsDouble());
+        double turretMotorError = Math.abs(m_motor.getClosedLoopError().getValueAsDouble());
         double turretTolerance = (1.5 / 360.0) * TurretConstants.gearRatio;
 
         // We are ready if:
@@ -442,7 +340,6 @@ public class Turret extends SubsystemBase {
 
     @Override   
     public void periodic() {
-        SmartDashboard.putNumber("distance", getBestDistanceMeters());
         updateVisionOdometry();
     }
 }
