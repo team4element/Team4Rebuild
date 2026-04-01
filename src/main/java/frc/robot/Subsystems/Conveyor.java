@@ -22,20 +22,20 @@ public class Conveyor extends SubsystemBase{
     public Conveyor(){
         m_motor = new TalonFX(ConveyorConstants.conveyorID);
 
-        // The motor will start with half speed
+        // The motor will start with half speed.
         m_dutyCycle = new DutyCycleOut(ConveyorConstants.dutyCycle);
     }
 
     /**
-     * Applies a desired power to the motor
-     * @param speedPercentage from -1 to 1
+     * Applies a desired power to the motor.
+     * @param speedPercentage from -1 to 1.
      */
     public void runMotor(double speedPercentage){
         m_motor.setControl(m_dutyCycle.withOutput(speedPercentage));
     }
 
     /*
-     * Stops the movement of the motor
+     * Stops the movement of the motor.
      */
     public void stopMotor(){
         m_motor.setControl(m_dutyCycle.withOutput(0));
