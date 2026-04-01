@@ -6,13 +6,16 @@ package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Subsystems.Intake;
+import frc.robot.Subsystems.Pivot;
 
 public class TapPivot extends SequentialCommandGroup {
   /** Creates a new Intake. */
-  public Intake m_intake;
+  private double highSetpoint = 12;
+  private double lowSetpoint = 1.5;
+  private double timeout = 0.2;
 
-  public TapPivot(Intake intake) {
+  public TapPivot(Intake intake, Pivot pivot) {
     // Use addRequirements() here to declare subsystem dependencies.
-    addCommands(new PositionPivot(intake, 12).withTimeout(0.2), new PositionPivot(intake, 1.5).withTimeout(0.2));
+    addCommands(new PositionPivot(intake, pivot, highSetpoint).withTimeout(timeout), new PositionPivot(intake, pivot, lowSetpoint).withTimeout(timeout));
   }
 }

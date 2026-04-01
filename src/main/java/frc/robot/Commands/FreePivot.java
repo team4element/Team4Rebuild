@@ -5,20 +5,20 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Intake;
+import frc.robot.Subsystems.Pivot;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
 public class FreePivot extends Command {
   /** Creates a new FreePivot. */
-  Intake m_intake;
-  double m_speedPercentage;
+  private Pivot m_pivot;
+  private double m_speedPercentage;
 
-  public FreePivot(Intake intake, double speedPercentage) {
-    m_intake = intake;
+  public FreePivot(Pivot pivot, double speedPercentage) {
+    m_pivot = pivot;
     m_speedPercentage = speedPercentage;
     
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(intake);
+    addRequirements(pivot);
   }
 
   // Called when the command is initially scheduled.
@@ -28,14 +28,13 @@ public class FreePivot extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_intake.manualIntake(m_intake.m_leftPivot, m_speedPercentage);
-    m_intake.manualIntake(m_intake.m_rightPivot, m_speedPercentage);
+    m_pivot.setPivotPercentage(m_speedPercentage);
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_intake.stopMotors();
+    m_pivot.stopMotors();
   }
 
   // Returns true when the command should end.

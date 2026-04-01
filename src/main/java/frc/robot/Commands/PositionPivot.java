@@ -6,31 +6,35 @@
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants.IntakeConstants;
 import frc.robot.Subsystems.Intake;
+import frc.robot.Subsystems.Pivot;
 
 public class PositionPivot extends Command {
   /** Creates a new Intake. */
-  public Intake m_intake;
-  public double m_setpoint;
+  private Intake m_intake;
+  private Pivot m_pivot;
+  private double m_setpoint;
+  private double halfIntakeSpeed = IntakeConstants.intakeSpeed/2;
 
-  public PositionPivot(Intake intake, double setpoint) {
+  public PositionPivot(Intake intake, Pivot pivot, double setpoint) {
     m_intake = intake;
+    m_pivot = pivot;
     m_setpoint = setpoint;
 
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(intake);
+    addRequirements(intake, pivot);
   }
 
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
     if(m_setpoint <= 3){
-      m_intake.runRollers(-30);
+      m_intake.runRollers(-halfIntakeSpeed);
     } else{
-      m_intake.runRollers(30);
+      m_intake.runRollers(halfIntakeSpeed);
     }
-    m_intake.automaticPivot(m_intake.m_leftPivot, m_setpoint-2);
-    m_intake.automaticPivot(m_intake.m_rightPivot, m_setpoint);
+    m_pivot.pivotToSetpoint(m_setpoint);
   }
 
   // Called every time the scheduler runs while the command is scheduled.
