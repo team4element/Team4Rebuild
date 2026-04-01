@@ -14,10 +14,7 @@ public class AutoAim extends Command {
   }
 
   @Override
-  public void initialize() {
-    // Optional: Set a specific Limelight pipeline for tracking
-    // LimelightHelpers.setPipelineIndex("limelight-four", 0);
-  }
+  public void initialize() {}
 
   @Override
   public void execute() {
@@ -33,10 +30,9 @@ public class AutoAim extends Command {
 
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotors(); 
+    m_turret.stopMotor(); 
 
     ControllerConstants.operatorController.getHID().setRumble(RumbleType.kBothRumble, 0);
-    // Or: m_turret.returnToStartPosition();
   }
 
   @Override

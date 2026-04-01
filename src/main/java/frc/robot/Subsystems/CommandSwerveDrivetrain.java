@@ -90,10 +90,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     StructPublisher<Pose2d> limelightPublisher;
     StructPublisher<Pose2d> publisher_2;
 
-    // This is indicates how much 'trust' or reliability is put into the limelight's data for mt2. Smaller numbers mean more trust. 
-  //  private static final Vector<N3> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
-  //  private static final Vector<N3> visionMeasurementStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
-
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
         .withDeadband(.6).withRotationalDeadband(.6)
          .withDriveRequestType(DriveRequestType.OpenLoopVoltage
