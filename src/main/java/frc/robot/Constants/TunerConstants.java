@@ -9,6 +9,7 @@ import com.ctre.phoenix6.signals.*;
 import com.ctre.phoenix6.swerve.*;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.*;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -190,16 +191,22 @@ public class TunerConstants {
             kBackRightXPos, kBackRightYPos, kInvertRightSide, kBackRightSteerMotorInverted, kBackRightEncoderInverted
         );
 
+    // --- Start of Stuff We Added ---    
+    public static AprilTagFieldLayout m_field_layout;
+
     /**
      * Creates a CommandSwerveDrivetrain instance.
-     * This should only be called once in your robot program,.
+     * This should only be called once in your robot program.
      */
-    public static CommandSwerveDrivetrain createDrivetrain() {
-        return new CommandSwerveDrivetrain(
+    public static CommandSwerveDrivetrain createDrivetrain(AprilTagFieldLayout field_layout) {
+        m_field_layout = field_layout;
+
+        return new CommandSwerveDrivetrain(field_layout,
             DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight
         );
     }
 
+    // --- End of Stuff We Added ---
 
     /**
      * Swerve Drive class utilizing CTR Electronics' Phoenix 6 API with the selected device types.

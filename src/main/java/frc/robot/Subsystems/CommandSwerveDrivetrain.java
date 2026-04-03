@@ -21,11 +21,13 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -35,11 +37,11 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.LimelightHelpers;
-import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers.PoseEstimate;
@@ -53,10 +55,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     };
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
-    private int isBooleanTrue;
+
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
-    private boolean robotFieldCentric;
+
     public SPEED m_speed = SPEED.FAST;
 
     // Blue alliance sees forward as 0 degrees (toward red alliance wall).
@@ -74,6 +76,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+
+    private final AprilTagFieldLayout m_field_layout;
 
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
@@ -213,6 +217,38 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
         
         publisher_2.set(this.getState().Pose);
+        SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
+    }
+
+    /**
+     * Finds the distance from the drivetrain to the face of the hub, which is determined by the alliance. 
+     * @return distance of the robot from the hub.
+     */
+    public double getOdometryDistanceMeters() {
+        Pose2d robotPose = this.getState().Pose;
+        var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+        
+        int targetTagID = (alliance == Alliance.Blue) ? 
+                    VisionConstants.centerHubBlueTag : 
+                    VisionConstants.centerHubRedTag;
+
+        var hubPoseEntry = m_field_layout.getTagPose(targetTagID);
+        
+        if (hubPoseEntry.isEmpty()) return 0.0;
+
+        // Get the actual Tag Position
+        Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
+
+        double centerOffsetMeters = 0.65; // Adjust this based on your specific goal depth
+        double xOffset = (alliance == Alliance.Blue) ? -centerOffsetMeters : centerOffsetMeters;
+
+        Translation2d hubCenterLocation = new Translation2d(
+            tagLocation.getX() + xOffset,
+            tagLocation.getY() // Keep Y the same if the tag is centered on the goal
+        );
+
+        // Calculate distance to the VIRTUAL center, not the physical tag
+        return robotPose.getTranslation().getDistance(hubCenterLocation);
     }
 
     /*
@@ -263,7 +299,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @param drivetrainConstants Drivetrain-wide constants for the swerve drive
      * @param modules             Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
+    public CommandSwerveDrivetrain(AprilTagFieldLayout field_layout,
             SwerveDrivetrainConstants drivetrainConstants,
             SwerveModuleConstants<?, ?, ?>... modules){
 
@@ -273,10 +309,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             startSimThread();
         }
 
-        pathplanner();
+        m_field_layout = field_layout;
 
-        robotFieldCentric = false;
-        isBooleanTrue = -1;
+        pathplanner();
         
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
@@ -295,7 +330,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      *                                CAN FD, and 100 Hz on CAN 2.0.
      * @param modules                 Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
+    public CommandSwerveDrivetrain(AprilTagFieldLayout field_layout,
             SwerveDrivetrainConstants drivetrainConstants,
             double odometryUpdateFrequency,
             SwerveModuleConstants<?, ?, ?>... modules){
@@ -305,13 +340,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        
+        m_field_layout = field_layout;
 
         pathplanner();
 
         LimelightHelpers.SetIMUMode("limelight-four", 4);
-
-        robotFieldCentric = false;
-        isBooleanTrue = -1;
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
@@ -342,7 +376,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      *                                  and radians
      * @param modules                   Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
+    public CommandSwerveDrivetrain(AprilTagFieldLayout field_layout,
             SwerveDrivetrainConstants drivetrainConstants,
             double odometryUpdateFrequency,
             Matrix<N3, N1> odometryStandardDeviation,
@@ -355,12 +389,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             startSimThread();
         }
 
+        m_field_layout = field_layout;
+
         pathplanner();
 
         LimelightHelpers.SetIMUMode("limelight-four", 4);
-
-        robotFieldCentric = false;
-        isBooleanTrue = -1;
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();

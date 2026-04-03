@@ -45,7 +45,7 @@ import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
-import frc.robot.Subsystems.Spinster;
+import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
 /**
@@ -74,7 +74,7 @@ public class RobotContainer {
   public final Turret m_turret;
   public final Intake m_intake;
   public final Pivot m_pivot;
-  public final Spinster m_spinster;
+  public final Spindexer m_spinster;
   public final Conveyor m_conveyor;
   public final Shooter m_shooter;
 
@@ -85,21 +85,21 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     m_field_layout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
-    m_drivetrain = TunerConstants.createDrivetrain();
+    m_drivetrain = TunerConstants.createDrivetrain(m_field_layout);
     m_turret = new Turret(m_field_layout, m_drivetrain);
-    m_shooter = new Shooter(m_field_layout, m_drivetrain);
+    m_shooter = new Shooter(m_drivetrain);
     m_intake = new Intake();
     m_pivot = new Pivot();
-    m_spinster = new Spinster();
+    m_spinster = new Spindexer();
     m_conveyor = new Conveyor();
 
     initialized = false;
 
-    // Configure the trigger bindings
+    // These are the commands used in auton.
     NamedCommands.registerCommand("Long Shot", new CombinedTapShoot(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
-    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerPose).withTimeout(0.5));
+    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.intakeTimeout));
@@ -140,8 +140,8 @@ public class RobotContainer {
     ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2)); // Raises the driver's speed to full.
     ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(0)); // Lowers the driver's speed to 1/4.
 
-    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerPose)); // Rotates pivot for the left corner shot.
-    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerPose)); // Rotates pivot for the right corner shot.
+    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
+    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
 
     // These are the operator controls:
     ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_conveyor, m_spinster));
@@ -205,7 +205,7 @@ public class RobotContainer {
    * Switches the drivetrain's forward to be relative to the field (toward the opposing alliance).
    */
   public Command c_fieldRelative() {
-     return m_drivetrain.applyRequest(() -> fcDrive);
+    return m_drivetrain.applyRequest(() -> fcDrive);
   }
 
   /**
@@ -214,10 +214,5 @@ public class RobotContainer {
    */
    public Command getAutonomousCommand() {  
     return sendableAuton.getSelected();
-  }
-
-  /* */
-  public boolean onBlueTeam() {
-    return DriverStation.getAlliance().get() == DriverStation.Alliance.Blue;
   }
 }
