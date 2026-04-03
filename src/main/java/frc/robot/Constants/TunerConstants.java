@@ -88,7 +88,6 @@ public class TunerConstants {
     private static final boolean kInvertRightSide = true;
 
     private static final int kPigeonId = 0;
-    public static Pigeon2 m_pigeon = new Pigeon2(kPigeonId);
 
     // These are only used for simulation
     private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);

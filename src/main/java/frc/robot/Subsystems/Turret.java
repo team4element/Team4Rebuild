@@ -54,9 +54,9 @@ public class Turret extends SubsystemBase {
     Translation2d virtualHubLocation = new Translation2d(0, 0);
 
     PoseEstimate mt1;
+    Pose2d turretPose;
 
     StructPublisher<Pose2d> publisher;
-    StructPublisher<Pose2d> limeLightPublisher;
 
     @SuppressWarnings("unused")
     private boolean debug = false;
@@ -98,8 +98,10 @@ public class Turret extends SubsystemBase {
         m_visionLostCounter = 0;
         LimelightHelpers.SetIMUMode("limelight-four", 0);
 
-        publisher          = NetworkTableInstance.getDefault().getStructTopic("botPose", Pose2d.struct).publish();
-        limeLightPublisher = NetworkTableInstance.getDefault().getStructTopic("limelightPose", Pose2d.struct).publish();
+        publisher          = NetworkTableInstance.getDefault().getStructTopic("turret Pose", Pose2d.struct).publish();
+	turretPose = m_drivetrain.getState().Pose.transformBy(new Transform2d(
+                new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
+                new Rotation2d()));
     }
 
     /*
@@ -242,7 +244,7 @@ public class Turret extends SubsystemBase {
             // Send command to the motor using the Motion Magic profile defined in constants
             m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
         }
-    }
+}
 
     private double clampTurretRotations(double targetRotations) {
         double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
@@ -297,5 +299,9 @@ public class Turret extends SubsystemBase {
 
     @Override   
     public void periodic() {
+	publisher.set( new Pose2d(
+            m_drivetrain.getState().Pose.getX() + VisionConstants.sideOffsetMeters,
+            m_drivetrain.getState().Pose.getY() + VisionConstants.forwardOffsetMeters,
+            new Rotation2d(getTurretDegree())));
     }
 }

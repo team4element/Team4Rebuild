@@ -23,14 +23,9 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -47,7 +42,6 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
-import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers.PoseEstimate;
@@ -82,8 +76,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
-
-    private Field2d field;
 
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
@@ -166,29 +158,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
-    // This gets each module location in meters from the center of the robot.
-    public static final SwerveDriveKinematics kKinematics = new SwerveDriveKinematics(
-        new Translation2d(0.283, 0.283), // The location of the front left module from center of robot in meters.
-        new Translation2d(0.283, -0.283), // The location of the front right module from center of robot in meters.
-        new Translation2d(-0.283, 0.283), // The location of the back left module from center of robot in meters.
-        new Translation2d(-0.283, 0.283) // The location of the back right module from center of robot in meters.
-    );
-
-    // This is used to build the robot's location.
-    SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
-        kKinematics,
-        TunerConstants.m_pigeon.getRotation2d(),
-        this.getState().ModulePositions,
-        new Pose2d()
-    );
-
-    /**
-     * @return the pigeon's rotation.
-     */
-    public Rotation2d getGyroAngle(){
-        return TunerConstants.m_pigeon.getRotation2d();
-    }
-
     public void setVisionPose() {
         double robotYaw = this.getState().Pose.getRotation().getDegrees();
         LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -244,26 +213,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 mt2.timestampSeconds, 
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
-        } else {
-            field.setRobotPose(odometryPose);
         }
-    }
-
-    /**
-     * Inverses the boolean, which starts as false, when the left or right bumpers are triggered (switch from robot centric to field centric).
-     * @return weather or not robot is driving robot centric or field centric.
-     */
-    public boolean isFieldCentric(){
-        if(ControllerConstants.driverController.leftBumper().getAsBoolean() || ControllerConstants.driverController.rightBumper().getAsBoolean()){
-            isBooleanTrue*=(-1);
-        }
-
-        if(isBooleanTrue < 0){
-            robotFieldCentric = false;
-        }else if(isBooleanTrue > 0){
-            robotFieldCentric = true;
-        }
-        return robotFieldCentric;
     }
 
     /*
@@ -329,10 +279,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         robotFieldCentric = false;
         isBooleanTrue = -1;
         
-        field = new Field2d();
-        SmartDashboard.putData("Field", field);
-
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
         publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
@@ -367,11 +313,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         robotFieldCentric = false;
         isBooleanTrue = -1;
-        
-        field = new Field2d();
-        SmartDashboard.putData("Field", field);
 
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
         publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
@@ -421,10 +363,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         robotFieldCentric = false;
         isBooleanTrue = -1;
 
-        field = new Field2d();
-        SmartDashboard.putData("Field", field);
-
-        field.setRobotPose(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four").pose);
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
         publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
@@ -559,13 +497,5 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public Command c_updateSpeed(int speedMode){
         return runOnce(() -> setSpeed(speedMode));
-    }
-
-    // Convert to field-relative using the robot's current rotation
-    public ChassisSpeeds getFieldRelativeVelocity() {
-        var state = this.getState();
-        ChassisSpeeds robotSpeeds = kKinematics.toChassisSpeeds(state.ModuleStates);
-    
-        return ChassisSpeeds.fromRobotRelativeSpeeds(robotSpeeds, state.Pose.getRotation());
     }
 }
