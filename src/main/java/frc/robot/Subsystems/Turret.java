@@ -16,6 +16,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
@@ -206,58 +207,41 @@ public class Turret extends SubsystemBase {
         }
     }
 
-    /**
-     * Main tracking logic. 
-     * High-priority: Vision (TX)
-     * Low-priority: Odometry (Field Position)
-     */
     public void track() {
-         // Identify Target
+        // Identify Target based on Alliance
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
 
         var hubPose = m_field_layout.getTagPose(targetTagID);
-        if (hubPose.isEmpty()) return;
+        if (!hubPose.isEmpty()) {
+            Translation2d hubCenter = hubPose.get().toPose2d().getTranslation();
 
-        // Get Current Robot State
-        Pose2d robotPose = m_drivetrain.getState().Pose;
+            // Get Current Robot State from CTRE Swerve
+            Pose2d robotPose = m_drivetrain.getState().Pose;
 
-        // 1. Get the physical Tag Location
-        Translation2d tagLocation = hubPose.get().toPose2d().getTranslation();
+            // Calculate where the TURRET pivot is on the field (Top-Right mount)
+            // Robot center is (0,0). Positive X is forward, Negative Y is right.
+            Transform2d robotToTurret = new Transform2d(
+                new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
+                new Rotation2d() // Turret base is fixed to the robot grid
+            );
+            Pose2d turretPose = robotPose.transformBy(robotToTurret);
 
-        boolean isCorrectTag = (LimelightHelpers.getFiducialID("limelight-four") == targetTagID);
+            // Calculate target angle from the TURRET PIVOT to the Hub
+            Rotation2d fieldAngleFromTurret = hubCenter.minus(turretPose.getTranslation()).getAngle();
+            
+            // Calculate how much the turret needs to rotate relative to the robot chassis
+            Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
 
-        // 2. Calculate the Hub Center (Offsetting from the tag)
-        // double centerOffset = 0.8;
-        double centerOffset = 0.0;
+            // Calculate the motor setpoint
+            double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
 
-        double xOffset = (alliance == Alliance.Blue) ? -centerOffset : centerOffset;
-
-        Translation2d hubCenter = new Translation2d(
-            tagLocation.getX() + xOffset,
-            tagLocation.getY() // Usually tags are centered on the Y-axis of the goal
-        );
-
-        // 3. Use hubCenter for the Odometry-based angle calculation
-        Rotation2d fieldAngle = hubCenter.minus(robotPose.getTranslation()).getAngle();
-        Rotation2d robotRelativeTarget = fieldAngle.minus(robotPose.getRotation());
-
-        double finalMotorSetpoint = 0;
-        
-        if (mt1 != null && mt1.tagCount > 0 && (mt1.avgTagDist < VisionConstants.acceptedAvgDistance) && (isCorrectTag)) {
-            // Update odometry when sees an apriltag.
-            m_visionLostCounter = 0; 
-
-            robotPose = m_drivetrain.getState().Pose;
+            // Enforce hardware rotation limits
+            double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
+            
+            // Send command to the motor using the Motion Magic profile defined in constants
+            m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
         }
-
-        // --- ODOMETRY FALLBACK (Points at the hubCenter calculated above) ---
-        m_visionLostCounter++;
-        if (m_visionLostCounter < 5) return; 
-        finalMotorSetpoint = calculateSmartWrap(robotRelativeTarget);
-
-        double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
-        m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
     }
 
     private double clampTurretRotations(double targetRotations) {
@@ -311,35 +295,7 @@ public class Turret extends SubsystemBase {
                (Math.abs(tx) < 2.0) && (turretMotorError < turretTolerance);
     }
 
-    public void updateVisionOdometry() {
-        double turretDegrees = getTurretDegree();
-        // Limelight usually uses standard geometry where 0 is forward, CCW is positive.
-        double turretRadians = Math.toRadians(turretDegrees);
-        
-        // Calculate the camera's position relative to the ROBOT CENTER.
-        // We start at the turret center and "swing" out by the camera radius.
-        double cameraX = VisionConstants.turretOffsetX - (VisionConstants.cameraRadius * Math.sin(turretRadians));
-        double cameraY = VisionConstants.turretOffsetY + (VisionConstants.cameraRadius * Math.cos(turretRadians));
-        
-        // 1. Tell Limelight where it is physically located on the robot AT THIS MOMENT
-        LimelightHelpers.setCameraPose_RobotSpace(
-            "limelight-four",
-            cameraX, 
-            cameraY, 
-            VisionConstants.altitudeMeters,
-            0, 
-            VisionConstants.mountedDegree, 
-            turretDegrees // The yaw of the camera relative to the robot.
-        );
-
-        mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
-
-        publisher.set(m_drivetrain.getState().Pose);
-        limeLightPublisher.set(mt1.pose);
-    }
-
     @Override   
     public void periodic() {
-        updateVisionOdometry();
     }
 }

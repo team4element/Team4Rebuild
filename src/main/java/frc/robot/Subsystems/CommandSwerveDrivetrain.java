@@ -41,6 +41,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -48,6 +49,7 @@ import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers.PoseEstimate;
 
 /** Add your docs here. */
@@ -63,7 +65,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
     private boolean robotFieldCentric;
-    private boolean doRejectUpdate;
     public SPEED m_speed = SPEED.FAST;
 
     // Blue alliance sees forward as 0 degrees (toward red alliance wall).
@@ -188,47 +189,62 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return TunerConstants.m_pigeon.getRotation2d();
     }
 
-    //public SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(kKinematics, getGyroAngle(), getModuleLocations(), m_odometry);
+    public void setVisionPose() {
+        double robotYaw = this.getState().Pose.getRotation().getDegrees();
+        LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-    public void setVisionPose(){
-        PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightName);
         var odometryPose = this.getState().Pose;
 
         publisher.set(odometryPose);
-        limelightPublisher.set(mt1.pose);
 
-        doRejectUpdate = false;
-
-        if(mt1 == null || mt1.tagCount == 0){
-         doRejectUpdate = true;
+        // Tag Count Check
+        if (mt2 == null || mt2.tagCount == 0) {
+            field.setRobotPose(odometryPose);
+            return; 
         }
 
+        limelightPublisher.set(mt2.pose);
+        boolean doRejectUpdate = false;
 
-       // We start at the turret center and "swing" out by the camera radius
-        if(mt1.tagCount == 1 && mt1.rawFiducials.length == 1){
-            if(mt1.rawFiducials[0].ambiguity > 0.7){
-                doRejectUpdate = true;
+        // Ambiguity and Distance Checks (Crucial for 1-Tag scenarios)
+        if (mt2.tagCount == 1 && mt2.rawFiducials.length > 0) {
+            if (mt2.rawFiducials[0].ambiguity > VisionConstants.kMaxOneTagAmbiguity) {
+                doRejectUpdate = true; // Reject if the tag is blurry or skewed
             }
-            if(mt1.rawFiducials[0].distToCamera > 4){
-                 doRejectUpdate = true;
+            if (mt2.rawFiducials[0].distToCamera > VisionConstants.kMaxOneTagDistanceMeters) {
+                doRejectUpdate = true; // Reject if the tag is too far away
             }
         }
 
-        if(mt1.pose.getTranslation().getDistance(
-            this.getState().Pose.getTranslation()) > 3.0){
+        // Teleportation Check 
+        double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
+        if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
             doRejectUpdate = true;
         }
 
-        if(!doRejectUpdate){
-            double xyStdDev = 0.2 / mt1.tagCount * mt1.avgTagDist;
-            double thetaStdDev = mt1.tagCount >= 2 ? 0.2 : 9999;
+        // Stall/Lag Check (Data must be fresh)
+        double dataAge = Timer.getFPGATimestamp() - mt2.timestampSeconds;
+        if (dataAge > VisionConstants.kMaxDataAgeSeconds) {
+            doRejectUpdate = true;
+        }
+
+        if (!doRejectUpdate) {
+            double avgDist = Math.max(mt2.avgTagDist, VisionConstants.kMinAvgTagDistFloor); 
+
+            // More trust if we see more tags
+            double xyStdDev = (VisionConstants.kBaselineStdDevMeters / mt2.tagCount) * avgDist * VisionConstants.kBaseTrustScale;
+
+            double thetaStdDev = (mt2.tagCount >= 2) 
+                ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
+                : VisionConstants.kUnattainableStdDev;
 
             this.addVisionMeasurement(
-            mt1.pose,
-            Utils.fpgaToCurrentTime(mt1.timestampSeconds), // REMEMBER THIS TIME UNIT CONVERSION, OTHERWISE CTRE SWERVE WILL DISREGARD THE POSE
-            VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
+                mt2.pose,
+                mt2.timestampSeconds, 
+                VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
-        }else {
+        } else {
             field.setRobotPose(odometryPose);
         }
     }
@@ -516,17 +532,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 return 1;
         }
         return 1;
-    }
-
-    public void setVisionMeasurementStdDevs(Vector<N3> stdDevs) {
-        super.setVisionMeasurementStdDevs(stdDevs);
-    }
-
-    @Override
-    public void addVisionMeasurement(Pose2d robotPose, double timestamp) {
-        var trust = .5;
-        var use_gyro_heading = 999999;
-        super.addVisionMeasurement(robotPose, timestamp, VecBuilder.fill(trust, trust, use_gyro_heading));
     }
 
     /**
