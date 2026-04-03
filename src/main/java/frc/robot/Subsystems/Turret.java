@@ -25,7 +25,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
-import frc.robot.LimelightHelpers.PoseEstimate;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
@@ -37,7 +36,7 @@ public class Turret extends SubsystemBase {
     // Control Requests
     private final DutyCycleOut m_dutyCycleTurret;
     private final PositionVoltage m_positionRequest;
-    private final VelocityVoltage m_velocityRequest; 
+    private final VelocityVoltage m_velocityRequest;
 
     // Configurations
     private final TalonFXConfiguration turretConfig = new TalonFXConfiguration();
@@ -50,13 +49,8 @@ public class Turret extends SubsystemBase {
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
     private int m_visionLostCounter = 0;
 
-    // ETC
-    Translation2d virtualHubLocation = new Translation2d(0, 0);
-
-    PoseEstimate mt1;
-    Pose2d turretPose;
-
-    StructPublisher<Pose2d> publisher;
+    private final StructPublisher<Pose2d> turretPosePublisher =
+    NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
 
     @SuppressWarnings("unused")
     private boolean debug = false;
@@ -75,11 +69,11 @@ public class Turret extends SubsystemBase {
         turretConfig.Slot0.kI = 0;
         turretConfig.Slot0.kD = TurretConstants.KDTurret;
         turretConfig.Slot0.kS = TurretConstants.KSTurret;
-    
+
         turretConfig.MotionMagic.MotionMagicCruiseVelocity = TurretConstants.turretMaxVelocity;
         turretConfig.MotionMagic.MotionMagicAcceleration = TurretConstants.turretMaxAcceleration;
         turretConfig.MotionMagic.MotionMagicJerk = TurretConstants.turretMaxJerk;
-    
+
         turretConfig.CurrentLimits.StatorCurrentLimit = TurretConstants.turretStatorLimit;
         turretConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         turretConfig.CurrentLimits.SupplyCurrentLimit = TurretConstants.turretSupplyLimit;
@@ -93,15 +87,10 @@ public class Turret extends SubsystemBase {
         lastS = TurretConstants.KSTurret;
 
         SmartDashboard.putNumber("Turret kP", lastP);
-    
+
         // --- Vision Configs ---
         m_visionLostCounter = 0;
         LimelightHelpers.SetIMUMode("limelight-four", 0);
-
-        publisher          = NetworkTableInstance.getDefault().getStructTopic("turret Pose", Pose2d.struct).publish();
-	turretPose = m_drivetrain.getState().Pose.transformBy(new Transform2d(
-                new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
-                new Rotation2d()));
     }
 
     /*
@@ -227,11 +216,12 @@ public class Turret extends SubsystemBase {
                 new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
                 new Rotation2d() // Turret base is fixed to the robot grid
             );
+
             Pose2d turretPose = robotPose.transformBy(robotToTurret);
 
             // Calculate target angle from the TURRET PIVOT to the Hub
             Rotation2d fieldAngleFromTurret = hubCenter.minus(turretPose.getTranslation()).getAngle();
-            
+
             // Calculate how much the turret needs to rotate relative to the robot chassis
             Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
 
@@ -240,9 +230,25 @@ public class Turret extends SubsystemBase {
 
             // Enforce hardware rotation limits
             double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
-            
+
             // Send command to the motor using the Motion Magic profile defined in constants
             m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
+
+            //---------------------Advantage Scope-------------------------------------------
+
+            // Get the turret's current relative angle from the physical motor encoder
+            double currentTurretRotations = m_motor.getPosition().getValueAsDouble();
+            double currentTurretRadians = (currentTurretRotations / TurretConstants.gearRatio) * 2 * Math.PI;
+            Rotation2d currentRelativeAngle = new Rotation2d(currentTurretRadians);
+
+            // Add the robot's current rotation to get the Turret's GLOBAL rotation on the field
+            Rotation2d globalTurretAngle = robotPose.getRotation().plus(currentRelativeAngle);
+
+            // Construct the final global Pose2d for AdvantageScope
+            Pose2d actualTurretPose = new Pose2d(turretPose.getTranslation(), globalTurretAngle);
+
+            // Publish to NetworkTables
+            turretPosePublisher.set(actualTurretPose);
         }
 }
 
@@ -267,7 +273,7 @@ public class Turret extends SubsystemBase {
         if (closestTarget < TurretConstants.rightLimit || closestTarget > TurretConstants.leftLimit) {
             // Try the alternative (360 degrees away)
             double altTarget = (closestTarget > currentMotorDegrees) ? closestTarget - 360 : closestTarget + 360;
-        
+
             // If the alternative is legal, use it.
             if (altTarget >= TurretConstants.rightLimit && altTarget <= TurretConstants.leftLimit) {
                 closestTarget = altTarget;
@@ -282,26 +288,12 @@ public class Turret extends SubsystemBase {
     }
 
     public boolean isReadyToShoot() {
-        boolean hasTarget = LimelightHelpers.getTV("limelight-four");
-        double tx = LimelightHelpers.getTX("limelight-four");
-
-        // Check if the motor is actually at its setpoint
-        double turretMotorError = Math.abs(m_motor.getClosedLoopError().getValueAsDouble());
-        double turretTolerance = (1.5 / 360.0) * TurretConstants.gearRatio;
-
-        // We are ready if:
-        // 1. We actually see a tag (not flickering)
-        // 2. The crosshair error (TX) is small
-        // 3. The motor has finished its move
-        return (m_visionLostCounter == 0) && hasTarget && 
-               (Math.abs(tx) < 2.0) && (turretMotorError < turretTolerance);
+	    //TODO: Update me
+        return false;
     }
 
-    @Override   
+    @Override
     public void periodic() {
-	publisher.set( new Pose2d(
-            m_drivetrain.getState().Pose.getX() + VisionConstants.sideOffsetMeters,
-            m_drivetrain.getState().Pose.getY() + VisionConstants.forwardOffsetMeters,
-            new Rotation2d(getTurretDegree())));
+
     }
 }

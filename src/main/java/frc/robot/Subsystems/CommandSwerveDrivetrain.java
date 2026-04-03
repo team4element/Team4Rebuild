@@ -32,8 +32,6 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
@@ -169,7 +167,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         // Tag Count Check
         if (mt2 == null || mt2.tagCount == 0) {
-            field.setRobotPose(odometryPose);
             return; 
         }
 
@@ -214,6 +211,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
         }
+        
+        publisher_2.set(this.getState().Pose);
     }
 
     /*
