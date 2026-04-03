@@ -47,7 +47,6 @@ public class Turret extends SubsystemBase {
 
     // Logic State
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
-    private int m_visionLostCounter = 0;
 
     private final StructPublisher<Pose2d> turretPosePublisher =
     NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
@@ -89,7 +88,6 @@ public class Turret extends SubsystemBase {
         SmartDashboard.putNumber("Turret kP", lastP);
 
         // --- Vision Configs ---
-        m_visionLostCounter = 0;
         LimelightHelpers.SetIMUMode("limelight-four", 0);
     }
 
@@ -234,12 +232,11 @@ public class Turret extends SubsystemBase {
             // Send command to the motor using the Motion Magic profile defined in constants
             m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
 
-            //---------------------Advantage Scope-------------------------------------------
+            //--------------------- ADVANTAGESCOPE TELEMETRY
 
-            // Get the turret's current relative angle from the physical motor encoder
-            double currentTurretRotations = m_motor.getPosition().getValueAsDouble();
-            double currentTurretRadians = (currentTurretRotations / TurretConstants.gearRatio) * 2 * Math.PI;
-            Rotation2d currentRelativeAngle = new Rotation2d(currentTurretRadians);
+            // Get the turret's current relative angle using your clean degrees method
+            double currentDegrees = getTurretDegree();
+            Rotation2d currentRelativeAngle = Rotation2d.fromDegrees(currentDegrees);
 
             // Add the robot's current rotation to get the Turret's GLOBAL rotation on the field
             Rotation2d globalTurretAngle = robotPose.getRotation().plus(currentRelativeAngle);
@@ -250,7 +247,7 @@ public class Turret extends SubsystemBase {
             // Publish to NetworkTables
             turretPosePublisher.set(actualTurretPose);
         }
-}
+    }
 
     private double clampTurretRotations(double targetRotations) {
         double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
