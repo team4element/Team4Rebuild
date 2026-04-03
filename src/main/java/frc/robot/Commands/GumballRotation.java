@@ -1,18 +1,18 @@
 /*
- * This command is used to run the conveyor. 
+ * This command is used to run the spindexer. 
  */
 
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Spinster;
+import frc.robot.Subsystems.Spindexer;
 
 public class GumballRotation extends Command {
-  /** Creates a new TransferFuel. */
-  private Spinster m_spinster;
+
+  private Spindexer m_spinster;
   private double m_percentage;
   
-  public GumballRotation(Spinster spinster, double percentage) {
+  public GumballRotation(Spindexer spinster, double percentage) {
     m_spinster = spinster;
     m_percentage = percentage;
 

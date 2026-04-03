@@ -1,6 +1,6 @@
 /*
  * This subsystem moves the fuel (game piece) from the spinster into the turret.
- * The conveyor simply runs using a series of rollers.
+ * The conveyor simply runs using a series of belts.
  */
 
 package frc.robot.Subsystems;

@@ -1,6 +1,5 @@
 /*
- * This command places the pivot of the intake in the desired position (limits) depending on where it was last. So if the pivot was near 0, it will 
- * go to the higher limit and vice versa.
+ * This command places the pivot of the intake in the desired position. This also runs the outake when the pivot is going up and intake when going down.
  */
 
 package frc.robot.Commands;
@@ -11,7 +10,7 @@ import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
 
 public class PositionPivot extends Command {
-  /** Creates a new Intake. */
+
   private Intake m_intake;
   private Pivot m_pivot;
   private double m_setpoint;

@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Intake;
 
 public class IntakeFuel extends Command {
-  /** Creates a new Intake. */
+
   private Intake m_intake;
   private double v_speedPercentageIntake;
 

@@ -1,6 +1,5 @@
 /*
  * This subsystem collects fuel (game piece) from the floor into the hopper (basket) through rollers attached to the pivot.
- * The pivot could be moved either manually (through controller input) or through setpoints.
  */
 
 package frc.robot.Subsystems;
@@ -53,7 +52,7 @@ public class Intake extends SubsystemBase{
     }
 
     /**
-     * Stops the intake motors and holds position of the pivot motor.
+     * Stops the motors.
      */
     public void stopMotors(){
         m_leftIntake.setControl(m_dutyCyclePivot.withOutput(0));

@@ -11,7 +11,7 @@ import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
 
 public class RetractIntake extends Command {
-  /** Creates a new Intake. */
+
   private Intake m_intake;
   private Pivot m_pivot;
   private double m_speedPercentagePivot;
@@ -32,8 +32,12 @@ public class RetractIntake extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
+    // Gets the current position of the pivot.
     double currentPivotPosition = m_pivot.getPivotPosition();
+
+    // Checks to see if the pivot is within the physical limits.
     boolean inRange = (currentPivotPosition > PivotConstants.upperPivotLimit) && (currentPivotPosition < PivotConstants.lowerPivotLimit);
+
     boolean outsideLowRange = (currentPivotPosition <= PivotConstants.upperPivotLimit) && (m_speedPercentagePivot > 0); // RT (down)
     boolean outsideHighRange = (currentPivotPosition >= PivotConstants.lowerPivotLimit) && (m_speedPercentagePivot < 0); // LT (up)
 
@@ -44,8 +48,10 @@ public class RetractIntake extends Command {
 
       if(m_speedPercentagePivot <= 0){
         m_intake.runRollers(halfIntakeSpeed);
+
       }else{
         m_intake.runRollers(-halfIntakeSpeed);
+        
       }
     } else {
       m_intake.stopMotors();

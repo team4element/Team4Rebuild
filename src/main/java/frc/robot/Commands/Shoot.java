@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Shooter;
 
 public class Shoot extends Command {
-  /** Creates a new Shoot. */
+
   private Shooter m_shooter;
   private final double let_distance_decide = -1;
   private double m_RPS;
@@ -50,7 +50,7 @@ public class Shoot extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_shooter.stop();;
+    m_shooter.stop();
   }
 
   // Returns true when the command should end.

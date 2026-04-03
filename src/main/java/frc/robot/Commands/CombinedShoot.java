@@ -1,5 +1,5 @@
 /*
- * This command ramps up the shooter before aiming and conveying game pieces.
+ * This command ramps up the shooter before conveying game pieces and shooting at a calculated speed based on the distance.
  */
 
 package frc.robot.Commands;
@@ -9,11 +9,11 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Subsystems.Conveyor;
-import frc.robot.Subsystems.Spinster;
+import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
 public class CombinedShoot extends SequentialCommandGroup {
-  public CombinedShoot(Shooter shooter, Conveyor conveyor, Spinster spinster) {
+  public CombinedShoot(Shooter shooter, Conveyor conveyor, Spindexer spinster) {
     addCommands(
         new ShootWithoutEnd(shooter).withTimeout(0.25), 
 

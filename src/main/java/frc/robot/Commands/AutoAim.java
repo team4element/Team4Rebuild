@@ -1,3 +1,7 @@
+/*
+ * This command uses odometry to aim the turret to the hub and vibrates the operator controller when it is lined up within the tolerance.
+ */
+
 package frc.robot.Commands;
 
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;

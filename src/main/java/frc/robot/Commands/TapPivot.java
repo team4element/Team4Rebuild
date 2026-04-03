@@ -9,7 +9,7 @@ import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
 
 public class TapPivot extends SequentialCommandGroup {
-  /** Creates a new Intake. */
+
   private double highSetpoint = 12;
   private double lowSetpoint = 1.5;
   private double timeout = 0.2;

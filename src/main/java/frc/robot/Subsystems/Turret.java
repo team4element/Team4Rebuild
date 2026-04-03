@@ -48,11 +48,9 @@ public class Turret extends SubsystemBase {
     // Logic State
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
 
+    // AdvantageScope Data
     private final StructPublisher<Pose2d> turretPosePublisher =
     NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
-
-    @SuppressWarnings("unused")
-    private boolean debug = false;
 
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_motor = new TalonFX(TurretConstants.turretID);
@@ -85,6 +83,7 @@ public class Turret extends SubsystemBase {
         lastD = TurretConstants.KDTurret;
         lastS = TurretConstants.KSTurret;
 
+        // --- Put Data on the Dashboard ---
         SmartDashboard.putNumber("Turret kP", lastP);
 
         // --- Vision Configs ---
@@ -92,7 +91,7 @@ public class Turret extends SubsystemBase {
     }
 
     /*
-     * Sets the turret's starting position. (Homing)
+     * Sets the turret's starting position (homing).
      */
     public void resetTurret(){
         m_motor.setPosition(0);
@@ -116,14 +115,14 @@ public class Turret extends SubsystemBase {
 
     /**
      * Powers the turret motor through a position in rotations.
-     * @param angle between limits.
+     * @param angle to turn to.
      */
     public void setYaw(double angle) {
         m_motor.setControl(m_positionRequest.withPosition(angle*TurretConstants.gearRatio));
     }
 
     /*
-     * Stops both the turret  movement.
+     * Stops the turret movement.
      */
     public void stopMotor(){
         m_motor.setControl(m_dutyCycleTurret.withOutput(0));
@@ -196,11 +195,64 @@ public class Turret extends SubsystemBase {
         }
     }
 
+    /**
+     * Uses the physical limits to ensure that the target rotation keeps within bounds.
+     * @param targetRotations for the turret motor.
+     * @return the clamped value.
+     */
+    private double clampTurretRotations(double targetRotations) {
+        double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
+        double rightLimitRot = (TurretConstants.rightLimit / 360.0) * TurretConstants.gearRatio;
+        return MathUtil.clamp(targetRotations, rightLimitRot, leftLimitRot);
+    }
+
+    /**
+     * Uses the target angle to tell the motor where to turn depending on it's current position.
+     * This makes sure that the turret keeps within it's physical limits.
+     * @param targetAngle for the turret to turn to.
+     * @return motor rotations. 
+     */
+    public double calculateSmartWrap(Rotation2d targetAngle) {
+        // Get current motor position in DEGREES
+        double currentMotorRotations = m_motor.getPosition().getValueAsDouble();
+        double currentMotorDegrees = (currentMotorRotations / TurretConstants.gearRatio) * 360.0;
+
+        // Find the closest equivalent angle to our current position (handles the "jumping" across the 180/-180 line).
+        double targetDeg = targetAngle.getDegrees();
+        double delta = Math.IEEEremainder(targetDeg - currentMotorDegrees, 360.0);
+        double closestTarget = currentMotorDegrees + delta;
+
+        // Check physical limits
+        // If the closest target is outside the hard-stops, we have to "unwrap" it
+        if (closestTarget < TurretConstants.rightLimit || closestTarget > TurretConstants.leftLimit) {
+            // Try the alternative (360 degrees away)
+            double altTarget = (closestTarget > currentMotorDegrees) ? closestTarget - 360 : closestTarget + 360;
+
+            // If the alternative is legal, use it.
+            if (altTarget >= TurretConstants.rightLimit && altTarget <= TurretConstants.leftLimit) {
+                closestTarget = altTarget;
+            } else {
+                // Both are illegal? Clamp to the nearest soft stop.
+                closestTarget = MathUtil.clamp(closestTarget, TurretConstants.rightLimit, TurretConstants.leftLimit);
+            }
+        }
+
+        // Convert back to motor rotations.
+        return (closestTarget / 360.0) * TurretConstants.gearRatio;
+    }
+
+    /*
+     * Calculates where the turret should aim using odometry. 
+     * This calculates the turret's position relative to the robot and finds the error angle to the hub. 
+     * Uses the error as the target angle and uses clamping to make sure it will move within physical limits.
+     * Updates the position of the turret on the field by subtracting the current position (relative to the robot) by the hub position.
+     */
     public void track() {
         // Identify Target based on Alliance
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
 
+        // Gets the pose of the hub on the field based on the center tag.
         var hubPose = m_field_layout.getTagPose(targetTagID);
         if (!hubPose.isEmpty()) {
             Translation2d hubCenter = hubPose.get().toPose2d().getTranslation();
@@ -249,48 +301,9 @@ public class Turret extends SubsystemBase {
         }
     }
 
-    private double clampTurretRotations(double targetRotations) {
-        double leftLimitRot = (TurretConstants.leftLimit / 360.0) * TurretConstants.gearRatio;
-        double rightLimitRot = (TurretConstants.rightLimit / 360.0) * TurretConstants.gearRatio;
-        return MathUtil.clamp(targetRotations, rightLimitRot, leftLimitRot);
-    }
-
-    public double calculateSmartWrap(Rotation2d targetAngle) {
-        // Get current motor position in DEGREES
-        double currentMotorRotations = m_motor.getPosition().getValueAsDouble();
-        double currentMotorDegrees = (currentMotorRotations / TurretConstants.gearRatio) * 360.0;
-
-        // Find the closest equivalent angle to our current position (handles the "jumping" across the 180/-180 line)
-        double targetDeg = targetAngle.getDegrees();
-        double delta = Math.IEEEremainder(targetDeg - currentMotorDegrees, 360.0);
-        double closestTarget = currentMotorDegrees + delta;
-
-        // Check physical limits
-        // If the closest target is outside the hard-stops, we have to "unwrap" it
-        if (closestTarget < TurretConstants.rightLimit || closestTarget > TurretConstants.leftLimit) {
-            // Try the alternative (360 degrees away)
-            double altTarget = (closestTarget > currentMotorDegrees) ? closestTarget - 360 : closestTarget + 360;
-
-            // If the alternative is legal, use it.
-            if (altTarget >= TurretConstants.rightLimit && altTarget <= TurretConstants.leftLimit) {
-                closestTarget = altTarget;
-            } else {
-                // Both are illegal? Clamp to the nearest soft stop.
-                closestTarget = MathUtil.clamp(closestTarget, TurretConstants.rightLimit, TurretConstants.leftLimit);
-            }
-        }
-
-        // Convert back to motor rotations
-        return (closestTarget / 360.0) * TurretConstants.gearRatio;
-    }
-
+    // Determines if the turret is lined up to shoot fuel.
     public boolean isReadyToShoot() {
 	    //TODO: Update me
         return false;
-    }
-
-    @Override
-    public void periodic() {
-
     }
 }

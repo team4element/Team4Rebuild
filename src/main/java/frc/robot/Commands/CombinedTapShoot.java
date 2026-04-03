@@ -1,5 +1,5 @@
 /*
- * This command ramps up the shooter before aiming and conveying game pieces.
+ * This command ramps up the shooter before conveying game pieces and shooting while tapping the pivot.
  */
 
 package frc.robot.Commands;
@@ -11,11 +11,11 @@ import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Subsystems.Conveyor;
 import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
-import frc.robot.Subsystems.Spinster;
+import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
 public class CombinedTapShoot extends SequentialCommandGroup {
-  public CombinedTapShoot(Shooter shooter, Conveyor conveyor, Spinster spinster, Intake intake, Pivot pivot) {
+  public CombinedTapShoot(Shooter shooter, Conveyor conveyor, Spindexer spinster, Intake intake, Pivot pivot) {
     addCommands(
         new ShootWithoutEnd(shooter).withTimeout(0.25), 
 

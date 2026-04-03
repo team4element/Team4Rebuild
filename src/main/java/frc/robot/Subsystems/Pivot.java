@@ -1,6 +1,6 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
+/*
+ * This subsystem controls the pivot on the intake, which can be controlled manually or by motor rotations. 
+ */
 
 package frc.robot.Subsystems;
 
@@ -30,8 +30,6 @@ public class Pivot extends SubsystemBase{
 
     double lastPLeft;
     double lastPRight;
-
-    boolean debug = false;
 
     public Pivot(){
         m_leftPivot = new TalonFX(PivotConstants.pivotLeftID);
@@ -104,6 +102,9 @@ public class Pivot extends SubsystemBase{
         m_rightPivot.setControl(m_positionRequest.withPosition(motorRotation));
     }
 
+    /*
+     * Stops the motor.
+     */
     public void stopMotors(){
         m_leftPivot.set(0);
         m_rightPivot.set(0);
@@ -113,23 +114,17 @@ public class Pivot extends SubsystemBase{
      * Updates the PID values of the pivot motor.
      */
     public void updateValues(){
-        if(debug){
-            double pivotL = SmartDashboard.getNumber("Pivot Left P", PivotConstants.KPLeft);
-            double pivotR = SmartDashboard.getNumber("Pivot Right P", PivotConstants.KPRight);
+        double pivotL = SmartDashboard.getNumber("Pivot Left P", PivotConstants.KPLeft);
+        double pivotR = SmartDashboard.getNumber("Pivot Right P", PivotConstants.KPRight);
 
-            if(pivotL != lastPLeft || pivotR != lastPRight){
-                m_pivotLeftConfig.Slot0.kP = pivotL;
-                m_pivotRightConfig.Slot0.kP = pivotR;
-                m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
-                m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
+        if(pivotL != lastPLeft || pivotR != lastPRight){
+            m_pivotLeftConfig.Slot0.kP = pivotL;
+            m_pivotRightConfig.Slot0.kP = pivotR;
+            m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
+            m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
 
-                lastPLeft = pivotL;
-                lastPRight = pivotR;
-            }
+            lastPLeft = pivotL;
+            lastPRight = pivotR;
         }
-    }
-
-    public void periodic(){
-        updateValues();
     }
 }

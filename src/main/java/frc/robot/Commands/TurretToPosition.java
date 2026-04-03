@@ -1,5 +1,5 @@
 /*
- * This command sets the turret to a desired positon from 0 degrees (home) to it's limits. 
+ * This command sets the turret to a desired positon from 0 degrees (home) to a desired motor rotation.
  */
 
 package frc.robot.Commands;

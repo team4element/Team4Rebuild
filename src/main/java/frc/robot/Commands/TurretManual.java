@@ -1,5 +1,5 @@
 /*
- * This command rotates the turret using the pov left and right buttons within it's limit range.
+ * This command rotates the turret within it's limit range.
  */
 
 package frc.robot.Commands;
@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Turret;
 
 public class TurretManual extends Command {
-  /** Creates a new TurretManual. */
+
   private Turret m_turret;
 
   public TurretManual(Turret turret) {

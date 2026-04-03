@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Shooter;
 
 public class ShootWithoutEnd extends Command {
-  /** Creates a new Shoot. */
+
   private Shooter m_shooter;
   
   public ShootWithoutEnd(Shooter shooter) {
