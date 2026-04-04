@@ -13,13 +13,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Turret Left"
+            "name": "Aim"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Short Shot"
+            "name": "Shoot"
           }
         },
         {
@@ -37,13 +37,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Turret Left"
+            "name": "Aim"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Short Shot"
+            "name": "Shoot"
           }
         }
       ]
