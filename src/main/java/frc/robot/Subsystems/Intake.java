@@ -33,6 +33,8 @@ public class Intake extends SubsystemBase{
 
         m_voltageRequest = new VelocityVoltage(0).withSlot(0);
 
+        m_config = new TalonFXConfiguration();
+
         m_config.Slot0.kP = IntakeConstants.KPRollers; 
 
         m_leftIntake.getConfigurator().apply(m_config);
