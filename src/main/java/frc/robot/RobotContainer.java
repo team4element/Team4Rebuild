@@ -168,8 +168,8 @@ public class RobotContainer {
       initialized = true;
       var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
-      LimelightHelpers.SetIMUMode("limelight-four", VisionConstants.initialIMUMode);
-      LimelightHelpers.SetIMUAssistAlpha("limelight-four", 0.001); // Adds a correction on the IMU mode.
+      LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
+      LimelightHelpers.SetIMUAssistAlpha(VisionConstants.kLimelightName, 0.001); // Adds a correction on the IMU mode.
 
       // 1. Determine the Pose: Start with a hardcoded default.
       Pose2d startPose = (alliance == Alliance.Red)
@@ -183,6 +183,7 @@ public class RobotContainer {
 
       // 3. APPLY the pose to the hardware (This needs to happen regardless)
       m_turret.resetTurret();
+      m_drivetrain.seedFieldCentric();
       m_drivetrain.resetPose(startPose);
 
       // 4. Set Perspective: This makes sure "Forward" on the joystick is correct
@@ -190,7 +191,7 @@ public class RobotContainer {
         alliance == Alliance.Red ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
       );
 
-      System.out.println("Robot Initialized at: " + startPose.toString() + " | Alliance: " + alliance);
+      System.out.println("Robot Initialized at: " + startPose.toString() + " | Alliance: " + alliance + " | Gyro: " + m_drivetrain.getState().Pose.getRotation().getDegrees() + " | Start Location: " + startLocation);
     }
   }
 
@@ -199,6 +200,7 @@ public class RobotContainer {
    */
   public void onDisable() {
     m_turret.setYaw(0);
+    initialized = false;
   }
 
   /*

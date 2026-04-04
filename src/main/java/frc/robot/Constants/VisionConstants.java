@@ -1,12 +1,13 @@
 package frc.robot.Constants;
 
 public class VisionConstants {
+
     public static final double inchesToMeters = 0.0254;
 
-    public static final double altitudeMeters = 25.5 * inchesToMeters;
-    public static final double forwardOffsetMeters = ((27.5)/2) * inchesToMeters; 
-    public static final double sideOffsetMeters = 0.1524;
-    public static final double mountedDegree = 2; // The degree the limelight is tilted from vertical.
+    public static final double altitudeMeters = 4.75 * inchesToMeters;
+    public static final double forwardOffsetMeters = 13.75 * inchesToMeters; 
+    public static final double sideOffsetMeters = 0 * inchesToMeters;
+    public static final double mountedDegree = 24; // The degree the limelight is tilted from vertical.
     public static final double hubApriltagHeightMeters = 44 * inchesToMeters; 
     public static final double turretOffsetX = 5.869 * inchesToMeters;
     public static final double turretOffsetY = 6.0085 * inchesToMeters;
@@ -17,7 +18,7 @@ public class VisionConstants {
 
     public static final double acceptedAvgDistance = 3.0;
 
-    public static final int initialIMUMode = 4;
+    public static final int initialIMUMode = 2;
 
     public static final String kLimelightName = "limelight-four";
 
@@ -51,7 +52,7 @@ public class VisionConstants {
      * Lowering this (e.g., to 0.2) makes the robot trust the camera MORE and snap to it aggressively.
      * Raising this (e.g., to 1.0) makes the robot trust its wheel encoders more than the camera.
      */
-    public static final double kBaseTrustScale = 0.5; 
+    public static final double kBaseTrustScale = 0.01; 
 
     /**
      * A safety floor (in meters) for the average tag distance calculation.

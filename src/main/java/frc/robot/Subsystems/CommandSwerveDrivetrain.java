@@ -83,7 +83,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
     StructPublisher<Pose2d> publisher; 
     StructPublisher<Pose2d> limelightPublisher;
-    StructPublisher<Pose2d> publisher_2;
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
         .withDeadband(.6).withRotationalDeadband(.6)
@@ -211,12 +210,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
             this.addVisionMeasurement(
                 mt2.pose,
-                mt2.timestampSeconds, 
+                Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
         }
-        
-        publisher_2.set(this.getState().Pose);
+    
         SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
     }
 
@@ -312,10 +310,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         m_field_layout = field_layout;
 
         pathplanner();
+
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
         
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
-        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -345,11 +344,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
-        LimelightHelpers.SetIMUMode("limelight-four", 4);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
-        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
@@ -393,11 +391,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         pathplanner();
 
-        LimelightHelpers.SetIMUMode("limelight-four", 4);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
-        publisher_2 = NetworkTableInstance.getDefault().getStructTopic("correctedPose", Pose2d.struct).publish();
     }
 
     /**
