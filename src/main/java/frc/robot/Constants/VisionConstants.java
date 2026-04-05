@@ -4,11 +4,11 @@ public class VisionConstants {
 
     public static final double inchesToMeters = 0.0254;
 
-    public static final double altitudeMeters = 4.75 * inchesToMeters;
-    public static final double forwardOffsetMeters = 13.75 * inchesToMeters; 
+    public static final double altitudeMeters = 6.5 * inchesToMeters;
+    public static final double forwardOffsetMeters = 12.75 * inchesToMeters; 
     public static final double sideOffsetMeters = 0 * inchesToMeters;
-    public static final double mountedDegree = 24; // The degree the limelight is tilted from vertical.
-    public static final double hubApriltagHeightMeters = 44 * inchesToMeters; 
+    public static final double mountedDegree = 35.8; // The degree the limelight is tilted from vertical.
+    public static final double hubApriltagHeightMeters = 44.5 * inchesToMeters; 
     public static final double turretOffsetX = 5.869 * inchesToMeters;
     public static final double turretOffsetY = 6.0085 * inchesToMeters;
     public static final double cameraRadius = 7.538 * inchesToMeters;
@@ -18,9 +18,10 @@ public class VisionConstants {
 
     public static final double acceptedAvgDistance = 3.0;
 
-    public static final int initialIMUMode = 2;
+    public static final int initialIMUMode = 4;
 
     public static final String kLimelightName = "limelight-four";
+    public static final String kLimelightNameTurret = "limelight-turret";
 
     //TODO: Tune Values (maybe put these to the dash board)
 

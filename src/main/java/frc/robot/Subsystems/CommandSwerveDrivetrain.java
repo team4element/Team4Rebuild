@@ -216,6 +216,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
     
         SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
+        SmartDashboard.putNumber("TX: ", LimelightHelpers.getTargetPose3d_RobotSpace("limelight-four").getX());
     }
 
     /**
@@ -237,16 +238,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         // Get the actual Tag Position
         Translation2d tagLocation = hubPoseEntry.get().toPose2d().getTranslation();
 
-        double centerOffsetMeters = 0.65; // Adjust this based on your specific goal depth
-        double xOffset = (alliance == Alliance.Blue) ? -centerOffsetMeters : centerOffsetMeters;
-
-        Translation2d hubCenterLocation = new Translation2d(
-            tagLocation.getX() + xOffset,
-            tagLocation.getY() // Keep Y the same if the tag is centered on the goal
-        );
-
         // Calculate distance to the VIRTUAL center, not the physical tag
-        return robotPose.getTranslation().getDistance(hubCenterLocation);
+       return robotPose.getTranslation().getDistance(tagLocation);
     }
 
     /*

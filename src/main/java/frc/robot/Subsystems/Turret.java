@@ -256,6 +256,14 @@ public class Turret extends SubsystemBase {
         var hubPose = m_field_layout.getTagPose(targetTagID);
         if (!hubPose.isEmpty()) {
             Translation2d hubCenter = hubPose.get().toPose2d().getTranslation();
+            
+            double centerOffsetMeters = 0.6; // Adjust this based on your specific goal depth
+            double xOffset = (alliance == Alliance.Blue) ? centerOffsetMeters : -centerOffsetMeters;
+
+            Translation2d hubCenterLocation = new Translation2d(
+                hubCenter.getX() + xOffset,
+                hubCenter.getY() // Keep Y the same if the tag is centered on the goal
+            );
 
             // Get Current Robot State from CTRE Swerve
             Pose2d robotPose = m_drivetrain.getState().Pose;
@@ -270,7 +278,7 @@ public class Turret extends SubsystemBase {
             Pose2d turretPose = robotPose.transformBy(robotToTurret);
 
             // Calculate target angle from the TURRET PIVOT to the Hub
-            Rotation2d fieldAngleFromTurret = hubCenter.minus(turretPose.getTranslation()).getAngle();
+            Rotation2d fieldAngleFromTurret = hubCenterLocation.minus(turretPose.getTranslation()).getAngle();
 
             // Calculate how much the turret needs to rotate relative to the robot chassis
             Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());

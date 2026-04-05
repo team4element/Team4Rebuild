@@ -33,9 +33,10 @@ public class Robot extends TimedRobot {
      * autonomous chooser on the dashboard.
      */
     m_robotContainer = new RobotContainer();
+   // m_robotContainer.onInit();
   }
 
-  /**
+  /**)
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
    * that you want ran during disabled, autonomous, teleoperated and test.
    *

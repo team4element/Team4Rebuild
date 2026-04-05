@@ -26,6 +26,7 @@ import frc.robot.Commands.AutoAim;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.CombinedTapShoot;
 import frc.robot.Commands.CornerShot;
+import frc.robot.Commands.FreePivot;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
@@ -59,7 +60,7 @@ public class RobotContainer {
   SendableChooser<Command> sendableAuton;
 
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(0.60).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double MaxAngularRate = RotationsPerSecond.of(0.80).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
   // Setting up bindings for necessary control of the swerve drive platform */
   private final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
@@ -155,12 +156,25 @@ public class RobotContainer {
 
     // Inverse conveyor systems.
     ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
-    ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
+    //ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
+    ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
+    ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
     ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake.
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake.
+  }
+
+  public void onInit(){
+    LimelightHelpers.setCameraPose_RobotSpace(
+      "limelight-four",
+      VisionConstants.forwardOffsetMeters,
+      VisionConstants.sideOffsetMeters,
+      VisionConstants.altitudeMeters,
+      180,
+      VisionConstants.mountedDegree,
+      0);
   }
 
   public void onEnable(Pose2d startLocation) {
@@ -183,6 +197,7 @@ public class RobotContainer {
 
       // 3. APPLY the pose to the hardware (This needs to happen regardless)
       m_turret.resetTurret();
+      m_pivot.homePivot();
       m_drivetrain.seedFieldCentric();
       m_drivetrain.resetPose(startPose);
 
@@ -199,6 +214,7 @@ public class RobotContainer {
    * This resets the turret's position to 0 when the robot disables.
    */
   public void onDisable() {
+    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
     m_turret.setYaw(0);
     initialized = false;
   }
