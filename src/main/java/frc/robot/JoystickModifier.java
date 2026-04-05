@@ -72,7 +72,7 @@ public class JoystickModifier {
 
     public double apply(double input) {
         // Apply Deadband
-        double currentDeadband = deadbandEntry.getDouble();
+        final double currentDeadband = .1;
 
         input = MathUtil.applyDeadband(input, currentDeadband);
 

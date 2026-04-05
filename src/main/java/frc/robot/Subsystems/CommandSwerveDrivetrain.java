@@ -49,9 +49,11 @@ import frc.robot.LimelightHelpers.PoseEstimate;
 /** Add your docs here. */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
     public enum SPEED {
-        SLOW, // Runs the wheels at half speed
-        FAST, // Runs the wheels at 75 percent speed
-        VERY_FAST // Runs the wheels at full speed
+        VERY_SLOW,
+        SLOW,
+        MEDIUM,
+        STANDARD, 
+        MAX 
     };
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
@@ -59,7 +61,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
 
-    public SPEED m_speed = SPEED.FAST;
+    public SPEED m_speed = SPEED.STANDARD;
 
     // Blue alliance sees forward as 0 degrees (toward red alliance wall).
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -79,20 +81,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private final AprilTagFieldLayout m_field_layout;
 
+    private final double m_deadband = .1;
+
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
     StructPublisher<Pose2d> publisher; 
     StructPublisher<Pose2d> limelightPublisher;
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
-        .withDeadband(.6).withRotationalDeadband(.6)
+        .withDeadband(m_deadband).withRotationalDeadband(m_deadband)
          .withDriveRequestType(DriveRequestType.OpenLoopVoltage
     );
 
     // Defines the field forward direction
     public final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle = new SwerveRequest.FieldCentricFacingAngle()
-        .withDeadband(.2)
-        .withRotationalDeadband(.2)
+        .withDeadband(m_deadband)
+        .withRotationalDeadband(m_deadband)
         .withDriveRequestType(DriveRequestType.OpenLoopVoltage
     );
 
@@ -427,16 +431,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return runOnce(() -> seedFieldCentric());
     }
 
-    public Command c_seedFieldRelativeWithVision() {
-    return runOnce(() -> {
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-four");
-        if (mt2.tagCount > 0) {
-            // This resets X, Y, and Rotation to the Vision's "Truth"
-            this.resetPose(mt2.pose); 
-        }
-    });
-}
-
     @Override
     public void periodic(){
         setVisionPose();
@@ -484,12 +478,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public double speedToDouble(SPEED speed){
         switch (speed) {
-            case SLOW:
-                return .25;
-            case FAST:
-                return .75;
-            case VERY_FAST:
-                return 1;
+            case VERY_SLOW: return .1;
+            case SLOW: return .25;
+            case MEDIUM: return .5;
+            case STANDARD: return .75;
+            case MAX: return 1;
         }
         return 1;
     }
@@ -499,25 +492,27 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @param speed as percentage from 0 to 1.
      */
     public void setSpeed(int speed){
-        if (m_speed.ordinal() + speed > SPEED.VERY_FAST.ordinal()){
-            m_speed = SPEED.SLOW;
+        if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
+            m_speed = SPEED.VERY_SLOW;
 
         } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
-            m_speed = SPEED.VERY_FAST;
+            m_speed = SPEED.MAX;
 
         } else {
             m_speed = SPEED.values()[m_speed.ordinal() + speed];
 
         }
-        System.out.printf("Updated Speed: %d\r\n", m_speed.ordinal());
+        
+        final int percent_multiplyer = 100;
+        System.out.printf("Updated Speed: %d mode with: %d%% \r\n", m_speed.toString(), speedToDouble(m_speed) * percent_multiplyer);
     }
 
     /**
      * Runs a command to supply the speed mode to the drivetrain.
-     * @param speedMode as an int from 0 to 2
+     * @param change +- 1 if the speed should go up or down
      * @return the command.
      */
-    public Command c_updateSpeed(int speedMode){
-        return runOnce(() -> setSpeed(speedMode));
+    public Command c_updateSpeed(int change){
+        return runOnce(() -> setSpeed(m_speed.ordinal() + change));
     }
 }
