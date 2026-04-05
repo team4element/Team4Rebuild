@@ -57,7 +57,7 @@ public class Intake extends SubsystemBase{
      * Stops the motors.
      */
     public void stopMotors(){
-        m_leftIntake.setControl(m_dutyCyclePivot.withOutput(0));
-        m_rightIntake.setControl(m_dutyCyclePivot.withOutput(0));
+        m_leftIntake.set(0);
+        m_rightIntake.set(0);
     }
 }

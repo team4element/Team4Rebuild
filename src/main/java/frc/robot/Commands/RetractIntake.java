@@ -46,7 +46,7 @@ public class RetractIntake extends Command {
     if(inRange || outsideLowRange || outsideHighRange){
       m_pivot.setPivotPercentage(m_speedPercentagePivot);
 
-      if(m_speedPercentagePivot <= 0){
+      if(m_speedPercentagePivot < 0){
         m_intake.runRollers(halfIntakeSpeed);
 
       }else{
@@ -62,6 +62,7 @@ public class RetractIntake extends Command {
   @Override
   public void end(boolean interrupted) {
     m_intake.stopMotors();
+    m_pivot.stopMotors();
   }
 
   // Returns true when the command should end.

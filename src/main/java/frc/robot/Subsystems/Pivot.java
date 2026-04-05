@@ -52,9 +52,6 @@ public class Pivot extends SubsystemBase{
 
         m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
 
-        m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
-        m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
-
         // Used for placing values onto the SmartDashboard when debugging.
         lastPLeft = PivotConstants.KPLeft;
         lastPRight = PivotConstants.KPRight;
@@ -64,14 +61,19 @@ public class Pivot extends SubsystemBase{
 
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
+
+        m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
+        m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
     }
 
     /**
      * Sets the starting position for the pivot motor.
      * @param motor to home.
      */
-    public void homePivot(TalonFX motor){
-        motor.setPosition(0);
+    public void homePivot(){
+        m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
+        m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
+        m_leftPivot.setPosition(0);
     }
 
     /**
@@ -98,7 +100,7 @@ public class Pivot extends SubsystemBase{
      * @param motorRotation (desired rotation)
      */
     public void pivotToSetpoint(double motorRotation){
-        m_leftPivot.setControl(m_positionRequest.withPosition(motorRotation-2));
+        m_leftPivot.setControl(m_positionRequest.withPosition(motorRotation));
         m_rightPivot.setControl(m_positionRequest.withPosition(motorRotation));
     }
 
