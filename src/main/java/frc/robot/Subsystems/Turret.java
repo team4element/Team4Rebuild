@@ -7,6 +7,7 @@ package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -36,6 +37,7 @@ public class Turret extends SubsystemBase {
     // Control Requests
     private final DutyCycleOut m_dutyCycleTurret;
     private final PositionVoltage m_positionRequest;
+    private final MotionMagicVoltage m_motionMagicRequest;
     private final VelocityVoltage m_velocityRequest;
 
     // Configurations
@@ -60,6 +62,7 @@ public class Turret extends SubsystemBase {
         m_dutyCycleTurret = new DutyCycleOut(TurretConstants.dutyCycleTurret);
         m_positionRequest = new PositionVoltage(0).withSlot(0);
         m_velocityRequest = new VelocityVoltage(0).withSlot(0);
+        m_motionMagicRequest = new MotionMagicVoltage(0).withSlot(0);
 
         // --- Turret Config ---
         turretConfig.Slot0.kP = TurretConstants.KPTurret;
@@ -213,31 +216,24 @@ public class Turret extends SubsystemBase {
      * @return motor rotations. 
      */
     public double calculateSmartWrap(Rotation2d targetAngle) {
-        // Get current motor position in DEGREES
         double currentMotorRotations = m_motor.getPosition().getValueAsDouble();
         double currentMotorDegrees = (currentMotorRotations / TurretConstants.gearRatio) * 360.0;
 
-        // Find the closest equivalent angle to our current position (handles the "jumping" across the 180/-180 line).
         double targetDeg = targetAngle.getDegrees();
         double delta = Math.IEEEremainder(targetDeg - currentMotorDegrees, 360.0);
         double closestTarget = currentMotorDegrees + delta;
 
-        // Check physical limits
-        // If the closest target is outside the hard-stops, we have to "unwrap" it
+        // Verify bounds
         if (closestTarget < TurretConstants.rightLimit || closestTarget > TurretConstants.leftLimit) {
-            // Try the alternative (360 degrees away)
             double altTarget = (closestTarget > currentMotorDegrees) ? closestTarget - 360 : closestTarget + 360;
 
-            // If the alternative is legal, use it.
             if (altTarget >= TurretConstants.rightLimit && altTarget <= TurretConstants.leftLimit) {
                 closestTarget = altTarget;
             } else {
-                // Both are illegal? Clamp to the nearest soft stop.
                 closestTarget = MathUtil.clamp(closestTarget, TurretConstants.rightLimit, TurretConstants.leftLimit);
             }
         }
 
-        // Convert back to motor rotations.
         return (closestTarget / 360.0) * TurretConstants.gearRatio;
     }
 
@@ -290,7 +286,9 @@ public class Turret extends SubsystemBase {
             double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
 
             // Send command to the motor using the Motion Magic profile defined in constants
-            m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
+            //TODO: Test motion magic vs position voltage;
+            m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
+            // m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
 
             //--------------------- ADVANTAGESCOPE TELEMETRY
 
