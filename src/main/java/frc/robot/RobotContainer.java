@@ -138,8 +138,8 @@ public class RobotContainer {
                 -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
     ));
 
-    ControllerConstants.driverController.povUp().onTrue(m_drivetrain.c_updateSpeed(2)); // Raises the driver's speed to full.
-    ControllerConstants.driverController.povDown().onTrue(m_drivetrain.c_updateSpeed(0)); // Lowers the driver's speed to 1/4.
+    ControllerConstants.driverController.start().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
+    ControllerConstants.driverController.back().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
 
     ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
     ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
