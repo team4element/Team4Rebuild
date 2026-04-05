@@ -12,6 +12,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ShooterConstants;
@@ -27,6 +28,7 @@ public class Shooter extends SubsystemBase {
 
     // Control Requests
     private final VelocityVoltage m_velocityRequest = new VelocityVoltage(0).withSlot(0);
+    private final com.ctre.phoenix6.controls.NeutralOut m_neutralRequest = new com.ctre.phoenix6.controls.NeutralOut();
 
     public Shooter(CommandSwerveDrivetrain drivetrain) {
         m_leftMotor = new TalonFX(ShooterConstants.shooterLeftID);
@@ -46,16 +48,16 @@ public class Shooter extends SubsystemBase {
         // Mechanical Settings
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         shooterConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
-        
+
+        // Apply config to both motors
+        m_leftMotor.getConfigurator().apply(shooterConfig);
+        m_rightMotor.getConfigurator().apply(shooterConfig);
+
         /* * Set up Follower: Right motor will mimic the Left motor.
          * If your motors are facing each other, one usually needs to be opposed.
          * Set 'opposeMasterDirection' to true if they spin against each other.
          */
         m_rightMotor.setControl(new Follower(m_leftMotor.getDeviceID(), MotorAlignmentValue.Opposed));
-
-        // Apply config to both motors
-        m_leftMotor.getConfigurator().apply(shooterConfig);
-        m_rightMotor.getConfigurator().apply(shooterConfig);
     }
 
     /**
@@ -70,7 +72,7 @@ public class Shooter extends SubsystemBase {
      * Stops the movement of the motor.
      */
     public void stop() {
-        m_leftMotor.set(0);
+        m_leftMotor.setControl(m_neutralRequest);
     }
 
     /**
@@ -96,10 +98,15 @@ public class Shooter extends SubsystemBase {
         // Extra inch b/c we are aiming at the target
         double adjustedInches = distInches - 1.0; 
 
+        //TODO replace with real values
+        final int minInches = 30;
+        final int maxInches = 200;
+        double clampedInches = MathUtil.clamp(adjustedInches, 0, 500);
+
         // Your Regression Formula
-        double targetRPS = (0.000011 * Math.pow(adjustedInches, 3)) - 
-                       (0.003632 * Math.pow(adjustedInches, 2)) + 
-                       (0.59999 * adjustedInches) + 32.574475;
+        double targetRPS = (0.000011 * Math.pow(clampedInches, 3)) - 
+                       (0.003632 * Math.pow(clampedInches, 2)) + 
+                       (0.59999 * clampedInches) + 32.574475;
                        
         return targetRPS;
     }
