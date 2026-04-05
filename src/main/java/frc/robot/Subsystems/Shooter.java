@@ -99,16 +99,45 @@ public class Shooter extends SubsystemBase {
         double adjustedInches = distInches - 1.0; 
 
         //TODO replace with real values
-        final int minInches = 30;
-        final int maxInches = 200;
-        double clampedInches = MathUtil.clamp(adjustedInches, 0, 500);
+        final int minInches = 0;
+        final int maxInches =  500;
+        double clampedInches = MathUtil.clamp(adjustedInches, minInches, maxInches);
 
-        // Your Regression Formula
+        //  Regression Formula inches to RPS
         double targetRPS = (0.000011 * Math.pow(clampedInches, 3)) - 
                        (0.003632 * Math.pow(clampedInches, 2)) + 
                        (0.59999 * clampedInches) + 32.574475;
                        
         return targetRPS;
+    }
+
+    /**
+     * Finds target RPS based on distance AND active robot velocity!
+     * @param distMeters Distance to the virtual target.
+     * @param radialVelocityMps Speed of the robot moving directly toward the target (+ is toward, - is away).
+     */
+    public double shootingDistanceVirtualTarget(double distMeters, double radialVelocityMps) {
+        if (distMeters <= 0) return 0;
+
+        double distInches = distMeters * TurretConstants.metersToInches;
+        double adjustedInches = distInches - 1.0; 
+
+        final int minInches = 15;
+        final int maxInches = 220;
+        double clampedInches = MathUtil.clamp(adjustedInches, minInches, maxInches);
+
+        // Get the base RPS from your regression formula
+        double baseRPS = (0.000011 * Math.pow(clampedInches, 3)) - 
+                         (0.003632 * Math.pow(clampedInches, 2)) + 
+                         (0.59999 * clampedInches) + 32.574475;
+
+        // Convert radial velocity to a reduction in RPS
+        // (You will need to tune this constant based on your shooter wheel's grip and radius!)
+        double velocityCompensationCoefficient = 1.5; 
+        double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
+
+        // Subtract the robot's momentum from the target RPS!
+        return baseRPS - rpsOffset;
     }
 
     /**

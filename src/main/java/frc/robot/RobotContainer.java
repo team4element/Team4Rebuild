@@ -23,7 +23,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Commands.AutoAim;
+import frc.robot.Commands.AutoAimMove;
 import frc.robot.Commands.CombinedShoot;
+import frc.robot.Commands.CombinedShootMove;
 import frc.robot.Commands.CombinedTapShoot;
 import frc.robot.Commands.CornerShot;
 import frc.robot.Commands.FreePivot;
@@ -145,10 +147,16 @@ public class RobotContainer {
     ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
 
     // These are the operator controls:
-    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_conveyor, m_spinster));
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
     ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, m_pivot, PivotConstants.poseToIntake)); // Lowers pivot to be ready to intake.
-    ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
+    //TODO: TEST ME and maybe replace
+    // ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_conveyor, m_spinster));
+    // ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.operatorController.a().whileTrue(new AutoAimMove(m_turret, m_field_layout));
+    ControllerConstants.operatorController.y().whileTrue(new CombinedShootMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain, m_field_layout));
+
+    
+  
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
