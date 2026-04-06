@@ -54,6 +54,9 @@ public class Turret extends SubsystemBase {
     private final StructPublisher<Pose2d> turretPosePublisher =
     NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
 
+    private final StructPublisher<Translation2d> targetPosePublisher =
+    NetworkTableInstance.getDefault().getStructTopic("Turret/TargetPose", Translation2d.struct).publish();
+
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_motor = new TalonFX(TurretConstants.turretID);
         m_field_layout = field_layout;
@@ -304,6 +307,7 @@ public class Turret extends SubsystemBase {
 
             // Publish to NetworkTables
             turretPosePublisher.set(actualTurretPose);
+            // targetPosePublisher.set(hubCenterLocation);
         }
     }
 
