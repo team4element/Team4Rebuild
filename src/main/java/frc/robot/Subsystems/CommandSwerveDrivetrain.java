@@ -176,8 +176,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (mt2 == null || mt2.tagCount == 0) {
             return; 
         }
-
         limelightPublisher.set(mt2.pose);
+
         boolean doRejectUpdate = false;
 
         // Ambiguity and Distance Checks (Crucial for 1-Tag scenarios)
@@ -495,16 +495,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
             m_speed = SPEED.VERY_SLOW;
 
-        } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
+        } else if (m_speed.ordinal() + speed < SPEED.VERY_SLOW.ordinal()){
             m_speed = SPEED.MAX;
 
         } else {
             m_speed = SPEED.values()[m_speed.ordinal() + speed];
-
         }
         
         final int percent_multiplyer = 100;
-        System.out.printf("Updated Speed: %d mode with: %d%% \r\n", m_speed.toString(), speedToDouble(m_speed) * percent_multiplyer);
+        System.out.printf("Updated Speed: %s mode with: %.0f%% \r\n", m_speed.toString(), speedToDouble(m_speed) * percent_multiplyer);
     }
 
     /**
@@ -513,6 +512,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @return the command.
      */
     public Command c_updateSpeed(int change){
-        return runOnce(() -> setSpeed(m_speed.ordinal() + change));
+        return runOnce(() -> setSpeed(change));
     }
 }

@@ -5,8 +5,6 @@ public class IntakeConstants {
     public static final int intakeLeftID = 8;
     public static final int intakeRightID = 9;
 
-    public static final double dutyCycle = 1; // Limits the motor to use half speed.
-
     public static final double KPRollers = 0.5;
 
     public static final double intakeSpeed = 60;      

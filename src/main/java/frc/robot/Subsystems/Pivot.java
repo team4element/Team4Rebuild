@@ -56,8 +56,8 @@ public class Pivot extends SubsystemBase{
         lastPLeft = PivotConstants.KPLeft;
         lastPRight = PivotConstants.KPRight;
 
-        SmartDashboard.putNumber("Left Pivot P", PivotConstants.KPLeft);
-        SmartDashboard.putNumber("Left Pivot S", PivotConstants.KPRight);
+        SmartDashboard.putNumber("Pivot Left P", PivotConstants.KPLeft);
+        SmartDashboard.putNumber("Pivot Right P", PivotConstants.KPRight);
 
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
@@ -104,7 +104,7 @@ public class Pivot extends SubsystemBase{
         m_rightPivot.setControl(m_positionRequest.withPosition(motorRotation));
     }
 
-    /*
+    /**
      * Stops the motor.
      */
     public void stopMotors(){
@@ -112,10 +112,17 @@ public class Pivot extends SubsystemBase{
         m_rightPivot.set(0);
     } 
 
+    public void onDisable(){
+        m_leftPivot.setNeutralMode(NeutralModeValue.Coast);
+        m_rightPivot.setNeutralMode(NeutralModeValue.Coast);
+    }
+
     /**
      * Updates the PID values of the pivot motor.
      */
     public void updateValues(){
+        SmartDashboard.putNumber("Current Pose", getPivotPosition());
+
         double pivotL = SmartDashboard.getNumber("Pivot Left P", PivotConstants.KPLeft);
         double pivotR = SmartDashboard.getNumber("Pivot Right P", PivotConstants.KPRight);
 
@@ -129,4 +136,5 @@ public class Pivot extends SubsystemBase{
             lastPRight = pivotR;
         }
     }
+
 }

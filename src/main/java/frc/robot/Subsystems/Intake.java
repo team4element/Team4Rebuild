@@ -5,7 +5,6 @@
 package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -18,7 +17,6 @@ public class Intake extends SubsystemBase{
     private TalonFX m_leftIntake, m_rightIntake; 
 
     // Used to control the speed of motors.
-    private DutyCycleOut m_dutyCyclePivot;
     private VelocityVoltage m_voltageRequest;
 
     private TalonFXConfiguration m_config;
@@ -27,9 +25,6 @@ public class Intake extends SubsystemBase{
     public Intake(){
         m_leftIntake = new TalonFX(IntakeConstants.intakeLeftID);
         m_rightIntake = new TalonFX(IntakeConstants.intakeRightID);
-
-        // The motors will start with half speed.
-        m_dutyCyclePivot = new DutyCycleOut(IntakeConstants.dutyCycle);
 
         m_voltageRequest = new VelocityVoltage(0).withSlot(0);
 

@@ -15,6 +15,6 @@ public class IntakeForAuto extends SequentialCommandGroup {
   /** Creates a new IntakeForAuto. */
   public IntakeForAuto(Intake intake, Pivot pivot) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new PositionPivot(intake, pivot, 16).withTimeout(IntakeConstants.intakeTimeout), new IntakeFuel(intake, IntakeConstants.intakeSpeed).withTimeout(IntakeConstants.intakeTimeout));
+    addCommands(new PositionPivot(intake, pivot, 17).withTimeout(IntakeConstants.intakeTimeout), new IntakeFuel(intake, IntakeConstants.intakeSpeed).withTimeout(IntakeConstants.intakeTimeout));
   }
 }

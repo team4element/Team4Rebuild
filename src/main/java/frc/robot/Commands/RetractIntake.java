@@ -53,8 +53,12 @@ public class RetractIntake extends Command {
         m_intake.runRollers(-halfIntakeSpeed);
         
       }
+    } else if(currentPivotPosition >= PivotConstants.lowerPivotLimit || currentPivotPosition <= PivotConstants.upperPivotLimit){
+      m_intake.stopMotors();
+
     } else {
       m_intake.stopMotors();
+      
     }
   }
 
