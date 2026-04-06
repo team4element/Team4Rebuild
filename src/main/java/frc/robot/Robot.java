@@ -60,7 +60,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {
-    m_robotContainer.onDisable();
   }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
@@ -68,7 +67,6 @@ public class Robot extends TimedRobot {
   public void autonomousInit() {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     m_robotContainer.c_fieldRelative();
-
     m_robotContainer.onEnable(getAutoStartPose());
 
     if (m_autonomousCommand != null) {
@@ -82,12 +80,12 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
-    m_robotContainer.onEnable(getAutoStartPose());
-
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
+
+    m_robotContainer.onEnable(null);
      
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
@@ -102,6 +100,7 @@ public class Robot extends TimedRobot {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+    m_robotContainer.onEnable(getAutoStartPose());
   }
 
   /** This function is called periodically during test mode. */
