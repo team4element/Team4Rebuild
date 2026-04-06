@@ -28,6 +28,11 @@ public class PositionPivot extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
+  }
+
+  // Called every time the scheduler runs while the command is scheduled.
+  @Override
+  public void execute() {
     if(m_setpoint <= 3){
       m_intake.runRollers(-halfIntakeSpeed);
     } else{
@@ -36,19 +41,25 @@ public class PositionPivot extends Command {
     m_pivot.pivotToSetpoint(m_setpoint);
   }
 
-  // Called every time the scheduler runs while the command is scheduled.
-  @Override
-  public void execute() {}
-
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
     m_intake.stopMotors();
+    m_pivot.stopMotors();
   }
 
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
+    final double lowerTolerance = m_setpoint-0.1;
+    final double upperTolerance = m_setpoint+0.1;
+
+    final boolean condition = (m_pivot.getPivotPosition() >= lowerTolerance) && (m_pivot.getPivotPosition() <= upperTolerance);
+
+    if(condition){
+      return true;
+    }
+
     return false;
   }
 }
