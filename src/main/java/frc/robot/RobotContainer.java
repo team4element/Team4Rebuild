@@ -35,6 +35,7 @@ import frc.robot.Commands.RetractIntake;
 import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.Auton.CombinedTapShootAuto;
 import frc.robot.Commands.Auton.IntakeForAuto;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.IntakeConstants;
@@ -84,6 +85,7 @@ public class RobotContainer {
   public final AprilTagFieldLayout m_field_layout;
 
   private boolean initialized;
+  private boolean match_started;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -99,7 +101,7 @@ public class RobotContainer {
     initialized = false;
 
     // These are the commands used in auton.
-    NamedCommands.registerCommand("Long Shot", new CombinedTapShoot(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
+    NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
@@ -160,7 +162,7 @@ public class RobotContainer {
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
-    ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret)); 
+    ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
 
     // Inverse conveyor systems.
     ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
@@ -170,61 +172,61 @@ public class RobotContainer {
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
-    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake.
-    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake.
-  }
 
-  public void onInit(){
-    LimelightHelpers.setCameraPose_RobotSpace(
-      "limelight-four",
-      VisionConstants.forwardOffsetMeters,
-      VisionConstants.sideOffsetMeters,
-      VisionConstants.altitudeMeters,
-      180,
-      VisionConstants.mountedDegree,
-      0);
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
   }
 
   public void onEnable(Pose2d startLocation) {
-    if(!initialized) {
-      initialized = true;
-      var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+    if (!initialized) {
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 4);
 
-      LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
-      LimelightHelpers.SetIMUAssistAlpha(VisionConstants.kLimelightName, 0.001); // Adds a correction on the IMU mode.
+        var allianceEntry = DriverStation.getAlliance();
 
-      // 1. Determine the Pose: Start with a hardcoded default.
-      Pose2d startPose = (alliance == Alliance.Red)
-        ? new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180)) // Robot starting in front of the center of red hub.
-        : new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0)); // Robot starting in front of the center of blue hub.
+        // If we don't know the alliance yet, we might want to skip one loop
+        // but for now, let's just make the Red check very explicit.
+        boolean isRed = allianceEntry.isPresent() && allianceEntry.get() == Alliance.Red;
 
-      // 2. If PathPlanner provided a specific start, override the default.
-      if(startLocation != null) {
-        startPose = startLocation;
-      }
+        Pose2d startPose;
+        // Default to the PathPlanner start if it exists, regardless of alliance
+        if (startLocation != null) {
+            startPose = startLocation;
+        } else {
+            // Only use hardcoded poses if PathPlanner didn't give us one
+            if (isRed) {
+                startPose = new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180));
+            } else {
+                startPose = new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
+            }
+        }
 
-      // 3. APPLY the pose to the hardware (This needs to happen regardless)
-      m_turret.resetTurret();
-      m_pivot.homePivot();
-      m_drivetrain.seedFieldCentric();
-      m_drivetrain.resetPose(startPose);
+        if (DriverStation.isAutonomous()) {
+            match_started = true;
+        }
 
-      // 4. Set Perspective: This makes sure "Forward" on the joystick is correct
-      m_drivetrain.setOperatorPerspectiveForward(
-        alliance == Alliance.Red ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
-      );
+        // Apply hardware changes
+        m_turret.resetTurret();
+        m_pivot.homePivot();
+        m_drivetrain.seedFieldCentric();
+        m_drivetrain.resetPose(startPose);
 
-      System.out.println("Robot Initialized at: " + startPose.toString() + " | Alliance: " + alliance + " | Gyro: " + m_drivetrain.getState().Pose.getRotation().getDegrees() + " | Start Location: " + startLocation);
+        m_drivetrain.setOperatorPerspectiveForward(
+            isRed ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
+        );
+
+        initialized = true;
+        System.out.println("Initialized! Red: " + isRed + " Pose: " + startPose);
     }
   }
 
-  /*
-   * This resets the turret's position to 0 when the robot disables.
-   */
   public void onDisable() {
     LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
+
     m_turret.setYaw(0);
-    initialized = false;
+    
+    if (!DriverStation.isFMSAttached() && !match_started) {
+      initialized = false;
+    }
   }
 
   /*
@@ -238,7 +240,7 @@ public class RobotContainer {
    * Gets the auton made using Pathplanner which is selected from a drop-down menu.
    * @returns the auton.
    */
-   public Command getAutonomousCommand() {  
+   public Command getAutonomousCommand() {
     return sendableAuton.getSelected();
   }
 }
