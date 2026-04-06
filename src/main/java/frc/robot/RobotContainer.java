@@ -33,6 +33,7 @@ import frc.robot.Commands.RetractIntake;
 import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.Auton.CombinedTapShootAuto;
 import frc.robot.Commands.Auton.IntakeForAuto;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.IntakeConstants;
@@ -98,7 +99,7 @@ public class RobotContainer {
     initialized = false;
 
     // These are the commands used in auton.
-    NamedCommands.registerCommand("Long Shot", new CombinedTapShoot(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
+    NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
     NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
@@ -163,14 +164,14 @@ public class RobotContainer {
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
-    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake.
-    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake.
+
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
   }
 
   public void onEnable(Pose2d startLocation) {
     if (!initialized) {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 4);
-
 
         var allianceEntry = DriverStation.getAlliance();
 
@@ -212,6 +213,7 @@ public class RobotContainer {
 
   public void onDisable() {
     LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
+
     m_turret.setYaw(0);
     
     if (!DriverStation.isFMSAttached() && !match_started) {
