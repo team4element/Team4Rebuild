@@ -30,7 +30,7 @@ public class VisionConstants {
      * High ambiguity means the camera is struggling to tell the tag's true orientation.
      * Lower this value if the robot is "teleporting" when looking at tags from steep angles.
      */
-    public static final double kMaxOneTagAmbiguity = 0.7;
+    public static final double kMaxOneTagAmbiguity = 0.5;
 
     public static final double kMaxOneTagDistanceMeters = 4.5; //  The maximum distance (in meters) the robot can be from a tag before we ignore it.
 
@@ -39,7 +39,7 @@ public class VisionConstants {
      * current calculated encoder odometry. 
      * If the camera says we suddenly moved x meters in a single frame, we assume it's a false positive.
      */
-    public static final double kMaxOdometryDiscrepancyMeters = 2.0;
+    public static final double kMaxOdometryDiscrepancyMeters = 1.2;
 
     /**
      * The maximum allowed age (in seconds) of the camera frame before it is considered stale.

@@ -132,12 +132,13 @@ public class Shooter extends SubsystemBase {
                          (0.59999 * clampedInches) + 32.574475;
 
         // Convert radial velocity to a reduction in RPS
-        // (You will need to tune this constant based on your shooter wheel's grip and radius!)
-        double velocityCompensationCoefficient = 1.5; 
+        //TODO Tune me
+        double velocityCompensationCoefficient = 2; 
         double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
 
         // Subtract the robot's momentum from the target RPS!
-        return baseRPS - rpsOffset;
+        final double bandaid = 0;
+        return baseRPS - rpsOffset + bandaid;
     }
 
     /**

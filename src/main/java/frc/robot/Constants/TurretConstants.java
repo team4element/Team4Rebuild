@@ -32,12 +32,9 @@ public class TurretConstants {
     public static final double distanceUpperLimit = 210 * inchesToMeters;
     public static final double distanceLowerLimit = 49 * inchesToMeters;
 
-    // public static final double turretToLensForward = .19; // meters
-    // public static final double aimTimeout = 1.5; // In seconds
-
     public static final double leftCornerRotation = -0.118; 
     public static final double rightCornerRotation = 0.118; 
 
-    public static final double robotCenterToTurretForward = 0.25; // TODO: Measure from robot center to turret center (Forward)
-    public static final double robotCenterToTurretRight = 0.25;   // TODO: Measure from robot center to turret center (Right)
+    public static final double robotCenterToTurretForward = 0.156;
+    public static final double robotCenterToTurretRight = 0.156;   
 }

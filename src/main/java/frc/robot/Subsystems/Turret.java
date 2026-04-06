@@ -303,29 +303,47 @@ public class Turret extends SubsystemBase {
     * @return A new Translation2d representing the "virtual" hub target.
     */
     public Translation2d calculateVirtualTarget(Translation2d realHubLocation) {
-        // Get the robot's CURRENT field-relative velocity from CTRE Swerve
-        var robotSpeeds = m_drivetrain.getState().Speeds;
-        double vx = robotSpeeds.vxMetersPerSecond; // Forward/Backward (+X is towards Red Alliance)
-        double vy = robotSpeeds.vyMetersPerSecond; // Left/Right (+Y is to the Left)
+    var state = m_drivetrain.getState();
+        var robotPose = state.Pose;
+        var robotSpeeds = state.Speeds; // Field-relative speeds
 
-        // Start with a guess: assume the target is where it actually is
+        // Define the offset in the robot's local frame (X is forward, Y is left)
+        // Note: If your constant is "Right", it must be negative for the Y-axis
+        Translation2d robotToTurret = new Translation2d(
+            TurretConstants.robotCenterToTurretForward, 
+            -TurretConstants.robotCenterToTurretRight 
+        );
+
+        // Calculate the turret's ACTUAL position on the field
+        Translation2d turretFieldPos = robotPose.getTranslation().plus(
+            robotToTurret.rotateBy(robotPose.getRotation())
+        );
+
+        // Calculate Turret's Total Velocity (Chassis Translation + Tangential Rotation)
+        // omega is radians per second
+        double omega = state.Speeds.omegaRadiansPerSecond;
+        
+        // Tangential velocity = omega * radius, rotated 90 degrees
+        double tangentialVx = omega * robotToTurret.getY(); 
+        double tangentialVy = -omega * robotToTurret.getX();
+
+        // Rotate tangential velocity to be field-relative to match robotSpeeds
+        Translation2d tangentialVelocityField = new Translation2d(tangentialVx, tangentialVy)
+                                                 .rotateBy(robotPose.getRotation());
+
+        double totalVx = robotSpeeds.vxMetersPerSecond + tangentialVelocityField.getX();
+        double totalVy = robotSpeeds.vyMetersPerSecond + tangentialVelocityField.getY();
+
+        // Iterative Solver
         Translation2d virtualTarget = realHubLocation;
-        double timeOfFlight = 0.0;
-
-        Pose2d robotPose = m_drivetrain.getState().Pose;
-
-        //The Iterative Solver Loop
         for (int i = 0; i < 3; i++) {
-            // Calculate the distance from the robot to our GUESSED virtual target
-            double distanceToVirtualTarget = robotPose.getTranslation().getDistance(virtualTarget);
+            double distanceToVirtualTarget = turretFieldPos.getDistance(virtualTarget);
+            double timeOfFlight = distanceToVirtualTarget / ShooterConstants.kAverageBallVelocityMps;
 
-            // Estimate how long the ball takes to get there
-            timeOfFlight = distanceToVirtualTarget / ShooterConstants.kAverageBallVelocityMps;
-
-            // Shift the target in the OPPOSITE direction of our robot's movement
+            // SUBTRACT the velocity. If you move right, you aim left of the goal.
             virtualTarget = new Translation2d(
-                realHubLocation.getX() - (vx * timeOfFlight),
-                realHubLocation.getY() - (vy * timeOfFlight)
+                realHubLocation.getX() + (totalVx * timeOfFlight),
+                realHubLocation.getY() + (totalVy * timeOfFlight)
             );
         }
 
