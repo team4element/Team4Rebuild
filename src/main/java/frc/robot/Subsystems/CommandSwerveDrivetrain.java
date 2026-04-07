@@ -49,7 +49,6 @@ import frc.robot.LimelightHelpers.PoseEstimate;
 /** Add your docs here. */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
     public enum SPEED {
-        VERY_SLOW,
         SLOW,
         MEDIUM,
         STANDARD, 
@@ -478,7 +477,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public double speedToDouble(SPEED speed){
         switch (speed) {
-            case VERY_SLOW: return .1;
             case SLOW: return .25;
             case MEDIUM: return .5;
             case STANDARD: return .75;
@@ -493,9 +491,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public void setSpeed(int speed){
         if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
-            m_speed = SPEED.VERY_SLOW;
+            m_speed = SPEED.SLOW;
 
-        } else if (m_speed.ordinal() + speed < SPEED.VERY_SLOW.ordinal()){
+        } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
             m_speed = SPEED.MAX;
 
         } else {
