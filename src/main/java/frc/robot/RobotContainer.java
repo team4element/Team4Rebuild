@@ -33,14 +33,17 @@ import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Commands.RetractIntake;
 import frc.robot.Commands.TapPivot;
+import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
 import frc.robot.Commands.Auton.CombinedTapShootAuto;
 import frc.robot.Commands.Auton.IntakeForAuto;
 import frc.robot.Constants.ControllerConstants;
+import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.PivotConstants;
 import frc.robot.Constants.ShooterConstants;
+import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
@@ -63,7 +66,7 @@ public class RobotContainer {
   SendableChooser<Command> sendableAuton;
 
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(0.80).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double MaxAngularRate = RotationsPerSecond.of(0.95).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
   // Setting up bindings for necessary control of the swerve drive platform */
   private final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
@@ -148,6 +151,7 @@ public class RobotContainer {
     ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
     ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
 
+
     // These are the operator controls:
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
     ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, m_pivot, PivotConstants.poseToIntake)); // Lowers pivot to be ready to intake.
@@ -156,9 +160,6 @@ public class RobotContainer {
     // ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
     ControllerConstants.operatorController.a().whileTrue(new AutoAimMove(m_turret, m_field_layout));
     ControllerConstants.operatorController.y().whileTrue(new CombinedShootMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain, m_field_layout));
-
-    
-  
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
@@ -169,6 +170,8 @@ public class RobotContainer {
     //ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
+
+    ControllerConstants.operatorController.back().whileTrue(new TransferFuel(m_spinster, m_conveyor, SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed));
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
@@ -223,6 +226,7 @@ public class RobotContainer {
     LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
 
     m_turret.setYaw(0);
+    m_pivot.onDisable();
     
     if (!DriverStation.isFMSAttached() && !match_started) {
       initialized = false;
