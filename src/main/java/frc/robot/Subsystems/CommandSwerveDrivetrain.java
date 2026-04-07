@@ -85,6 +85,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
     StructPublisher<Pose2d> publisher; 
+    StructPublisher<Pose2d> secondPublisher; 
     StructPublisher<Pose2d> limelightPublisher;
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
@@ -165,8 +166,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public void setVisionPose() {
         double robotYaw = this.getState().Pose.getRotation().getDegrees();
         LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+        LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightNameSide, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
 
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightName);
+        var mt2side = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightNameSide);
         var odometryPose = this.getState().Pose;
 
         publisher.set(odometryPose);
@@ -176,6 +179,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             return; 
         }
         limelightPublisher.set(mt2.pose);
+        secondPublisher.set(mt2side.pose);
 
         boolean doRejectUpdate = false;
 
@@ -211,6 +215,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
                 : VisionConstants.kUnattainableStdDev;
 
+            Pose2d truePose = new Pose2d(
+                ((mt2.pose.getX() * 0.6) + (mt2side.pose.getX() * 0.4))/2,
+                ((mt2.pose.getY() * 0.6) + (mt2side.pose.getY() * 0.4))/2,
+                new Rotation2d(robotYaw)
+            );
+
             this.addVisionMeasurement(
                 mt2.pose,
                 Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
@@ -221,6 +231,91 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
         SmartDashboard.putNumber("TX: ", LimelightHelpers.getTargetPose3d_RobotSpace("limelight-four").getX());
     }
+
+    //TODO: Need to test. 
+    // /**
+    //  * Iterates through all available Limelight cameras to update the drivetrain's 
+    //  * pose estimation using MegaTag2.
+    //  */
+    // public void setVisionPose() {
+    //     // Call the update for each camera on your robot
+    //     updateCameraVision(VisionConstants.kLimelightName); // Front camera
+    //     updateCameraVision(VisionConstants.kLimelightNameSide); // New side camera
+
+    //     // Telemetry for the dashboard
+    //     SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
+    // }
+
+    // /**
+    //  * Generalized MegaTag2 update logic for a single Limelight camera.
+    //  * @param cameraName The NetworkTable name of the Limelight (e.g., "limelight-side")
+    //  */
+    // private void updateCameraVision(String cameraName) {
+    //     // Get the current robot rotation for MegaTag2's gyro-pigeon integration
+    //     double robotYaw = this.getState().Pose.getRotation().getDegrees();
+        
+    //     // Set orientation so the Limelight can compute the field-relative pose correctly
+    //     LimelightHelpers.SetRobotOrientation(cameraName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+    //     // Retrieve the MegaTag2 Pose Estimate
+    //     var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
+    //     var odometryPose = this.getState().Pose;
+
+    //     // Basic Validation
+    //     if (mt2 == null || mt2.tagCount == 0) {
+    //         return; 
+    //     }
+
+    //     boolean doRejectUpdate = false;
+
+    //     // Ambiguity and Distance Checks (Crucial for 1-Tag scenarios)
+    //     if (mt2.tagCount == 1 && mt2.rawFiducials.length > 0) {
+    //         if (mt2.rawFiducials[0].ambiguity > VisionConstants.kMaxOneTagAmbiguity) {
+    //             doRejectUpdate = true; // Reject if the tag is blurry or skewed
+    //         }
+    //         if (mt2.rawFiducials[0].distToCamera > VisionConstants.kMaxOneTagDistanceMeters) {
+    //             doRejectUpdate = true; // Reject if the tag is too far away
+    //         }
+    //     }
+
+    //     // Teleportation Check (Prevents the "jumping" pose if vision is noisy)
+    //     double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
+    //     if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
+    //         doRejectUpdate = true;
+    //     }
+
+    //     // Latency/Stall Check
+    //     double dataAge = Timer.getFPGATimestamp() - mt2.timestampSeconds;
+    //     if (dataAge > VisionConstants.kMaxDataAgeSeconds) {
+    //         doRejectUpdate = true;
+    //     }
+
+    //     // Apply the measurement if it passed all filters
+    //     if (!doRejectUpdate) {
+    //         // Adjust trust based on distance and tag count
+    //         double avgDist = Math.max(mt2.avgTagDist, VisionConstants.kMinAvgTagDistFloor); 
+
+    //         // Scale trust: More tags = more trust. Further distance = less trust.
+    //         double xyStdDev = (VisionConstants.kBaselineStdDevMeters / mt2.tagCount) * avgDist * VisionConstants.kBaseTrustScale;
+
+    //         // Only trust vision rotation if we see multiple tags; otherwise, rely on the Gyro
+    //         double thetaStdDev = (mt2.tagCount >= 2) 
+    //             ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
+    //             : VisionConstants.kUnattainableStdDev;
+
+    //         this.addVisionMeasurement(
+    //             mt2.pose,
+    //             Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
+    //             VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
+    //         );
+            
+    //         // Optional: Publish the individual camera's result for debugging in AdvantageScope
+    //         NetworkTableInstance.getDefault()
+    //             .getStructTopic(cameraName + "/Pose", Pose2d.struct)
+    //             .publish()
+    //             .set(mt2.pose);
+    //     }
+    // }
 
     /**
      * Finds the distance from the drivetrain to the face of the hub, which is determined by the alliance. 
@@ -308,8 +403,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         pathplanner();
 
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
         
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
+        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
@@ -341,8 +438,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         pathplanner();
 
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
@@ -388,8 +487,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         pathplanner();
 
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
 
         publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
@@ -477,7 +578,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public double speedToDouble(SPEED speed){
         switch (speed) {
-            case SLOW: return .25;
+            case SLOW: return .20;
             case MEDIUM: return .5;
             case STANDARD: return .75;
             case MAX: return 1;
@@ -491,10 +592,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public void setSpeed(int speed){
         if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
-            m_speed = SPEED.SLOW;
+            m_speed = SPEED.MAX;
 
         } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
-            m_speed = SPEED.MAX;
+            m_speed = SPEED.SLOW;
 
         } else {
             m_speed = SPEED.values()[m_speed.ordinal() + speed];

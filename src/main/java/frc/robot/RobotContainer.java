@@ -105,7 +105,7 @@ public class RobotContainer {
 
     // These are the commands used in auton.
     NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
-    NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
+    NamedCommands.registerCommand("Aim", new AutoAimMove(m_turret, m_field_layout).withTimeout(0.5));
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
@@ -135,18 +135,19 @@ public class RobotContainer {
     );
 
     // These are the driver controls:
-    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
-    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
-        drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
-             .withVelocityY(ControllerConstants.xTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
-             .withRotationalRate(ControllerConstants.zRotationModifier.apply(
-                -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-    ));
+    //TODO: Diego needs to test these.
+    ControllerConstants.driverController.leftTrigger().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
+    // ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
+    //     drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
+    //             -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
+    //          .withVelocityY(ControllerConstants.xTranslationModifier.apply(
+    //             -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
+    //          .withRotationalRate(ControllerConstants.zRotationModifier.apply(
+    //             -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
+    // ));
 
-    ControllerConstants.driverController.start().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
-    ControllerConstants.driverController.back().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
+    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
+    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
 
     ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
     ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
@@ -183,6 +184,7 @@ public class RobotContainer {
   public void onEnable(Pose2d startLocation) {
     if (!initialized) {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 4);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, 4);
 
         var allianceEntry = DriverStation.getAlliance();
 
@@ -224,6 +226,7 @@ public class RobotContainer {
 
   public void onDisable() {
     LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
+    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, 1);
 
     m_turret.setYaw(0);
     m_pivot.onDisable();

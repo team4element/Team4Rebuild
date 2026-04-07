@@ -21,7 +21,8 @@ public class VisionConstants {
     public static final int initialIMUMode = 4;
 
     public static final String kLimelightName = "limelight-four";
-    public static final String kLimelightNameTurret = "limelight-turret";
+    //TODO: This name should be changed later through the limelight UI.
+    public static final String kLimelightNameSide = "limelight-turret";
 
     //TODO: Tune Values (maybe put these to the dash board)
 

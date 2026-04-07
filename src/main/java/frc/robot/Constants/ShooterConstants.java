@@ -15,5 +15,5 @@ public class ShooterConstants {
     public static final double shooterTimeout = 3;
     public static final double cornerSpeed = 87;
 
-    public static final double kAverageBallVelocityMps = 4.0;
+    public static final double kAverageBallVelocityMps = 3.2;
 }
