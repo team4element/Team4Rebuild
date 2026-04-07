@@ -5,27 +5,28 @@
     "data": {
       "commands": [
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "Shoot from Right"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Aim"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "right cross"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "right cross"
+                }
+              },
+              {
+                "type": "wait",
+                "data": {
+                  "waitTime": 2.0
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Extend + Intake"
+                }
+              }
+            ]
           }
         },
         {
@@ -50,12 +51,6 @@
           "type": "named",
           "data": {
             "name": "Aim"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.8
           }
         },
         {
