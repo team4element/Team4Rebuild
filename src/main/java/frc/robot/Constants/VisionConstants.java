@@ -1,5 +1,7 @@
 package frc.robot.Constants;
 
+import edu.wpi.first.math.geometry.Translation2d;
+
 public class VisionConstants {
 
     public static final double inchesToMeters = 0.0254;
@@ -23,6 +25,9 @@ public class VisionConstants {
     public static final String kLimelightName = "limelight-four";
     //TODO: This name should be changed later through the limelight UI.
     public static final String kLimelightNameSide = "limelight-turret";
+
+    public static final Translation2d BLUE_PASS_TARGET = new Translation2d(2.0, 4.0); // TODO: Change coordinates
+    public static final Translation2d RED_PASS_TARGET = new Translation2d(14.0, 4.0);
 
     //TODO: Tune Values (maybe put these to the dash board)
 

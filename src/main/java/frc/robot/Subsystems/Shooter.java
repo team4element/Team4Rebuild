@@ -141,6 +141,20 @@ public class Shooter extends SubsystemBase {
         return baseRPS - rpsOffset + bandaid;
     }
 
+    public double getPassRPS(double distMeters, double radialVelocityMps) {
+        if (distMeters <= 0) return 0;
+
+        double basePassRPS = 55.0; 
+        double distanceFactor = 3.3; // RPS increase per meter
+    
+        double targetRPS = basePassRPS + (distMeters * distanceFactor);
+
+        double velocityCompensationCoefficient = 2.0; 
+        double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
+
+        return MathUtil.clamp(targetRPS - rpsOffset, 0, 108.0);
+    }
+
     /**
      * Checks if the motor is within the tolerance of our targetRPS.
      * @param targetRPS

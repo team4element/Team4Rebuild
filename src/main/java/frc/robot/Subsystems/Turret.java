@@ -307,8 +307,7 @@ public class Turret extends SubsystemBase {
         var robotPose = state.Pose;
         var robotSpeeds = state.Speeds; // Field-relative speeds
 
-        // Define the offset in the robot's local frame (X is forward, Y is left)
-        // Note: If your constant is "Right", it must be negative for the Y-axis
+        // Define the offset in the robot's local frame (positive X is forward, positive Y is left)
         Translation2d robotToTurret = new Translation2d(
             TurretConstants.robotCenterToTurretForward, 
             -TurretConstants.robotCenterToTurretRight 
@@ -340,7 +339,6 @@ public class Turret extends SubsystemBase {
             double distanceToVirtualTarget = turretFieldPos.getDistance(virtualTarget);
             double timeOfFlight = distanceToVirtualTarget / ShooterConstants.kAverageBallVelocityMps;
 
-            // SUBTRACT the velocity. If you move right, you aim left of the goal.
             virtualTarget = new Translation2d(
                 realHubLocation.getX() + (totalVx * timeOfFlight),
                 realHubLocation.getY() + (totalVy * timeOfFlight)
@@ -419,6 +417,23 @@ public class Turret extends SubsystemBase {
             turretPosePublisher.set(actualTurretPose);
             // targetPosePublisher.set(hubCenterLocation);
         }
+    }
+
+    public void trackPassTarget() {
+        var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+        Translation2d passLocation = (alliance == Alliance.Blue) ? 
+                                 VisionConstants.BLUE_PASS_TARGET : 
+                                 VisionConstants.RED_PASS_TARGET;
+
+        Translation2d virtualPassLocation = calculateVirtualTarget(passLocation);
+
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+    
+        Rotation2d fieldAngleFromTurret = virtualPassLocation.minus(getTurretPose().getTranslation()).getAngle();
+        Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
+
+        double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
+        m_motor.setControl(m_motionMagicRequest.withPosition(finalMotorSetpoint));
     }
 
     public Pose2d getTurretPose(){
