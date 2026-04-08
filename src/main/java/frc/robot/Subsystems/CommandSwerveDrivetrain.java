@@ -163,23 +163,36 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
-    public void setVisionPose() {
-        double robotYaw = this.getState().Pose.getRotation().getDegrees();
-        LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
-        LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightNameSide, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+/**
+ * Iterates through all available Limelight cameras to update the drivetrain's 
+ * pose estimation using MegaTag2.
+ */
+public void setVisionPose() {
+    updateCameraVision("limelight-four"); // Front camera
+    updateCameraVision("limelight-side"); // New side camera
 
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightName);
-        var mt2side = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightNameSide);
+    SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
+}
+
+/**
+ * Generalized MegaTag2 update logic for a single Limelight camera.
+ * @param cameraName The NetworkTable name of the Limelight (e.g., "limelight-side")
+ */
+    private void updateCameraVision(String cameraName) {
+        // Get the current robot rotation for MegaTag2's gyro-pigeon integration
+        double robotYaw = this.getState().Pose.getRotation().getDegrees();
+        
+        // Set orientation so the Limelight can compute the field-relative pose correctly
+        LimelightHelpers.SetRobotOrientation(cameraName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        // Retrieve the MegaTag2 Pose Estimate
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
         var odometryPose = this.getState().Pose;
 
-        publisher.set(odometryPose);
-
-        // Tag Count Check
+        // 4Basic Validation
         if (mt2 == null || mt2.tagCount == 0) {
             return; 
         }
-        limelightPublisher.set(mt2.pose);
-        secondPublisher.set(mt2side.pose);
 
         boolean doRejectUpdate = false;
 
@@ -193,129 +206,43 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             }
         }
 
-        // Teleportation Check 
+        // Teleportation Check (Prevents the "jumping" pose if vision is noisy)
         double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
         if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
             doRejectUpdate = true;
         }
 
-        // Stall/Lag Check (Data must be fresh)
+        // Latency/Stall Check
         double dataAge = Timer.getFPGATimestamp() - mt2.timestampSeconds;
         if (dataAge > VisionConstants.kMaxDataAgeSeconds) {
             doRejectUpdate = true;
         }
 
+        // Apply the measurement if it passed all filters
         if (!doRejectUpdate) {
+            // Adjust trust based on distance and tag count
             double avgDist = Math.max(mt2.avgTagDist, VisionConstants.kMinAvgTagDistFloor); 
 
-            // More trust if we see more tags
+            // Scale trust: More tags = more trust. Further distance = less trust.
             double xyStdDev = (VisionConstants.kBaselineStdDevMeters / mt2.tagCount) * avgDist * VisionConstants.kBaseTrustScale;
 
+            // Only trust vision rotation if we see multiple tags; otherwise, rely on the Gyro
             double thetaStdDev = (mt2.tagCount >= 2) 
                 ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
                 : VisionConstants.kUnattainableStdDev;
-
-            Pose2d truePose = new Pose2d(
-                ((mt2.pose.getX() * 0.6) + (mt2side.pose.getX() * 0.4))/2,
-                ((mt2.pose.getY() * 0.6) + (mt2side.pose.getY() * 0.4))/2,
-                new Rotation2d(robotYaw)
-            );
 
             this.addVisionMeasurement(
                 mt2.pose,
                 Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
-        }
-    
-        SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
-        SmartDashboard.putNumber("TX: ", LimelightHelpers.getTargetPose3d_RobotSpace("limelight-four").getX());
-    }
-
-    //TODO: Need to test. 
-    // /**
-    //  * Iterates through all available Limelight cameras to update the drivetrain's 
-    //  * pose estimation using MegaTag2.
-    //  */
-    // public void setVisionPose() {
-    //     // Call the update for each camera on your robot
-    //     updateCameraVision(VisionConstants.kLimelightName); // Front camera
-    //     updateCameraVision(VisionConstants.kLimelightNameSide); // New side camera
-
-    //     // Telemetry for the dashboard
-    //     SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
-    // }
-
-    // /**
-    //  * Generalized MegaTag2 update logic for a single Limelight camera.
-    //  * @param cameraName The NetworkTable name of the Limelight (e.g., "limelight-side")
-    //  */
-    // private void updateCameraVision(String cameraName) {
-    //     // Get the current robot rotation for MegaTag2's gyro-pigeon integration
-    //     double robotYaw = this.getState().Pose.getRotation().getDegrees();
-        
-    //     // Set orientation so the Limelight can compute the field-relative pose correctly
-    //     LimelightHelpers.SetRobotOrientation(cameraName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
-
-    //     // Retrieve the MegaTag2 Pose Estimate
-    //     var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
-    //     var odometryPose = this.getState().Pose;
-
-    //     // Basic Validation
-    //     if (mt2 == null || mt2.tagCount == 0) {
-    //         return; 
-    //     }
-
-    //     boolean doRejectUpdate = false;
-
-    //     // Ambiguity and Distance Checks (Crucial for 1-Tag scenarios)
-    //     if (mt2.tagCount == 1 && mt2.rawFiducials.length > 0) {
-    //         if (mt2.rawFiducials[0].ambiguity > VisionConstants.kMaxOneTagAmbiguity) {
-    //             doRejectUpdate = true; // Reject if the tag is blurry or skewed
-    //         }
-    //         if (mt2.rawFiducials[0].distToCamera > VisionConstants.kMaxOneTagDistanceMeters) {
-    //             doRejectUpdate = true; // Reject if the tag is too far away
-    //         }
-    //     }
-
-    //     // Teleportation Check (Prevents the "jumping" pose if vision is noisy)
-    //     double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
-    //     if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
-    //         doRejectUpdate = true;
-    //     }
-
-    //     // Latency/Stall Check
-    //     double dataAge = Timer.getFPGATimestamp() - mt2.timestampSeconds;
-    //     if (dataAge > VisionConstants.kMaxDataAgeSeconds) {
-    //         doRejectUpdate = true;
-    //     }
-
-    //     // Apply the measurement if it passed all filters
-    //     if (!doRejectUpdate) {
-    //         // Adjust trust based on distance and tag count
-    //         double avgDist = Math.max(mt2.avgTagDist, VisionConstants.kMinAvgTagDistFloor); 
-
-    //         // Scale trust: More tags = more trust. Further distance = less trust.
-    //         double xyStdDev = (VisionConstants.kBaselineStdDevMeters / mt2.tagCount) * avgDist * VisionConstants.kBaseTrustScale;
-
-    //         // Only trust vision rotation if we see multiple tags; otherwise, rely on the Gyro
-    //         double thetaStdDev = (mt2.tagCount >= 2) 
-    //             ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
-    //             : VisionConstants.kUnattainableStdDev;
-
-    //         this.addVisionMeasurement(
-    //             mt2.pose,
-    //             Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
-    //             VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
-    //         );
             
-    //         // Optional: Publish the individual camera's result for debugging in AdvantageScope
-    //         NetworkTableInstance.getDefault()
-    //             .getStructTopic(cameraName + "/Pose", Pose2d.struct)
-    //             .publish()
-    //             .set(mt2.pose);
-    //     }
-    // }
+            NetworkTableInstance.getDefault()
+                .getStructTopic(cameraName + "/Pose", Pose2d.struct)
+                .publish()
+                .set(mt2.pose);
+        }
+    }
 
     /**
      * Finds the distance from the drivetrain to the face of the hub, which is determined by the alliance. 
@@ -531,32 +458,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return runOnce(() -> seedFieldCentric());
     }
 
-    @Override
-    public void periodic(){
-        setVisionPose();
-
-        /*
-         * Periodically try to apply the operator perspective.
-         * If we haven't applied the operator perspective before, then we should apply
-         * it regardless of DS state.
-         * This allows us to correct the perspective in case the robot code restarts
-         * mid-match.
-         * Otherwise, only check and apply the operator perspective if the DS is
-         * disabled.
-         * This ensures driving behavior doesn't change until an explicit disable event
-         * occurs during testing.
-         */
-        if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
-            DriverStation.getAlliance().ifPresent(allianceColor -> {
-                setOperatorPerspectiveForward(
-                        allianceColor == Alliance.Red
-                                ? kRedAlliancePerspectiveRotation
-                               : kBlueAlliancePerspectiveRotation);
-                m_hasAppliedOperatorPerspective = true;
-            });
-        }     
-    }
-
     private void startSimThread(){
         m_lastSimTime = Utils.getCurrentTimeSeconds();
 
@@ -613,4 +514,31 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Command c_updateSpeed(int change){
         return runOnce(() -> setSpeed(change));
     }
+
+    @Override
+    public void periodic(){
+        setVisionPose();
+
+        /*
+         * Periodically try to apply the operator perspective.
+         * If we haven't applied the operator perspective before, then we should apply
+         * it regardless of DS state.
+         * This allows us to correct the perspective in case the robot code restarts
+         * mid-match.
+         * Otherwise, only check and apply the operator perspective if the DS is
+         * disabled.
+         * This ensures driving behavior doesn't change until an explicit disable event
+         * occurs during testing.
+         */
+        if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
+            DriverStation.getAlliance().ifPresent(allianceColor -> {
+                setOperatorPerspectiveForward(
+                        allianceColor == Alliance.Red
+                                ? kRedAlliancePerspectiveRotation
+                               : kBlueAlliancePerspectiveRotation);
+                m_hasAppliedOperatorPerspective = true;
+            });
+        }     
+    }
 }
+
