@@ -303,35 +303,34 @@ public class Turret extends SubsystemBase {
     * @return A new Translation2d representing the "virtual" hub target.
     */
     public Translation2d calculateVirtualTarget(Translation2d realHubLocation) {
-    var state = m_drivetrain.getState();
+        var state = m_drivetrain.getState();
         var robotPose = state.Pose;
-        var robotSpeeds = state.Speeds; // Field-relative speeds
+        var robotRotation = robotPose.getRotation();
+        
+        // Convert Robot-Relative Speeds to Field-Relative Speeds
+        double fieldVx = state.Speeds.vxMetersPerSecond * robotRotation.getCos() - state.Speeds.vyMetersPerSecond * robotRotation.getSin();
+        double fieldVy = state.Speeds.vxMetersPerSecond * robotRotation.getSin() + state.Speeds.vyMetersPerSecond * robotRotation.getCos();
 
-        // Define the offset in the robot's local frame (positive X is forward, positive Y is left)
         Translation2d robotToTurret = new Translation2d(
             TurretConstants.robotCenterToTurretForward, 
             -TurretConstants.robotCenterToTurretRight 
         );
 
-        // Calculate the turret's ACTUAL position on the field
         Translation2d turretFieldPos = robotPose.getTranslation().plus(
-            robotToTurret.rotateBy(robotPose.getRotation())
+            robotToTurret.rotateBy(robotRotation)
         );
 
-        // Calculate Turret's Total Velocity (Chassis Translation + Tangential Rotation)
-        // omega is radians per second
+        // Tangential velocity (velocity from the robot spinning)
         double omega = state.Speeds.omegaRadiansPerSecond;
-        
-        // Tangential velocity = omega * radius, rotated 90 degrees
         double tangentialVx = omega * robotToTurret.getY(); 
         double tangentialVy = -omega * robotToTurret.getX();
 
-        // Rotate tangential velocity to be field-relative to match robotSpeeds
         Translation2d tangentialVelocityField = new Translation2d(tangentialVx, tangentialVy)
-                                                 .rotateBy(robotPose.getRotation());
+                                                .rotateBy(robotRotation);
 
-        double totalVx = robotSpeeds.vxMetersPerSecond + tangentialVelocityField.getX();
-        double totalVy = robotSpeeds.vyMetersPerSecond + tangentialVelocityField.getY();
+        // Combine both into a true Field-Relative velocity vector
+        double totalVx = fieldVx + tangentialVelocityField.getX();
+        double totalVy = fieldVy + tangentialVelocityField.getY();
 
         // Iterative Solver
         Translation2d virtualTarget = realHubLocation;
@@ -339,9 +338,10 @@ public class Turret extends SubsystemBase {
             double distanceToVirtualTarget = turretFieldPos.getDistance(virtualTarget);
             double timeOfFlight = distanceToVirtualTarget / ShooterConstants.kAverageBallVelocityMps;
 
+            // The virtual target is the hub position MINUS the distance the robot travels during flight
             virtualTarget = new Translation2d(
-                realHubLocation.getX() + (totalVx * timeOfFlight),
-                realHubLocation.getY() + (totalVy * timeOfFlight)
+                realHubLocation.getX() - (totalVx * timeOfFlight),
+                realHubLocation.getY() - (totalVy * timeOfFlight)
             );
         }
 
