@@ -50,8 +50,8 @@ import frc.robot.LimelightHelpers.PoseEstimate;
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
     public enum SPEED {
         SLOW,
-        MEDIUM,
         STANDARD, 
+        HIGH,
         MAX 
     };
 
@@ -579,8 +579,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public double speedToDouble(SPEED speed){
         switch (speed) {
             case SLOW: return .20;
-            case MEDIUM: return .5;
-            case STANDARD: return .75;
+            case STANDARD: return .50;
+            case HIGH: return .75;
             case MAX: return 1;
         }
         return 1;
