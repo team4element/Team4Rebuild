@@ -37,6 +37,7 @@ import frc.robot.Commands.TapPivot;
 import frc.robot.Commands.TransferFuel;
 import frc.robot.Commands.TurretManual;
 import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.VisionAlignAndZero;
 import frc.robot.Commands.Auton.CombinedTapShootAuto;
 import frc.robot.Commands.Auton.IntakeForAuto;
 import frc.robot.Constants.ControllerConstants;
@@ -152,7 +153,7 @@ public class RobotContainer {
 
     ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
     ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
-
+    ControllerConstants.driverController.a().whileTrue(new VisionAlignAndZero(m_turret)); //TODO: TEST ME Turret should work if we don't start with turret forward or crash into  a wall
 
     // These are the operator controls:
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
@@ -168,7 +169,7 @@ public class RobotContainer {
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
 
     // Inverse conveyor systems.
-    ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
+    // ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
     //ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
