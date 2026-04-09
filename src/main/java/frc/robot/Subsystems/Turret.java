@@ -419,21 +419,69 @@ public class Turret extends SubsystemBase {
         }
     }
 
+    /**
+    * Computes the turret's current position on the field based on the robot pose and turret offset.
+    * Updates m_turretPose as a side effect.
+    */
+    private Pose2d computeTurretFieldPose() {
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+
+        Transform2d robotToTurret = new Transform2d(
+            new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
+            new Rotation2d()
+        );
+
+        m_turretPose = robotPose.transformBy(robotToTurret);
+        return m_turretPose;
+    }
+
+    public Translation2d calculateNetSafeAimPoint(Translation2d hubCenter, Translation2d turretPosition, double hubRadius) {
+        Translation2d hubToTurret = turretPosition.minus(hubCenter);
+        double distance = hubToTurret.getNorm();
+
+        if (distance == 0) return hubCenter;
+
+        Translation2d offset = new Translation2d(
+            (hubToTurret.getX() / distance) * hubRadius,
+            (hubToTurret.getY() / distance) * hubRadius
+        );
+
+        return hubCenter.plus(offset);
+    }
+
     public void trackPassTarget() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-        Translation2d passLocation = (alliance == Alliance.Blue) ? 
-                                 VisionConstants.BLUE_PASS_TARGET : 
-                                 VisionConstants.RED_PASS_TARGET;
-
-        Translation2d virtualPassLocation = calculateVirtualTarget(passLocation);
 
         Pose2d robotPose = m_drivetrain.getState().Pose;
-    
-        Rotation2d fieldAngleFromTurret = virtualPassLocation.minus(getTurretPose().getTranslation()).getAngle();
+        Pose2d turretPose = computeTurretFieldPose();
+
+        // Pick near corner based on which side of the field the robot is on
+        Translation2d passLocation;
+        if (alliance == Alliance.Blue) {
+            passLocation = (robotPose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.BLUE_PASS_LEFT :
+                VisionConstants.BLUE_PASS_RIGHT;
+        } else {
+            passLocation = (robotPose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.RED_PASS_LEFT :
+                VisionConstants.RED_PASS_RIGHT;
+        }
+
+        Translation2d safePassTarget = calculateNetSafeAimPoint(
+            passLocation,
+            turretPose.getTranslation(),
+            TurretConstants.hubNetRadius
+        );
+
+        Translation2d virtualPassLocation = calculateVirtualTarget(safePassTarget);
+
+        Rotation2d fieldAngleFromTurret = virtualPassLocation.minus(turretPose.getTranslation()).getAngle();
         Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
 
         double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
-        m_motor.setControl(m_motionMagicRequest.withPosition(finalMotorSetpoint));
+        double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
+        m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
+
     }
 
     public Pose2d getTurretPose(){

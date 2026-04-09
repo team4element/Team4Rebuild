@@ -10,7 +10,6 @@ import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Turret;
 
 public class CombinedPassMove extends ParallelCommandGroup {
-
     public CombinedPassMove(Turret turret, Shooter shooter, Conveyor conveyor, Spindexer spindexer, CommandSwerveDrivetrain drivetrain) {
         addCommands(
             new AutoAimPass(turret),

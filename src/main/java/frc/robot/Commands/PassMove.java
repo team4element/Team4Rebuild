@@ -1,10 +1,11 @@
 package frc.robot.Commands;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Subsystems.CommandSwerveDrivetrain;
 import frc.robot.Subsystems.Shooter;
@@ -25,23 +26,52 @@ public class PassMove extends Command {
     @Override
     public void execute() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
-        Translation2d target = (alliance == Alliance.Blue) ? 
-                               VisionConstants.BLUE_PASS_TARGET : VisionConstants.RED_PASS_TARGET;
+        Translation2d target;
+        if (alliance == Alliance.Blue) {
+            target = (m_drivetrain.getState().Pose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.BLUE_PASS_LEFT :
+                VisionConstants.BLUE_PASS_RIGHT;
+        } else {
+            target = (m_drivetrain.getState().Pose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.RED_PASS_LEFT :
+                VisionConstants.RED_PASS_RIGHT;
+        }
 
-        // 1. Calculate the Virtual Target for movement compensation
+        // Calculate the Virtual Target for movement compensation
         Translation2d virtualTarget = m_turret.calculateVirtualTarget(target);
         double virtualDist = virtualTarget.getDistance(m_turret.getTurretPose().getTranslation());
 
-        // 2. Calculate Radial Velocity (Dot Product)
-        var robotSpeeds = m_drivetrain.getState().Speeds; 
-        var fieldSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(robotSpeeds, m_drivetrain.getState().Pose.getRotation());
-        Translation2d robotVelocity = new Translation2d(fieldSpeeds.vxMetersPerSecond, fieldSpeeds.vyMetersPerSecond);
-        Translation2d robotToTargetVector = target.minus(m_turret.getTurretPose().getTranslation());
-        
-        double radialVelocityMps = robotVelocity.getX() * (robotToTargetVector.getX() / robotToTargetVector.getNorm()) +
-                                   robotVelocity.getY() * (robotToTargetVector.getY() / robotToTargetVector.getNorm());
+        // Calculate total field velocity including tangential component from rotation
+        var state = m_drivetrain.getState();
+        Rotation2d robotRotation = state.Pose.getRotation();
 
-        // 3. Command the Shooter
+        double fieldVx = state.Speeds.vxMetersPerSecond * robotRotation.getCos()
+                       - state.Speeds.vyMetersPerSecond * robotRotation.getSin();
+        double fieldVy = state.Speeds.vxMetersPerSecond * robotRotation.getSin()
+                       + state.Speeds.vyMetersPerSecond * robotRotation.getCos();
+
+        // Tangential velocity from robot rotation
+        double omega = state.Speeds.omegaRadiansPerSecond;
+        Translation2d robotToTurret = new Translation2d(
+            TurretConstants.robotCenterToTurretForward,
+            -TurretConstants.robotCenterToTurretRight
+        );
+        double tangentialVx = omega * robotToTurret.getY();
+        double tangentialVy = -omega * robotToTurret.getX();
+        Translation2d tangentialVelocityField = new Translation2d(tangentialVx, tangentialVy)
+            .rotateBy(robotRotation);
+
+        double totalVx = fieldVx + tangentialVelocityField.getX();
+        double totalVy = fieldVy + tangentialVelocityField.getY();
+
+        Translation2d fieldVelocity = new Translation2d(totalVx, totalVy);
+
+        // Calculate Radial Velocity (project onto turret-to-target direction)
+        Translation2d turretToTargetVector = target.minus(m_turret.getTurretPose().getTranslation());
+        double radialVelocityMps = fieldVelocity.getX() * (turretToTargetVector.getX() / turretToTargetVector.getNorm())
+                                 + fieldVelocity.getY() * (turretToTargetVector.getY() / turretToTargetVector.getNorm());
+
+        // Command the Shooter
         double targetRPS = m_shooter.getPassRPS(virtualDist, radialVelocityMps);
         m_shooter.setRPS(targetRPS);
     }
@@ -49,5 +79,10 @@ public class PassMove extends Command {
     @Override
     public void end(boolean interrupted) {
         m_shooter.stop();
+    }
+
+    @Override
+    public boolean isFinished() {
+        return false;
     }
 }
