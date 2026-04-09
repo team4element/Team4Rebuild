@@ -26,8 +26,12 @@ public class VisionConstants {
     //TODO: This name should be changed later through the limelight UI.
     public static final String kLimelightNameSide = "limelight-turret";
 
-    public static final Translation2d BLUE_PASS_TARGET = new Translation2d(2.0, 4.0); // TODO: Change coordinates
-    public static final Translation2d RED_PASS_TARGET = new Translation2d(14.0, 4.0);
+    public static final Translation2d BLUE_PASS_LEFT = new Translation2d(2, 2);    
+    public static final Translation2d BLUE_PASS_RIGHT = new Translation2d(2, 6);   
+    public static final Translation2d RED_PASS_LEFT = new Translation2d(15, 1);     
+    public static final Translation2d RED_PASS_RIGHT = new Translation2d(15, 6);    
+
+    public static final int fieldCenterY = 4;
 
     //TODO: Tune Values (maybe put these to the dash board)
 
