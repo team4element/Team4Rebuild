@@ -5,6 +5,12 @@
     "data": {
       "commands": [
         {
+          "type": "path",
+          "data": {
+            "pathName": "Copy of right cross"
+          }
+        },
+        {
           "type": "parallel",
           "data": {
             "commands": [
@@ -12,12 +18,6 @@
                 "type": "path",
                 "data": {
                   "pathName": "right cross"
-                }
-              },
-              {
-                "type": "wait",
-                "data": {
-                  "waitTime": 2.0
                 }
               },
               {
@@ -30,9 +30,9 @@
           }
         },
         {
-          "type": "named",
+          "type": "wait",
           "data": {
-            "name": "Pivot"
+            "waitTime": 0.2
           }
         },
         {
