@@ -33,7 +33,7 @@ public class PositionPivot extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    if(m_setpoint <= 3){
+    if(m_setpoint > 18){
       m_intake.runRollers(-halfIntakeSpeed);
     } else{
       m_intake.runRollers(halfIntakeSpeed);
