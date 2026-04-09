@@ -244,7 +244,6 @@ public class Turret extends SubsystemBase {
         return (closestTarget / 360.0) * TurretConstants.gearRatio;
     }
 
-
     //TODO Replace with track if working
     public void trackVirtualTarget() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
@@ -292,7 +291,7 @@ public class Turret extends SubsystemBase {
             Pose2d actualTurretPose = new Pose2d(m_turretPose.getTranslation(), globalTurretAngle);
 
             // Publish to NetworkTables
-            turretPosePublisher.set(actualTurretPose);
+           // turretPosePublisher.set(actualTurretPose);
         }
     }
 
@@ -414,7 +413,7 @@ public class Turret extends SubsystemBase {
             Pose2d actualTurretPose = new Pose2d(turretPose.getTranslation(), globalTurretAngle);
 
             // Publish to NetworkTables
-            turretPosePublisher.set(actualTurretPose);
+            //turretPosePublisher.set(actualTurretPose);
             // targetPosePublisher.set(hubCenterLocation);
         }
     }

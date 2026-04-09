@@ -169,7 +169,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
  */
 public void setVisionPose() {
     updateCameraVision("limelight-four"); // Front camera
-    updateCameraVision("limelight-side"); // New side camera
+    //updateCameraVision("limelight-side"); // New side camera
 
     SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
 }
@@ -237,10 +237,10 @@ public void setVisionPose() {
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
             
-            NetworkTableInstance.getDefault()
-                .getStructTopic(cameraName + "/Pose", Pose2d.struct)
-                .publish()
-                .set(mt2.pose);
+            // NetworkTableInstance.getDefault()
+            //     .getStructTopic(cameraName + "/Pose", Pose2d.struct)
+            //     .publish()
+            //     .set(mt2.pose);
         }
     }
 
@@ -332,9 +332,9 @@ public void setVisionPose() {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
         
-        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
-        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
-        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        // publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish(); 
+        // secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
+        // limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
     /**
@@ -367,9 +367,9 @@ public void setVisionPose() {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
 
-        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
-        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
-        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        // publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        // secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
+        // limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
     /**
@@ -416,9 +416,9 @@ public void setVisionPose() {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, VisionConstants.initialIMUMode);
 
-        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
-        secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
-        limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
+        // publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
+        // secondPublisher = NetworkTableInstance.getDefault().getStructTopic("2ndbotpose", Pose2d.struct).publish();
+        // limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
     /**
