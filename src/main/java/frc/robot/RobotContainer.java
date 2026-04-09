@@ -28,6 +28,7 @@ import frc.robot.Commands.CombinedPassMove;
 import frc.robot.Commands.CombinedShoot;
 import frc.robot.Commands.CombinedShootMove;
 import frc.robot.Commands.CombinedTapShoot;
+import frc.robot.Commands.ConveyToTurret;
 import frc.robot.Commands.CornerShot;
 import frc.robot.Commands.FreePivot;
 import frc.robot.Commands.IntakeFuel;
@@ -107,8 +108,8 @@ public class RobotContainer {
 
     // These are the commands used in auton.
     NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
-    NamedCommands.registerCommand("Aim", new AutoAimMove(m_turret, m_field_layout).withTimeout(0.5));
-    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
+    NamedCommands.registerCommand("Aim", new AutoAimMove(m_turret, m_field_layout).withTimeout(0.4));
+    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(2));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
     NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(IntakeConstants.intakeTimeout));
@@ -137,7 +138,6 @@ public class RobotContainer {
     );
 
     // These are the driver controls:
-    //TODO: Diego needs to test these.
     ControllerConstants.driverController.leftTrigger().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
     // ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
     //     drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
@@ -151,16 +151,10 @@ public class RobotContainer {
     ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
     ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
 
-    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
-    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
-    ControllerConstants.driverController.a().whileTrue(new VisionAlignAndZero(m_turret)); //TODO: TEST ME Turret should work if we don't start with turret forward or crash into  a wall
-
     // These are the operator controls:
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
     ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, m_pivot, PivotConstants.poseToIntake)); // Lowers pivot to be ready to intake.
     //TODO: TEST ME and maybe replace
-    // ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_conveyor, m_spinster));
-    // ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
     ControllerConstants.operatorController.a().whileTrue(new AutoAimMove(m_turret, m_field_layout));
     ControllerConstants.operatorController.y().whileTrue(new CombinedShootMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain, m_field_layout));
 
@@ -169,13 +163,13 @@ public class RobotContainer {
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
 
     // Inverse conveyor systems.
-    // ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
-    //ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
+    //ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
+    ControllerConstants.operatorController.start().whileTrue(new CombinedPassMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain)); //TODO: TEST ME Turret should work if we don't start with turret forward or crash into a wall.
+
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
 
     ControllerConstants.operatorController.back().whileTrue(new TransferFuel(m_spinster, m_conveyor, SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed));
-    ControllerConstants.operatorController.start().whileTrue(new CombinedPassMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain));
 
     ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
     ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
