@@ -1,0 +1,50 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Center Depot"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Extend + Intake"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "realign vision left"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Aim"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Long Shot"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": "Left",
+  "choreoAuto": false
+}
