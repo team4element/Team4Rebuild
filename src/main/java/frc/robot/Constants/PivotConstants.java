@@ -11,17 +11,17 @@ public class PivotConstants {
 
     public static final double dutyCycle = 0.5; // Limits the motor to use half speed.
 
-    public static final double KPLeft = 0.35;
+    public static final double KPLeft = 0.48;
     public static final double KDLeft = 0.1;
-    public static final double KPRight = 0.35; //0.25
+    public static final double KPRight = 0.47; //0.25
     public static final double KDRight = 0.1; //0.04
 
     public static final double lowerPivotLimit = 18;
-    public static final double upperPivotLimit = 0.0;
+    public static final double upperPivotLimit = 0.5;
     public static final double pivotMidPoint = 9;
 
     public static final double pivotTimeout = 0.8;    
     public static final double pivotSpeed = 0.3;   //0.4 
-    public static final double poseToIntake = 18; //18
+    public static final double poseToIntake = 10; //18
     public static final double poseForAuto = 3; 
 }

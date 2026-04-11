@@ -54,12 +54,8 @@ public class PositionPivot extends Command {
     final double lowerTolerance = m_setpoint-0.5;
     final double upperTolerance = m_setpoint+0.5;
 
-    final boolean condition = (m_pivot.getPivotPositionLeft() >= lowerTolerance) && (m_pivot.getPivotPositionLeft() <= upperTolerance);
+    final boolean condition = (m_pivot.getPivotPosition() >= lowerTolerance) && (m_pivot.getPivotPosition() <= upperTolerance);
 
-    if(condition){
-      return true;
-    }
-
-    return false;
+    return condition;
   }
 }

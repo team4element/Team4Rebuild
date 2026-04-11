@@ -33,7 +33,7 @@ public class RetractIntake extends Command {
   @Override
   public void execute() {
     // Gets the current position of the pivot.
-    double currentPivotPosition = m_pivot.getPivotPositionLeft();
+    double currentPivotPosition = m_pivot.getPivotPosition();
 
     if(currentPivotPosition > 17.5 && m_speedPercentagePivot > 0){
       return;
