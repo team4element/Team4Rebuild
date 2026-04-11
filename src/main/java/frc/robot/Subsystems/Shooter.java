@@ -47,7 +47,7 @@ public class Shooter extends SubsystemBase {
 
         // Mechanical Settings
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-        shooterConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        shooterConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
 
         // Apply config to both motors
         m_leftMotor.getConfigurator().apply(shooterConfig);

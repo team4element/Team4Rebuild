@@ -23,9 +23,22 @@
           }
         },
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "Collect fuel"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Collect fuel"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Extend + Intake"
+                }
+              }
+            ]
           }
         },
         {

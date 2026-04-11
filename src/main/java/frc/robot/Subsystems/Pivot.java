@@ -6,9 +6,11 @@ package frc.robot.Subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -31,6 +33,8 @@ public class Pivot extends SubsystemBase{
     double lastPLeft;
     double lastPRight;
 
+    double holdValue;
+
     public Pivot(){
         m_leftPivot = new TalonFX(PivotConstants.pivotLeftID);
         m_rightPivot = new TalonFX(PivotConstants.pivotRightID);
@@ -46,9 +50,15 @@ public class Pivot extends SubsystemBase{
 
         m_pivotLeftConfig.Slot0.kP = PivotConstants.KPLeft;
         m_pivotLeftConfig.Slot0.kD = PivotConstants.KDLeft;
+        // m_pivotLeftConfig.Slot0.kP = 0;
+        // m_pivotLeftConfig.Slot0.kD = 0;
+        //m_pivotLeftConfig.Slot0.kS = 1.2;
 
         m_pivotRightConfig.Slot0.kP = PivotConstants.KPRight;
         m_pivotRightConfig.Slot0.kD = PivotConstants.KDRight;
+        // m_pivotRightConfig.Slot0.kP = 0;
+        // m_pivotRightConfig.Slot0.kD = 0;
+       // m_pivotRightConfig.Slot0.kS = 1.2;
 
         m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
 
@@ -56,8 +66,12 @@ public class Pivot extends SubsystemBase{
         lastPLeft = PivotConstants.KPLeft;
         lastPRight = PivotConstants.KPRight;
 
+        holdValue = 0;
+
         SmartDashboard.putNumber("Pivot Left P", PivotConstants.KPLeft);
         SmartDashboard.putNumber("Pivot Right P", PivotConstants.KPRight);
+
+        //m_rightPivot.setControl(new Follower(PivotConstants.pivotLeftID, MotorAlignmentValue.Opposed));
 
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
@@ -74,6 +88,7 @@ public class Pivot extends SubsystemBase{
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
         m_leftPivot.setPosition(0);
+        m_rightPivot.setPosition(0);
     }
 
     /**
@@ -81,8 +96,12 @@ public class Pivot extends SubsystemBase{
      * @param motor for the data.
      * @return motor rotations.
      */
-    public double getPivotPosition(){
+    public double getPivotPositionLeft(){
         return m_leftPivot.getPosition().getValueAsDouble();
+    }
+
+    public double getPivotPositionRight(){
+        return m_rightPivot.getPosition().getValueAsDouble();
     }
 
     /**
@@ -100,7 +119,7 @@ public class Pivot extends SubsystemBase{
      * @param motorRotation (desired rotation)
      */
     public void pivotToSetpoint(double motorRotation){
-        m_leftPivot.setControl(m_positionRequest.withPosition(motorRotation));
+        m_leftPivot.setControl(m_positionRequest.withPosition(motorRotation*1.001));
         m_rightPivot.setControl(m_positionRequest.withPosition(motorRotation));
     }
 
@@ -108,8 +127,11 @@ public class Pivot extends SubsystemBase{
      * Stops the motor.
      */
     public void stopMotors(){
+        m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
+        m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
         m_leftPivot.set(0);
         m_rightPivot.set(0);
+        holdValue = getPivotPositionLeft();
     } 
 
     public void onDisable(){
@@ -117,11 +139,15 @@ public class Pivot extends SubsystemBase{
         m_rightPivot.setNeutralMode(NeutralModeValue.Coast);
     }
 
+    public void hold(){
+        pivotToSetpoint(holdValue);
+    }
+
     /**
      * Updates the PID values of the pivot motor.
      */
     public void updateValues(){
-        SmartDashboard.putNumber("Current Pose", getPivotPosition());
+        SmartDashboard.putNumber("Current Pose", getPivotPositionLeft());
 
         double pivotL = SmartDashboard.getNumber("Pivot Left P", PivotConstants.KPLeft);
         double pivotR = SmartDashboard.getNumber("Pivot Right P", PivotConstants.KPRight);

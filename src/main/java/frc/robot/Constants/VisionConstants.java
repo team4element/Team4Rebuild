@@ -49,7 +49,7 @@ public class VisionConstants {
      * current calculated encoder odometry. 
      * If the camera says we suddenly moved x meters in a single frame, we assume it's a false positive.
      */
-    public static final double kMaxOdometryDiscrepancyMeters = 1.2;
+    public static final double kMaxOdometryDiscrepancyMeters = 1000; // make this small (like 1)
 
     /**
      * The maximum allowed age (in seconds) of the camera frame before it is considered stale.

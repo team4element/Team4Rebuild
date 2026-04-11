@@ -14,7 +14,7 @@ public class PositionPivot extends Command {
   private Intake m_intake;
   private Pivot m_pivot;
   private double m_setpoint;
-  private double halfIntakeSpeed = IntakeConstants.intakeSpeed/2;
+  private double halfIntakeSpeed = IntakeConstants.intakeSpeed/1.5;
 
   public PositionPivot(Intake intake, Pivot pivot, double setpoint) {
     m_intake = intake;
@@ -33,7 +33,7 @@ public class PositionPivot extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    if(m_setpoint > 18){
+    if(m_setpoint > 10){
       m_intake.runRollers(-halfIntakeSpeed);
     } else{
       m_intake.runRollers(halfIntakeSpeed);
@@ -51,10 +51,10 @@ public class PositionPivot extends Command {
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    final double lowerTolerance = m_setpoint-0.1;
-    final double upperTolerance = m_setpoint+0.1;
+    final double lowerTolerance = m_setpoint-0.5;
+    final double upperTolerance = m_setpoint+0.5;
 
-    final boolean condition = (m_pivot.getPivotPosition() >= lowerTolerance) && (m_pivot.getPivotPosition() <= upperTolerance);
+    final boolean condition = (m_pivot.getPivotPositionLeft() >= lowerTolerance) && (m_pivot.getPivotPositionLeft() <= upperTolerance);
 
     if(condition){
       return true;

@@ -7,38 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from Right"
+            "pathName": "Center Depot"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Aim"
+            "name": "Extend + Intake"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "Retract"
           }
         },
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "human right"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Retract"
-                }
-              }
-            ]
+            "pathName": "Center Far Human"
           }
         },
         {
@@ -50,7 +37,7 @@
         {
           "type": "wait",
           "data": {
-            "waitTime": 0.5
+            "waitTime": 0.8
           }
         },
         {
@@ -63,6 +50,6 @@
     }
   },
   "resetOdom": true,
-  "folder": "Right",
+  "folder": "Center",
   "choreoAuto": false
 }
