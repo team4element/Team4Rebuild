@@ -49,7 +49,7 @@ public class VisionConstants {
      * current calculated encoder odometry. 
      * If the camera says we suddenly moved x meters in a single frame, we assume it's a false positive.
      */
-    public static final double kMaxOdometryDiscrepancyMeters = 1000; // make this small (like 1)
+    public static final double kMaxOdometryDiscrepancyMeters = 1.2; // make this small (like 1)
 
     /**
      * The maximum allowed age (in seconds) of the camera frame before it is considered stale.
@@ -63,7 +63,7 @@ public class VisionConstants {
      * Lowering this (e.g., to 0.2) makes the robot trust the camera MORE and snap to it aggressively.
      * Raising this (e.g., to 1.0) makes the robot trust its wheel encoders more than the camera.
      */
-    public static final double kBaseTrustScale = 0.01; 
+    public static final double kBaseTrustScale = 0.13; 
 
     /**
      * A safety floor (in meters) for the average tag distance calculation.

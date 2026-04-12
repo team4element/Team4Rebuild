@@ -55,6 +55,7 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledInit() {
     m_robotContainer.onDisable();
+    System.out.println("We disabled!");
   }
 
   @Override

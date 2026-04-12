@@ -172,7 +172,6 @@ public void setVisionPose() {
     updateCameraVision("limelight-four"); // Front camera
     //updateCameraVision("limelight-side"); // New side camera
     publisher.set(this.getState().Pose);
-    limelightPublisher.set(mt2.pose);
 
     SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
 }
@@ -192,8 +191,10 @@ public void setVisionPose() {
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
         var odometryPose = this.getState().Pose;
 
+        limelightPublisher.set(mt2.pose);
+
         // 4Basic Validation
-        if (mt2 == null || mt2.tagCount == 0) {
+        if (mt2 == null || mt2.tagCount == 0||(mt2.pose.getX()==0&&mt2.pose.getY()==0)) {
             return; 
         }
 
@@ -211,8 +212,10 @@ public void setVisionPose() {
 
         // Teleportation Check (Prevents the "jumping" pose if vision is noisy)
         double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
-        if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
-            doRejectUpdate = true;
+        if(!DriverStation.isTeleop()) {
+            if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
+                doRejectUpdate = true;
+            }
         }
 
         // Latency/Stall Check
