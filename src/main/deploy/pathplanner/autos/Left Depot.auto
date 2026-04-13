@@ -5,22 +5,33 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Center Depot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Extend + Intake"
-                }
-              }
-            ]
+            "pathName": "center left shot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Aim"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "from center shot to depot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ExtendSlow"
           }
         },
         {
