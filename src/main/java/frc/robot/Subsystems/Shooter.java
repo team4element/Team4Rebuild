@@ -94,7 +94,6 @@ public class Shooter extends SubsystemBase {
         // Extra inch b/c we are aiming at the target
         double adjustedInches = distInches - 1.0;
 
-        //TODO replace with real values
         final int minInches = 0;
         final int maxInches = 500;
         double clampedInches = MathUtil.clamp(adjustedInches, minInches, maxInches);
@@ -127,8 +126,8 @@ public class Shooter extends SubsystemBase {
                          (0.003632 * Math.pow(clampedInches, 2)) +
                          (0.59999 * clampedInches) + 32.574475;
 
+                         
         // Convert radial velocity to a reduction in RPS
-        //TODO Tune me
         double velocityCompensationCoefficient = 2;
         double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
 

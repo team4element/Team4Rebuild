@@ -23,8 +23,6 @@ public class VisionConstants {
     public static final int initialIMUMode = 4;
 
     public static final String kLimelightName = "limelight-four";
-    //TODO: This name should be changed later through the limelight UI.
-    public static final String kLimelightNameSide = "limelight-turret";
 
     public static final Translation2d BLUE_PASS_LEFT = new Translation2d(2, 2);    
     public static final Translation2d BLUE_PASS_RIGHT = new Translation2d(2, 6);   
@@ -32,8 +30,6 @@ public class VisionConstants {
     public static final Translation2d RED_PASS_RIGHT = new Translation2d(15, 6);    
 
     public static final int fieldCenterY = 4;
-
-    //TODO: Tune Values (maybe put these to the dash board)
 
     /**
      * The maximum acceptable ambiguity for a single-tag read (0.0 to 1.0).

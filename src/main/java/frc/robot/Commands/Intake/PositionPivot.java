@@ -2,7 +2,7 @@
  * This command places the pivot of the intake in the desired position. This also runs the outake when the pivot is going up and intake when going down.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Intake;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.IntakeConstants;

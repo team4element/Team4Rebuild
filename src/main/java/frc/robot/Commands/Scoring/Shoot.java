@@ -1,4 +1,4 @@
-package frc.robot.Commands;
+package frc.robot.Commands.Scoring;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -12,13 +12,13 @@ import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 
-public class ShootMove extends Command {
+public class Shoot extends Command {
     private final Shooter m_shooter;
     private final Turret m_turret;
     private final CommandSwerveDrivetrain m_drivetrain;
     private final AprilTagFieldLayout m_fieldLayout;
 
-    public ShootMove(Shooter shooter, Turret turret, CommandSwerveDrivetrain drivetrain, AprilTagFieldLayout fieldLayout) {
+    public Shoot(Shooter shooter, Turret turret, CommandSwerveDrivetrain drivetrain, AprilTagFieldLayout fieldLayout) {
         m_shooter = shooter;
         m_turret = turret;
         m_drivetrain = drivetrain;

@@ -1,4 +1,4 @@
-package frc.robot.Commands;
+package frc.robot.Commands.Scoring;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;

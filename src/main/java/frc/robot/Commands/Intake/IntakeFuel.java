@@ -1,36 +1,40 @@
 /*
- * This command rotates the turret within it's limit range.
+ * This command runs the belts and wheels of the intake.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Intake;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Turret;
+import frc.robot.Subsystems.Intake;
 
-public class TurretManual extends Command {
+public class IntakeFuel extends Command {
 
-  private Turret m_turret;
+  private Intake m_intake;
+  private double v_speedPercentageIntake;
 
-  public TurretManual(Turret turret) {
-    m_turret = turret;
+  public IntakeFuel(Intake intake, double speedPercentageIntake) {
+    m_intake = intake;
+    v_speedPercentageIntake = speedPercentageIntake;
+
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(turret);
+    addRequirements(intake);
   }
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
+  public void initialize() {
+  }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.rotateManual();
+    m_intake.runRollers(v_speedPercentageIntake);
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_turret.stopMotor();
+    m_intake.stopMotors();
   }
 
   // Returns true when the command should end.

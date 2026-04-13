@@ -38,6 +38,6 @@ public class TurretConstants {
     public static final double robotCenterToTurretForward = 0.156;
     public static final double robotCenterToTurretRight = 0.156;   
 
-    public static final double hubNetRadius = 0.65;  //TODO REAL VALUE
-    public static final double minShotClearanceDeg = 15.0;  // TODO REAL VALUE
+    public static final double hubNetRadius = 0.65; 
+    public static final double minShotClearanceDeg = 15.0; 
 }

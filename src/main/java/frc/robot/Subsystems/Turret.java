@@ -19,8 +19,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -51,13 +49,6 @@ public class Turret extends SubsystemBase {
     // Logic State
     private Pose2d m_turretPose;
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
-
-    // AdvantageScope Data
-    private final StructPublisher<Pose2d> turretPosePublisher =
-    NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
-
-    private final StructPublisher<Translation2d> targetPosePublisher =
-    NetworkTableInstance.getDefault().getStructTopic("Turret/TargetPose", Translation2d.struct).publish();
 
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_motor = new TalonFX(TurretConstants.turretID);
@@ -244,7 +235,6 @@ public class Turret extends SubsystemBase {
         return (closestTarget / 360.0) * TurretConstants.gearRatio;
     }
 
-    //TODO Replace with track if working
     public void trackVirtualTarget() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
         int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
@@ -277,21 +267,6 @@ public class Turret extends SubsystemBase {
 
             double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
             m_motor.setControl(m_motionMagicRequest.withPosition(finalMotorSetpoint));
-
-            //--------------------- ADVANTAGESCOPE TELEMETRY
-
-            // Get the turret's current relative angle using your clean degrees method
-            double currentDegrees = getTurretDegree();
-            Rotation2d currentRelativeAngle = Rotation2d.fromDegrees(currentDegrees);
-
-            // Add the robot's current rotation to get the Turret's GLOBAL rotation on the field
-            Rotation2d globalTurretAngle = robotPose.getRotation().plus(currentRelativeAngle);
-
-            // Construct the final global Pose2d for AdvantageScope
-            Pose2d actualTurretPose = new Pose2d(m_turretPose.getTranslation(), globalTurretAngle);
-
-            // Publish to NetworkTables
-           // turretPosePublisher.set(actualTurretPose);
         }
     }
 
@@ -396,25 +371,7 @@ public class Turret extends SubsystemBase {
             double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
 
             // Send command to the motor using the Motion Magic profile defined in constants
-            //TODO: Test motion magic vs position voltage;
             m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
-            // m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
-
-            //--------------------- ADVANTAGESCOPE TELEMETRY
-
-            // Get the turret's current relative angle using your clean degrees method
-            double currentDegrees = getTurretDegree();
-            Rotation2d currentRelativeAngle = Rotation2d.fromDegrees(currentDegrees);
-
-            // Add the robot's current rotation to get the Turret's GLOBAL rotation on the field
-            Rotation2d globalTurretAngle = robotPose.getRotation().plus(currentRelativeAngle);
-
-            // Construct the final global Pose2d for AdvantageScope
-            Pose2d actualTurretPose = new Pose2d(turretPose.getTranslation(), globalTurretAngle);
-
-            // Publish to NetworkTables
-            //turretPosePublisher.set(actualTurretPose);
-            // targetPosePublisher.set(hubCenterLocation);
         }
     }
 
@@ -485,11 +442,5 @@ public class Turret extends SubsystemBase {
 
     public Pose2d getTurretPose(){
         return m_turretPose;
-    }
-
-    // Determines if the turret is lined up to shoot fuel.
-    public boolean isReadyToShoot() {
-	    //TODO: Update me
-        return false;
     }
 }

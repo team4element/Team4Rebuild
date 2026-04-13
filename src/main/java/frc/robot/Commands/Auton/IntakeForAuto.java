@@ -6,8 +6,8 @@ package frc.robot.Commands.Auton;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import frc.robot.Commands.IntakeFuel;
-import frc.robot.Commands.PositionPivot;
+import frc.robot.Commands.Intake.IntakeFuel;
+import frc.robot.Commands.Intake.PositionPivot;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.PivotConstants;
 import frc.robot.Subsystems.Intake;

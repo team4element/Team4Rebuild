@@ -1,20 +1,19 @@
-package frc.robot.Commands;
+package frc.robot.Commands.Scoring;
 
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Turret;
 
-public class AutoAimMove extends Command {
+public class AutoAimPass extends Command {
     private final Turret m_turret;
 
-    public AutoAimMove(Turret turret, AprilTagFieldLayout fieldLayout) {
+    public AutoAimPass(Turret turret) {
         m_turret = turret;
         addRequirements(m_turret);
     }
 
     @Override
     public void execute() {
-        m_turret.trackVirtualTarget();
+        m_turret.trackPassTarget();
     }
 
     @Override
