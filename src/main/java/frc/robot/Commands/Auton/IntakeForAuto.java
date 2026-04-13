@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Commands.IntakeFuel;
 import frc.robot.Commands.PositionPivot;
 import frc.robot.Constants.IntakeConstants;
+import frc.robot.Constants.PivotConstants;
 import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
 
@@ -16,6 +17,6 @@ public class IntakeForAuto extends SequentialCommandGroup {
   /** Creates a new IntakeForAuto. */
   public IntakeForAuto(Intake intake, Pivot pivot) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new WaitCommand(1.3), new PositionPivot(intake, pivot, 18.6), new IntakeFuel(intake, IntakeConstants.intakeSpeed));
+    addCommands(new PositionPivot(intake, pivot, PivotConstants.poseToIntake), new WaitCommand(0.2), new IntakeFuel(intake, IntakeConstants.intakeSpeed));
   }
 }
