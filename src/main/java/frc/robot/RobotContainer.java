@@ -113,7 +113,9 @@ public class RobotContainer {
     NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(2));
     NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
     NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(1.2));
+    NamedCommands.registerCommand("ExtendSlow", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout*1.5));
+    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(1.5));
+    NamedCommands.registerCommand("Up", new PositionPivot(m_intake, m_pivot, PivotConstants.upwardAuto).withTimeout(1));
     NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.intakeTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
@@ -229,7 +231,7 @@ public class RobotContainer {
     LimelightHelpers.SetIMUMode(VisionConstants.kLimelightNameSide, 1);
 
     m_turret.setYaw(0);
-    m_pivot.onDisable();
+    // m_pivot.onDisable();
     
     if (!DriverStation.isFMSAttached() && !match_started) {
       initialized = false;
