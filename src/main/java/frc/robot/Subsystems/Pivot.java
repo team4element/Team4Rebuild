@@ -68,8 +68,8 @@ public class Pivot extends SubsystemBase{
         SmartDashboard.putNumber("Pivot Left P", PivotConstants.KPLeft);
         SmartDashboard.putNumber("Pivot Right P", PivotConstants.KPRight);
 
-      //  m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
-      //  m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
+       m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
+       m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
 
         m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
         

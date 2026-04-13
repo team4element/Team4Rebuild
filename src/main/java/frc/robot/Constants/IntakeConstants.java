@@ -8,5 +8,5 @@ public class IntakeConstants {
     public static final double KPRollers = 0.5;
 
     public static final double intakeSpeed = 60;      
-    public static final double intakeTimeout = 4;
+    public static final double intakeTimeout = 5;
 }
