@@ -12,4 +12,6 @@ public final class ControllerConstants {
     public static final JoystickModifier xTranslationModifier = new JoystickModifier("xTranslationModifier");
     public static final JoystickModifier zRotationModifier = new JoystickModifier("zRotationModifier");  
 
+    public static final double controllerDeadband = 1.0;
+    public static final double controllerRotationalDeadband = 0.9;
 }

@@ -40,6 +40,7 @@ import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.PivotConstants;
+import frc.robot.Constants.ShooterConstants;
 import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
@@ -52,7 +53,7 @@ import frc.robot.Subsystems.Pivot;
 import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
-// Uncomment the line below to use for demos
+// Uncomment the line below to use for demos.
 // import frc.robot.Commands.Scoring.ShootingDemo;
 
 /**
@@ -75,9 +76,11 @@ public class RobotContainer {
   /* 
    * This makes the drivetrain drive relative to the field
    * meaning forward on the joystick will always make the robot drive toward the opposite alliance. 
+   * The deadbands control the sensitivity of the joystick. So how much force needs to be applied before it actually starts moving.
+   * This needs to be tuned to the drivers' preferences. 
    */ 
   private final SwerveRequest.FieldCentric fcDrive = new SwerveRequest.FieldCentric()
-            .withDeadband(1.0).withRotationalDeadband(.9)
+            .withDeadband(ControllerConstants.controllerDeadband).withRotationalDeadband(ControllerConstants.controllerRotationalDeadband)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage).withForwardPerspective(ForwardPerspectiveValue.OperatorPerspective);
 
             
@@ -90,8 +93,10 @@ public class RobotContainer {
   public final Conveyor m_conveyor;
   public final Shooter m_shooter;
 
+  // This is used to understand the coordinates of the apriltags on the field.
   public final AprilTagFieldLayout m_field_layout;
 
+  // This is used to determine if we should reset our odometry on initialize based in if it was already triggered.
   private boolean initialized;
   private boolean match_started;
 
@@ -106,20 +111,38 @@ public class RobotContainer {
     m_spinster = new Spindexer();
     m_conveyor = new Conveyor();
 
+    // We want this to be false from the start as the robot hasn't been initialized yet.
     initialized = false;
 
-    // These are the commands used in auton.
-    NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
-    NamedCommands.registerCommand("Aim", new AutoAimMove(m_turret, m_field_layout).withTimeout(0.4));
-    NamedCommands.registerCommand("Shoot", new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(2));
-    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
-    NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("ExtendSlow", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout*1.5));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(1.5));
-    NamedCommands.registerCommand("Up", new PositionPivot(m_intake, m_pivot, PivotConstants.upwardAuto).withTimeout(1));
-    NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.intakeTimeout));
+    // --- AUTON COMMANDS ---
+    // The timeouts prevent the command from running forever. It tells it when to stop. 
+    // Defines the shooter commands
+    NamedCommands.registerCommand("Long Shot", 
+      new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(
+        ShooterConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Shoot", 
+      new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(
+        ShooterConstants.autoTimeout));
+
+    // Defines the aiming commands
+    NamedCommands.registerCommand("Aim",
+      new AutoAimMove(m_turret, m_field_layout).withTimeout(TurretConstants.autoTimeout));
+
+    // Defines the intake and pivot commands
+    NamedCommands.registerCommand("Extend + Intake", 
+      new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.autoTimeout));
+    NamedCommands.registerCommand("ExtendSlow", 
+      new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Retract", 
+      new PositionPivot(m_intake, m_pivot, PivotConstants.poseAutoMiddle).withTimeout(PivotConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Up", 
+      new PositionPivot(m_intake, m_pivot, PivotConstants.poseAutoLower).withTimeout(PivotConstants.autoTimeout));
+    NamedCommands.registerCommand("Tap Intake", 
+      new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.autoTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
+
+    // This ensures that our odometry can still reset if an auton is null.
     sendableAuton.setDefaultOption("Center to Human", AutoBuilder.buildAuto("Center to Human"));
     SmartDashboard.putData("Auto Chooser", sendableAuton);
 
@@ -128,9 +151,9 @@ public class RobotContainer {
 
   private void configureBindings() {
 
-    // These are the subsystem default commands.
+    // These are the subsystem default commands, which run when nothing else is calling the subsystem.
     m_drivetrain.setDefaultCommand(
-     //  Drivetrain will execute this command periodically
+     //  Drivetrain will execute this command periodically. It allows the joysticks to determine the drivetrain's speed.
      m_drivetrain.applyRequest(() ->
       fcDrive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
                 -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
@@ -141,15 +164,16 @@ public class RobotContainer {
       )
     );
 
+    // This is meant to keep the pivot's position from dropping. 
     m_pivot.setDefaultCommand(new HoldPivot(m_pivot));
 
-    // These are the driver controls:
+    // --- DRIVER CONTROLS ---
     ControllerConstants.driverController.leftTrigger().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
 
     ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
     ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
 
-    // These are the operator controls:
+    // --- OPERATOR CONTROLS ---
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
     ControllerConstants.operatorController.x().whileTrue(new TransferFuel(m_spinster, m_conveyor, SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed));
     ControllerConstants.operatorController.a().whileTrue(new AutoAimMove(m_turret, m_field_layout));
@@ -180,9 +204,16 @@ public class RobotContainer {
   
   }
 
+  /**
+   * This sets the initial states of the odometry, limelight, pivot, and turret.
+   * It uses our alliance color and the coordinates supplied by Pathplanner from our auto to 
+   * determine where our odometry should initialize. Initialized is set to true to prevent our
+   * location to be reset every time we enable because it should only happen once.
+   * @param startLocation of drivetrain on the field.
+   */
   public void onEnable(Pose2d startLocation) {
     if (!initialized) {
-        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 4);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
 
         var allianceEntry = DriverStation.getAlliance();
 
@@ -191,20 +222,20 @@ public class RobotContainer {
         boolean isRed = allianceEntry.isPresent() && allianceEntry.get() == Alliance.Red;
 
         Pose2d startPose;
-        // Default to the PathPlanner start if it exists, regardless of alliance
+        // Default to the PathPlanner start if it exists, regardless of alliance.
         if (startLocation != null) {
             startPose = startLocation;
         } else {
             // Only use hardcoded poses if PathPlanner didn't give us one
             if (isRed) {
-                startPose = new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180));
+                startPose = new Pose2d(VisionConstants.xCenterRed, VisionConstants.yCenter, Rotation2d.fromDegrees(VisionConstants.rotationRed));
             } else {
-                startPose = new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
+                startPose = new Pose2d(VisionConstants.xCenterBlue, VisionConstants.yCenter, Rotation2d.fromDegrees(VisionConstants.rotationBlue));
             }
         }
 
         if (DriverStation.isAutonomous()) {
-            match_started = true;
+          match_started = true;
         }
 
         // Apply hardware changes
@@ -214,19 +245,21 @@ public class RobotContainer {
         m_drivetrain.resetPose(startPose);
 
         m_drivetrain.setOperatorPerspectiveForward(
-            isRed ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
+          isRed ? Rotation2d.fromDegrees(VisionConstants.rotationRed) : Rotation2d.fromDegrees(VisionConstants.rotationBlue)
         );
 
         initialized = true;
-        System.out.println("Initialized! Red: " + isRed + " Pose: " + startPose);
     }
   }
 
+  /*
+   * This is returns the limelight to a 'resting' state, using IMU mode 1, as full tracking isn't needed.
+   * The turret is also pushed back to it's home position.
+   */
   public void onDisable() {
-    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
+    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.restingIMUMode);
 
     m_turret.setYaw(0);
-    // m_pivot.onDisable();
     
     if (!DriverStation.isFMSAttached() && !match_started) {
       initialized = false;

@@ -4,8 +4,16 @@ import edu.wpi.first.math.geometry.Translation2d;
 
 public class VisionConstants {
 
+    // --- BASIC INFO ---
+    public static final String kLimelightName = "limelight-four";
+
+    public static final int initialIMUMode = 4;
+    public static final int restingIMUMode = 1;
+
+    // --- UNIT CONVERSION ---
     public static final double inchesToMeters = 0.0254;
 
+    // --- PHYSICAL DIMENSIONS ---
     public static final double altitudeMeters = 6.5 * inchesToMeters;
     public static final double forwardOffsetMeters = 12.75 * inchesToMeters; 
     public static final double sideOffsetMeters = 0 * inchesToMeters;
@@ -15,21 +23,28 @@ public class VisionConstants {
     public static final double turretOffsetY = 6.0085 * inchesToMeters;
     public static final double cameraRadius = 7.538 * inchesToMeters;
 
+    // --- APRILTAG IDS ---
     public static final int centerHubBlueTag = 26;
     public static final int centerHubRedTag = 10;
 
+    // Used in compensation for trackking and moving.
     public static final double acceptedAvgDistance = 3.0;
 
-    public static final int initialIMUMode = 4;
-
-    public static final String kLimelightName = "limelight-four";
-
+    // These are our target coordinates to shoot at when passing
     public static final Translation2d BLUE_PASS_LEFT = new Translation2d(2, 2);    
     public static final Translation2d BLUE_PASS_RIGHT = new Translation2d(2, 6);   
     public static final Translation2d RED_PASS_LEFT = new Translation2d(15, 1);     
     public static final Translation2d RED_PASS_RIGHT = new Translation2d(15, 6);    
 
     public static final int fieldCenterY = 4;
+
+    public static final double yCenter = 4.0;
+
+    public static final double xCenterRed = 12.9;
+    public static final double rotationRed = 180;
+
+    public static final double xCenterBlue = 3.65;
+    public static final double rotationBlue = 0;
 
     /**
      * The maximum acceptable ambiguity for a single-tag read (0.0 to 1.0).
