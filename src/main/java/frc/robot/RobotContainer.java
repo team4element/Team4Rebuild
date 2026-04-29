@@ -52,6 +52,9 @@ import frc.robot.Subsystems.Pivot;
 import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
+// Uncomment the line below to use for demos
+// import frc.robot.Commands.Scoring.ShootingDemo;
+
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
  * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
@@ -59,16 +62,26 @@ import frc.robot.Subsystems.Shooter;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-// The robot's subsystems and commands are defined here.
+  // The robot's subsystems and commands are defined here.
   SendableChooser<Command> sendableAuton;
 
+  /* 
+   * This controls the speed of the drivetrain's turning and drive. 
+   * To alter the MaxSpeed, add a multiplier, to alter the MaxAngularRate, change the magnitude.
+   */ 
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(0.95).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double MaxAngularRate = RotationsPerSecond.of(0.95).in(RadiansPerSecond); 
 
+  /* 
+   * This makes the drivetrain drive relative to the field
+   * meaning forward on the joystick will always make the robot drive toward the opposite alliance. 
+   */ 
   private final SwerveRequest.FieldCentric fcDrive = new SwerveRequest.FieldCentric()
             .withDeadband(1.0).withRotationalDeadband(.9)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage).withForwardPerspective(ForwardPerspectiveValue.OperatorPerspective);
 
+            
+  // --- CREATING OBJECTS ---
   public final CommandSwerveDrivetrain m_drivetrain;
   public final Turret m_turret;
   public final Intake m_intake;
@@ -150,6 +163,7 @@ public class RobotContainer {
     ControllerConstants.operatorController.start().whileTrue(new CombinedPassMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain)); 
     ControllerConstants.operatorController.back().whileTrue(new TurretToPosition(m_turret, 0));
 
+    // Controls the arm without using limits.
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
 
@@ -158,6 +172,12 @@ public class RobotContainer {
 
     ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
+  
+    // These are used for demoing the robot (shoot at set speed).
+    // ControllerConstants.operatorController.b().whileTrue(new ShootingDemo(100, m_shooter, m_conveyor, m_spinster));  // This is a far shot.
+    // ControllerConstants.operatorController.start().whileTrue(new ShootingDemo(70, m_shooter, m_conveyor, m_spinster));
+    // ControllerConstants.operatorController.y().whileTrue(new ShootingDemo(50, m_shooter, m_conveyor, m_spinster)); // This is a short shot
+  
   }
 
   public void onEnable(Pose2d startLocation) {
