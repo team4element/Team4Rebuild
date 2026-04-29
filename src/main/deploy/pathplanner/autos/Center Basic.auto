@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Center shoot"
+            "pathName": "Center Shoot"
           }
         },
         {
@@ -29,7 +29,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "to human player"
+                  "pathName": "Center To Human"
                 }
               },
               {

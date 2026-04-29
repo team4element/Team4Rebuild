@@ -5,16 +5,9 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Shoot From Human"
-                }
-              }
-            ]
+            "pathName": "Center Shoot"
           }
         },
         {
@@ -22,11 +15,17 @@
           "data": {
             "name": "Aim"
           }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
+          }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Right",
+  "folder": "Center",
   "choreoAuto": false
 }

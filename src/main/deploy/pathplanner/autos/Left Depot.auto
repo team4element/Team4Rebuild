@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center left shot"
+            "pathName": "Center to Left"
           }
         },
         {
@@ -25,7 +25,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "from center shot to depot"
+            "pathName": "In Between Depot"
           }
         },
         {
@@ -37,7 +37,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "realign vision left"
+            "pathName": "Depot To Shoot Left"
           }
         },
         {
@@ -56,6 +56,6 @@
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": "Center",
   "choreoAuto": false
 }

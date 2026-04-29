@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Copy of right cross"
+            "pathName": "Right to Middle"
           }
         },
         {
@@ -17,7 +17,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "right cross"
+                  "pathName": "Fuel In Middle Right"
                 }
               },
               {
@@ -44,7 +44,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "right return"
+            "pathName": "Middle To Right"
           }
         },
         {

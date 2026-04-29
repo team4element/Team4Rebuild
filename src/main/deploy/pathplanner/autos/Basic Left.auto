@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from left"
+            "pathName": "Left Shoot"
           }
         },
         {
@@ -31,13 +31,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Go to Human Left"
+            "pathName": "Left To Human"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "TurretHuman"
+            "name": "Aim"
           }
         },
         {

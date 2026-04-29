@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from left"
+            "pathName": "Left Shoot"
           }
         },
         {
@@ -25,7 +25,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "left cross"
+            "pathName": "Left To Middle"
           }
         },
         {
@@ -43,7 +43,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "left return"
+            "pathName": "Middle To Left"
           }
         },
         {
