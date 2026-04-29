@@ -5,9 +5,11 @@
 package frc.robot.Commands.Auton;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import frc.robot.Commands.IntakeFuel;
-import frc.robot.Commands.PositionPivot;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+import frc.robot.Commands.Intake.IntakeFuel;
+import frc.robot.Commands.Intake.PositionPivot;
 import frc.robot.Constants.IntakeConstants;
+import frc.robot.Constants.PivotConstants;
 import frc.robot.Subsystems.Intake;
 import frc.robot.Subsystems.Pivot;
 
@@ -15,6 +17,6 @@ public class IntakeForAuto extends SequentialCommandGroup {
   /** Creates a new IntakeForAuto. */
   public IntakeForAuto(Intake intake, Pivot pivot) {
     // Add your commands in the addCommands() call, e.g.
-    addCommands(new PositionPivot(intake, pivot, 17).withTimeout(IntakeConstants.intakeTimeout), new IntakeFuel(intake, IntakeConstants.intakeSpeed).withTimeout(IntakeConstants.intakeTimeout));
+    addCommands(new PositionPivot(intake, pivot, PivotConstants.poseToIntake), new WaitCommand(0.2), new IntakeFuel(intake, IntakeConstants.intakeSpeed));
   }
 }

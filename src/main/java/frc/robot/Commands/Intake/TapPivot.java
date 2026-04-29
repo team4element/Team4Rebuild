@@ -2,7 +2,7 @@
  * This command moves the pivot for the intake back and forth in order to keep the fuel going through the spindexer.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Intake;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Subsystems.Intake;

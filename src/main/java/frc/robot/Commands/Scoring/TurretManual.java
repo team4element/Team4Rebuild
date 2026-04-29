@@ -1,21 +1,18 @@
 /*
- * This command sets the turret to a desired positon from 0 degrees (home) to a desired motor rotation.
+ * This command rotates the turret within it's limit range.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Scoring;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Turret;
 
-public class TurretToPosition extends Command {
-  /** Creates a new TurretToPosition. */
+public class TurretManual extends Command {
+
   private Turret m_turret;
-  private double m_position;
 
-  public TurretToPosition(Turret turret, double position) {
+  public TurretManual(Turret turret) {
     m_turret = turret;
-    m_position = position;
-
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(turret);
   }
@@ -27,7 +24,7 @@ public class TurretToPosition extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_turret.setYaw(m_position);
+    m_turret.rotateManual();
   }
 
   // Called once the command ends or is interrupted.

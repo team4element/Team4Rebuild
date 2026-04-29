@@ -31,6 +31,8 @@ public class Pivot extends SubsystemBase{
     double lastPLeft;
     double lastPRight;
 
+    double holdValue;
+
     public Pivot(){
         m_leftPivot = new TalonFX(PivotConstants.pivotLeftID);
         m_rightPivot = new TalonFX(PivotConstants.pivotRightID);
@@ -45,23 +47,30 @@ public class Pivot extends SubsystemBase{
         m_pivotRightConfig = new TalonFXConfiguration();
 
         m_pivotLeftConfig.Slot0.kP = PivotConstants.KPLeft;
-        m_pivotLeftConfig.Slot0.kD = PivotConstants.KDLeft;
+       // m_pivotLeftConfig.Slot0.kD = PivotConstants.KDLeft;
+        // m_pivotLeftConfig.Slot0.kS = 1.2;
+        // m_pivotLeftConfig.Slot0.kG = 0.5;
 
         m_pivotRightConfig.Slot0.kP = PivotConstants.KPRight;
-        m_pivotRightConfig.Slot0.kD = PivotConstants.KDRight;
+       // m_pivotRightConfig.Slot0.kD = PivotConstants.KDRight;
+        // m_pivotRightConfig.Slot0.kS = 1.2;
+        // m_pivotRightConfig.Slot0.kG = 0.5;
 
-        m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
 
         // Used for placing values onto the SmartDashboard when debugging.
         lastPLeft = PivotConstants.KPLeft;
         lastPRight = PivotConstants.KPRight;
 
+        holdValue = 0;
+
         SmartDashboard.putNumber("Pivot Left P", PivotConstants.KPLeft);
         SmartDashboard.putNumber("Pivot Right P", PivotConstants.KPRight);
 
-        m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
-        m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
+       m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
+       m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
 
+        m_pivotRightConfig.MotorOutput.withInverted(InvertedValue.Clockwise_Positive);
+        
         m_leftPivot.getConfigurator().apply(m_pivotLeftConfig);
         m_rightPivot.getConfigurator().apply(m_pivotRightConfig);
     }
@@ -74,6 +83,7 @@ public class Pivot extends SubsystemBase{
         m_leftPivot.setNeutralMode(NeutralModeValue.Brake);
         m_rightPivot.setNeutralMode(NeutralModeValue.Brake);
         m_leftPivot.setPosition(0);
+        m_rightPivot.setPosition(0);
     }
 
     /**
@@ -82,17 +92,11 @@ public class Pivot extends SubsystemBase{
      * @return motor rotations.
      */
     public double getPivotPosition(){
-        return m_leftPivot.getPosition().getValueAsDouble();
-    }
+        double leftPose = m_leftPivot.getPosition().getValueAsDouble();
+        double rightPose = m_rightPivot.getPosition().getValueAsDouble();
 
-    /**
-     * This applies a certain power percentage to a motor.
-     * @param motor to power.
-     * @param percentage from -1 to 1.
-     */
-    public void setPivotPercentage(double percentage){
-        m_leftPivot.setControl(m_dutyCycle.withOutput(percentage));
-        m_rightPivot.setControl(m_dutyCycle.withOutput(percentage));
+        double avgPose = (leftPose + rightPose)/2;
+        return avgPose;
     }
     
     /**
@@ -105,17 +109,36 @@ public class Pivot extends SubsystemBase{
     }
 
     /**
+     * This applies a certain power percentage to a motor.
+     * @param motor to power.
+     * @param percentage from -1 to 1.
+     */
+    public void setPivotPercentage(double percentage){
+        if(percentage == 0){
+            pivotToSetpoint(holdValue);
+        }else {
+            m_leftPivot.setControl(m_dutyCycle.withOutput(percentage));
+            m_rightPivot.setControl(m_dutyCycle.withOutput(percentage));
+        }
+    }
+
+    /**
      * Stops the motor.
      */
     public void stopMotors(){
         m_leftPivot.set(0);
         m_rightPivot.set(0);
+        holdValue = getPivotPosition();
     } 
 
     public void onDisable(){
         m_leftPivot.setNeutralMode(NeutralModeValue.Coast);
         m_rightPivot.setNeutralMode(NeutralModeValue.Coast);
     }
+
+    // public void hold(){
+    //     pivotToSetpoint(holdValue);
+    // }
 
     /**
      * Updates the PID values of the pivot motor.

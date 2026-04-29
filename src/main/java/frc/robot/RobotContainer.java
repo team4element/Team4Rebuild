@@ -22,23 +22,26 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Commands.AutoAim;
-import frc.robot.Commands.CombinedShoot;
-import frc.robot.Commands.CombinedTapShoot;
-import frc.robot.Commands.CornerShot;
-import frc.robot.Commands.FreePivot;
-import frc.robot.Commands.IntakeFuel;
-import frc.robot.Commands.PositionPivot;
-import frc.robot.Commands.RetractIntake;
-import frc.robot.Commands.TapPivot;
-import frc.robot.Commands.TurretManual;
-import frc.robot.Commands.TurretToPosition;
+import frc.robot.Commands.Scoring.AutoAimMove;
+import frc.robot.Commands.Scoring.CombinedPassMove;
+import frc.robot.Commands.Scoring.CombinedShootMove;
+import frc.robot.Commands.TransferFuel;
+import frc.robot.Commands.Scoring.TurretManual;
+import frc.robot.Commands.Scoring.TurretToPosition;
 import frc.robot.Commands.Auton.CombinedTapShootAuto;
 import frc.robot.Commands.Auton.IntakeForAuto;
+import frc.robot.Commands.Intake.FreePivot;
+import frc.robot.Commands.Intake.HoldPivot;
+import frc.robot.Commands.Intake.IntakeFuel;
+import frc.robot.Commands.Intake.PositionPivot;
+import frc.robot.Commands.Intake.RetractIntake;
+import frc.robot.Commands.Intake.TapPivot;
 import frc.robot.Constants.ControllerConstants;
+import frc.robot.Constants.ConveyorConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.PivotConstants;
 import frc.robot.Constants.ShooterConstants;
+import frc.robot.Constants.SpinsterConstants;
 import frc.robot.Constants.TunerConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
@@ -50,6 +53,9 @@ import frc.robot.Subsystems.Pivot;
 import frc.robot.Subsystems.Spindexer;
 import frc.robot.Subsystems.Shooter;
 
+// Uncomment the line below to use for demos.
+// import frc.robot.Commands.Scoring.ShootingDemo;
+
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
  * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
@@ -57,21 +63,28 @@ import frc.robot.Subsystems.Shooter;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-// The robot's subsystems and commands are defined here.
+  // The robot's subsystems and commands are defined here.
   SendableChooser<Command> sendableAuton;
 
+  /* 
+   * This controls the speed of the drivetrain's turning and drive. 
+   * To alter the MaxSpeed, add a multiplier, to alter the MaxAngularRate, change the magnitude.
+   */ 
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(0.80).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double MaxAngularRate = RotationsPerSecond.of(0.95).in(RadiansPerSecond); 
 
-  // Setting up bindings for necessary control of the swerve drive platform */
-  private final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
-            .withDeadband(1.0).withRotationalDeadband(.9)
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-
+  /* 
+   * This makes the drivetrain drive relative to the field
+   * meaning forward on the joystick will always make the robot drive toward the opposite alliance. 
+   * The deadbands control the sensitivity of the joystick. So how much force needs to be applied before it actually starts moving.
+   * This needs to be tuned to the drivers' preferences. 
+   */ 
   private final SwerveRequest.FieldCentric fcDrive = new SwerveRequest.FieldCentric()
-            .withDeadband(1.0).withRotationalDeadband(.9)
+            .withDeadband(ControllerConstants.controllerDeadband).withRotationalDeadband(ControllerConstants.controllerRotationalDeadband)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage).withForwardPerspective(ForwardPerspectiveValue.OperatorPerspective);
 
+            
+  // --- CREATING OBJECTS ---
   public final CommandSwerveDrivetrain m_drivetrain;
   public final Turret m_turret;
   public final Intake m_intake;
@@ -80,8 +93,10 @@ public class RobotContainer {
   public final Conveyor m_conveyor;
   public final Shooter m_shooter;
 
+  // This is used to understand the coordinates of the apriltags on the field.
   public final AprilTagFieldLayout m_field_layout;
 
+  // This is used to determine if we should reset our odometry on initialize based in if it was already triggered.
   private boolean initialized;
   private boolean match_started;
 
@@ -96,18 +111,38 @@ public class RobotContainer {
     m_spinster = new Spindexer();
     m_conveyor = new Conveyor();
 
+    // We want this to be false from the start as the robot hasn't been initialized yet.
     initialized = false;
 
-    // These are the commands used in auton.
-    NamedCommands.registerCommand("Long Shot", new CombinedTapShootAuto(m_shooter, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(12));
-    NamedCommands.registerCommand("Aim", new AutoAim(m_turret).withTimeout(0.5));
-    NamedCommands.registerCommand("Shoot", new CombinedShoot(m_shooter, m_conveyor, m_spinster).withTimeout(3));
-    NamedCommands.registerCommand("TurretHuman", new TurretToPosition(m_turret, TurretConstants.rightCornerRotation).withTimeout(0.5));
-    NamedCommands.registerCommand("Extend + Intake", new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Retract", new PositionPivot(m_intake, m_pivot, PivotConstants.poseForAuto).withTimeout(IntakeConstants.intakeTimeout));
-    NamedCommands.registerCommand("Tap Intake", new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.intakeTimeout));
+    // --- AUTON COMMANDS ---
+    // The timeouts prevent the command from running forever. It tells it when to stop. 
+    // Defines the shooter commands
+    NamedCommands.registerCommand("Long Shot", 
+      new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(
+        ShooterConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Shoot", 
+      new CombinedTapShootAuto(m_field_layout, m_drivetrain, m_shooter, m_turret, m_conveyor, m_spinster, m_intake, m_pivot).withTimeout(
+        ShooterConstants.autoTimeout));
+
+    // Defines the aiming commands
+    NamedCommands.registerCommand("Aim",
+      new AutoAimMove(m_turret, m_field_layout).withTimeout(TurretConstants.autoTimeout));
+
+    // Defines the intake and pivot commands
+    NamedCommands.registerCommand("Extend + Intake", 
+      new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.autoTimeout));
+    NamedCommands.registerCommand("ExtendSlow", 
+      new IntakeForAuto(m_intake, m_pivot).withTimeout(IntakeConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Retract", 
+      new PositionPivot(m_intake, m_pivot, PivotConstants.poseAutoMiddle).withTimeout(PivotConstants.longAutoTimeout));
+    NamedCommands.registerCommand("Up", 
+      new PositionPivot(m_intake, m_pivot, PivotConstants.poseAutoLower).withTimeout(PivotConstants.autoTimeout));
+    NamedCommands.registerCommand("Tap Intake", 
+      new TapPivot(m_intake, m_pivot).repeatedly().withTimeout(IntakeConstants.autoTimeout));
 
     sendableAuton = AutoBuilder.buildAutoChooser();
+
+    // This ensures that our odometry can still reset if an auton is null.
     sendableAuton.setDefaultOption("Center to Human", AutoBuilder.buildAuto("Center to Human"));
     SmartDashboard.putData("Auto Chooser", sendableAuton);
 
@@ -116,9 +151,9 @@ public class RobotContainer {
 
   private void configureBindings() {
 
-    // These are the subsystem default commands.
+    // These are the subsystem default commands, which run when nothing else is calling the subsystem.
     m_drivetrain.setDefaultCommand(
-     //  Drivetrain will execute this command periodically
+     //  Drivetrain will execute this command periodically. It allows the joysticks to determine the drivetrain's speed.
      m_drivetrain.applyRequest(() ->
       fcDrive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
                 -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed)))
@@ -129,36 +164,30 @@ public class RobotContainer {
       )
     );
 
-    // These are the driver controls:
-    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
-    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.applyRequest(() ->
-        drive.withVelocityX(ControllerConstants.yTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftY() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive forward with negative Y (forward)
-             .withVelocityY(ControllerConstants.xTranslationModifier.apply(
-                -ControllerConstants.driverController.getLeftX() * MaxSpeed * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive left with negative X (left)
-             .withRotationalRate(ControllerConstants.zRotationModifier.apply(
-                -ControllerConstants.driverController.getRightX() * MaxAngularRate * m_drivetrain.speedToDouble(m_drivetrain.m_speed))) // Drive counterclockwise with negative X (left)
-    ));
+    // This is meant to keep the pivot's position from dropping. 
+    m_pivot.setDefaultCommand(new HoldPivot(m_pivot));
 
-    ControllerConstants.driverController.start().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
-    ControllerConstants.driverController.back().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
+    // --- DRIVER CONTROLS ---
+    ControllerConstants.driverController.leftTrigger().onTrue(m_drivetrain.runOnce(() -> m_drivetrain.seedFieldCentric()));
 
-    ControllerConstants.driverController.povLeft().onTrue(new TurretToPosition(m_turret, TurretConstants.leftCornerRotation)); // Rotates pivot for the left corner shot.
-    ControllerConstants.driverController.povRight().onTrue(new TurretToPosition(m_turret, TurretConstants.rightCornerRotation)); // Rotates pivot for the right corner shot.
+    ControllerConstants.driverController.rightBumper().onTrue(m_drivetrain.c_updateSpeed(1)); // Increases speed by one SPEED Enum
+    ControllerConstants.driverController.leftBumper().onTrue(m_drivetrain.c_updateSpeed(-1)); //Lowers speed by one SPEED Enum
 
-    // These are the operator controls:
-    ControllerConstants.operatorController.y().whileTrue(new CombinedShoot(m_shooter, m_conveyor, m_spinster));
+    // --- OPERATOR CONTROLS ---
     ControllerConstants.operatorController.b().whileTrue(new TapPivot(m_intake, m_pivot).repeatedly());
-    ControllerConstants.operatorController.x().onTrue(new PositionPivot(m_intake, m_pivot, PivotConstants.poseToIntake)); // Lowers pivot to be ready to intake.
-    ControllerConstants.operatorController.a().whileTrue(new AutoAim(m_turret));
+    ControllerConstants.operatorController.x().whileTrue(new TransferFuel(m_spinster, m_conveyor, SpinsterConstants.spinsterSpeed, -ConveyorConstants.conveyorSpeed));
+    ControllerConstants.operatorController.a().whileTrue(new AutoAimMove(m_turret, m_field_layout));
+    ControllerConstants.operatorController.y().whileTrue(new CombinedShootMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain, m_field_layout));
 
     // Move turret manually.
     ControllerConstants.operatorController.povRight().whileTrue(new TurretManual(m_turret));
     ControllerConstants.operatorController.povLeft().whileTrue(new TurretManual(m_turret));
 
     // Inverse conveyor systems.
-    ControllerConstants.operatorController.start().whileTrue(new CornerShot(m_shooter, m_conveyor, m_spinster, ShooterConstants.cornerSpeed).withTimeout(5)); // Shooting from corner.
-    //ControllerConstants.operatorController.povUp().whileTrue(new TurretToPosition(m_turret, 0)); // Returns the turret to it's starting position (forward).
+    ControllerConstants.operatorController.start().whileTrue(new CombinedPassMove(m_turret, m_shooter, m_conveyor, m_spinster, m_drivetrain)); 
+    ControllerConstants.operatorController.back().whileTrue(new TurretToPosition(m_turret, 0));
+
+    // Controls the arm without using limits.
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
 
@@ -167,11 +196,24 @@ public class RobotContainer {
 
     ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
     ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
+  
+    // These are used for demoing the robot (shoot at set speed).
+    // ControllerConstants.operatorController.b().whileTrue(new ShootingDemo(100, m_shooter, m_conveyor, m_spinster));  // This is a far shot.
+    // ControllerConstants.operatorController.start().whileTrue(new ShootingDemo(70, m_shooter, m_conveyor, m_spinster));
+    // ControllerConstants.operatorController.y().whileTrue(new ShootingDemo(50, m_shooter, m_conveyor, m_spinster)); // This is a short shot
+  
   }
 
+  /**
+   * This sets the initial states of the odometry, limelight, pivot, and turret.
+   * It uses our alliance color and the coordinates supplied by Pathplanner from our auto to 
+   * determine where our odometry should initialize. Initialized is set to true to prevent our
+   * location to be reset every time we enable because it should only happen once.
+   * @param startLocation of drivetrain on the field.
+   */
   public void onEnable(Pose2d startLocation) {
     if (!initialized) {
-        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 4);
+        LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
 
         var allianceEntry = DriverStation.getAlliance();
 
@@ -180,20 +222,20 @@ public class RobotContainer {
         boolean isRed = allianceEntry.isPresent() && allianceEntry.get() == Alliance.Red;
 
         Pose2d startPose;
-        // Default to the PathPlanner start if it exists, regardless of alliance
+        // Default to the PathPlanner start if it exists, regardless of alliance.
         if (startLocation != null) {
             startPose = startLocation;
         } else {
             // Only use hardcoded poses if PathPlanner didn't give us one
             if (isRed) {
-                startPose = new Pose2d(12.9, 4.0, Rotation2d.fromDegrees(180));
+                startPose = new Pose2d(VisionConstants.xCenterRed, VisionConstants.yCenter, Rotation2d.fromDegrees(VisionConstants.rotationRed));
             } else {
-                startPose = new Pose2d(3.65, 4.0, Rotation2d.fromDegrees(0));
+                startPose = new Pose2d(VisionConstants.xCenterBlue, VisionConstants.yCenter, Rotation2d.fromDegrees(VisionConstants.rotationBlue));
             }
         }
 
         if (DriverStation.isAutonomous()) {
-            match_started = true;
+          match_started = true;
         }
 
         // Apply hardware changes
@@ -203,16 +245,19 @@ public class RobotContainer {
         m_drivetrain.resetPose(startPose);
 
         m_drivetrain.setOperatorPerspectiveForward(
-            isRed ? Rotation2d.fromDegrees(180) : Rotation2d.fromDegrees(0)
+          isRed ? Rotation2d.fromDegrees(VisionConstants.rotationRed) : Rotation2d.fromDegrees(VisionConstants.rotationBlue)
         );
 
         initialized = true;
-        System.out.println("Initialized! Red: " + isRed + " Pose: " + startPose);
     }
   }
 
+  /*
+   * This is returns the limelight to a 'resting' state, using IMU mode 1, as full tracking isn't needed.
+   * The turret is also pushed back to it's home position.
+   */
   public void onDisable() {
-    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, 1);
+    LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.restingIMUMode);
 
     m_turret.setYaw(0);
     

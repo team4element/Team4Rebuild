@@ -1,21 +1,23 @@
 /*
- * This command runs the shooter with no end. 
+ * This command sets the turret to a desired positon from 0 degrees (home) to a desired motor rotation.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Scoring;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Shooter;
+import frc.robot.Subsystems.Turret;
 
-public class ShootWithoutEnd extends Command {
+public class TurretToPosition extends Command {
+  /** Creates a new TurretToPosition. */
+  private Turret m_turret;
+  private double m_position;
 
-  private Shooter m_shooter;
-  
-  public ShootWithoutEnd(Shooter shooter) {
-    m_shooter = shooter;
+  public TurretToPosition(Turret turret, double position) {
+    m_turret = turret;
+    m_position = position;
 
     // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(shooter);
+    addRequirements(turret);
   }
 
   // Called when the command is initially scheduled.
@@ -25,15 +27,13 @@ public class ShootWithoutEnd extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_shooter.setRPS(m_shooter.shootingDistance());
+    m_turret.setYaw(m_position);
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    if(interrupted) {
-      m_shooter.stop();
-    }
+    m_turret.stopMotor();
   }
 
   // Returns true when the command should end.

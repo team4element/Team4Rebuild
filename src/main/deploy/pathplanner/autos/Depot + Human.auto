@@ -5,37 +5,19 @@
     "data": {
       "commands": [
         {
-          "type": "path",
-          "data": {
-            "pathName": "Center shoot"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Aim"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
-          }
-        },
-        {
           "type": "parallel",
           "data": {
             "commands": [
               {
                 "type": "path",
                 "data": {
-                  "pathName": "to human player"
+                  "pathName": "Center to Left"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "Retract"
+                  "name": "Extend + Intake"
                 }
               }
             ]
@@ -44,7 +26,44 @@
         {
           "type": "named",
           "data": {
-            "name": "Aim"
+            "name": "Up"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "In Between Depot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Depot To Shoot Left"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Center Far Human"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "Retract"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Aim"
+                }
+              }
+            ]
           }
         },
         {

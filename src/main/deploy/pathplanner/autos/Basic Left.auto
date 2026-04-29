@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from left"
+            "pathName": "Left Shoot"
           }
         },
         {
@@ -39,6 +39,13 @@
                 }
               }
             ]
+            "name": "Retract"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Left To Human"
           }
         },
         {

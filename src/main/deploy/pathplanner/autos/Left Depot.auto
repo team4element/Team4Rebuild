@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Shoot from left"
+            "pathName": "Center to Left"
           }
         },
         {
@@ -25,13 +25,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Collect fuel"
+            "pathName": "In Between Depot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ExtendSlow"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Fuel to shoot position"
+            "pathName": "Depot To Shoot Left"
           }
         },
         {
@@ -43,13 +49,13 @@
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "Long Shot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": "Center",
   "choreoAuto": false
 }

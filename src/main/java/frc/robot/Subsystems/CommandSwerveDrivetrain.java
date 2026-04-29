@@ -43,6 +43,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.LimelightHelpers.PoseEstimate;
 
@@ -50,8 +51,8 @@ import frc.robot.LimelightHelpers.PoseEstimate;
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
     public enum SPEED {
         SLOW,
-        MEDIUM,
         STANDARD, 
+        HIGH,
         MAX 
     };
 
@@ -85,6 +86,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // This is used to get the robot's position on the field using the limelight data. It stands for MegaTag2. 
     LimelightHelpers.PoseEstimate mt2 = new PoseEstimate();
     StructPublisher<Pose2d> publisher; 
+    StructPublisher<Pose2d> secondPublisher; 
     StructPublisher<Pose2d> limelightPublisher;
 
     public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
@@ -162,20 +164,39 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
-    public void setVisionPose() {
-        double robotYaw = this.getState().Pose.getRotation().getDegrees();
-        LimelightHelpers.SetRobotOrientation(VisionConstants.kLimelightName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+/**
+ * Iterates through all available Limelight cameras to update the drivetrain's 
+ * pose estimation using MegaTag2.
+ */
+public void setVisionPose() {
+    updateCameraVision("limelight-four"); // Front camera
+    //updateCameraVision("limelight-side"); // New side camera
+    publisher.set(this.getState().Pose);
 
-        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(VisionConstants.kLimelightName);
+    SmartDashboard.putNumber("Odometry Distance to Hub", getOdometryDistanceMeters());
+}
+
+/**
+ * Generalized MegaTag2 update logic for a single Limelight camera.
+ * @param cameraName The NetworkTable name of the Limelight (e.g., "limelight-side")
+ */
+    private void updateCameraVision(String cameraName) {
+        // Get the current robot rotation for MegaTag2's gyro-pigeon integration
+        double robotYaw = this.getState().Pose.getRotation().getDegrees();
+        
+        // Set orientation so the Limelight can compute the field-relative pose correctly
+        LimelightHelpers.SetRobotOrientation(cameraName, robotYaw, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        // Retrieve the MegaTag2 Pose Estimate
+        var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
         var odometryPose = this.getState().Pose;
 
-        publisher.set(odometryPose);
+        limelightPublisher.set(mt2.pose);
 
-        // Tag Count Check
-        if (mt2 == null || mt2.tagCount == 0) {
+        // 4Basic Validation
+        if (mt2 == null || mt2.tagCount == 0||(mt2.pose.getX()==0&&mt2.pose.getY()==0)) {
             return; 
         }
-        limelightPublisher.set(mt2.pose);
 
         boolean doRejectUpdate = false;
 
@@ -189,24 +210,29 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             }
         }
 
-        // Teleportation Check 
+        // Teleportation Check (Prevents the "jumping" pose if vision is noisy)
         double poseDiscrepancy = mt2.pose.getTranslation().getDistance(odometryPose.getTranslation());
-        if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
-            doRejectUpdate = true;
+        if(!DriverStation.isTeleop()) {
+            if (poseDiscrepancy > VisionConstants.kMaxOdometryDiscrepancyMeters) {
+                doRejectUpdate = true;
+            }
         }
 
-        // Stall/Lag Check (Data must be fresh)
+        // Latency/Stall Check
         double dataAge = Timer.getFPGATimestamp() - mt2.timestampSeconds;
         if (dataAge > VisionConstants.kMaxDataAgeSeconds) {
             doRejectUpdate = true;
         }
 
-        if (!doRejectUpdate) {
+        // Apply the measurement if it passed all filters
+        if (!doRejectUpdate || ControllerConstants.driverController.a().getAsBoolean()) {
+            // Adjust trust based on distance and tag count
             double avgDist = Math.max(mt2.avgTagDist, VisionConstants.kMinAvgTagDistFloor); 
 
-            // More trust if we see more tags
+            // Scale trust: More tags = more trust. Further distance = less trust.
             double xyStdDev = (VisionConstants.kBaselineStdDevMeters / mt2.tagCount) * avgDist * VisionConstants.kBaseTrustScale;
 
+            // Only trust vision rotation if we see multiple tags; otherwise, rely on the Gyro
             double thetaStdDev = (mt2.tagCount >= 2) 
                 ? (VisionConstants.kBaselineRotationStdDevRadians * avgDist * VisionConstants.kBaseTrustScale) 
                 : VisionConstants.kUnattainableStdDev;
@@ -216,10 +242,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
+            
+            // NetworkTableInstance.getDefault()
+            //     .getStructTopic(cameraName + "/Pose", Pose2d.struct)
+            //     .publish()
+            //     .set(mt2.pose);
         }
-    
-        SmartDashboard.putNumber("distance", getOdometryDistanceMeters());
-        SmartDashboard.putNumber("TX: ", LimelightHelpers.getTargetPose3d_RobotSpace("limelight-four").getX());
     }
 
     /**
@@ -341,8 +369,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         pathplanner();
 
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
-
-        publisher = NetworkTableInstance.getDefault().getStructTopic("botpose", Pose2d.struct).publish();
         limelightPublisher = NetworkTableInstance.getDefault().getStructTopic("LimelightPose", Pose2d.struct).publish();
     }
 
@@ -428,6 +454,63 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     // Zeros the drivetrain's 'forward' direction.
     public Command c_seedFieldRelative(){
         return runOnce(() -> seedFieldCentric());
+    }
+
+    private void startSimThread(){
+        m_lastSimTime = Utils.getCurrentTimeSeconds();
+
+        /* Run simulation at a faster rate so PID gains behave more reasonably */
+        m_simNotifier = new Notifier(() -> {
+            final double currentTime = Utils.getCurrentTimeSeconds();
+            double deltaTime = currentTime - m_lastSimTime;
+            m_lastSimTime = currentTime;
+
+            /* use the measured time delta, get battery voltage from WPILib */
+            updateSimState(deltaTime, RobotController.getBatteryVoltage());
+        });
+        m_simNotifier.startPeriodic(kSimLoopPeriod);
+    }
+
+    /**
+     * Assigns a value to each speed mode for the drivetrain.
+     * @param speed as the drive mode.
+     */
+    public double speedToDouble(SPEED speed){
+        switch (speed) {
+            case SLOW: return .20;
+            case STANDARD: return .50;
+            case HIGH: return .75;
+            case MAX: return 1;
+        }
+        return 1;
+    }
+
+    /**
+     * Assigns a speed to the drivetrain specified by the mode.
+     * @param speed as percentage from 0 to 1.
+     */
+    public void setSpeed(int speed){
+        if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
+            m_speed = SPEED.MAX;
+
+        } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
+            m_speed = SPEED.SLOW;
+
+        } else {
+            m_speed = SPEED.values()[m_speed.ordinal() + speed];
+        }
+        
+        final int percent_multiplyer = 100;
+        System.out.printf("Updated Speed: %s mode with: %.0f%% \r\n", m_speed.toString(), speedToDouble(m_speed) * percent_multiplyer);
+    }
+
+    /**
+     * Runs a command to supply the speed mode to the drivetrain.
+     * @param change +- 1 if the speed should go up or down
+     * @return the command.
+     */
+    public Command c_updateSpeed(int change){
+        return runOnce(() -> setSpeed(change));
     }
 
     @Override

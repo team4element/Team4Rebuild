@@ -19,14 +19,13 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
 import frc.robot.Constants.ControllerConstants;
+import frc.robot.Constants.ShooterConstants;
 import frc.robot.Constants.TurretConstants;
 import frc.robot.Constants.VisionConstants;
 
@@ -48,6 +47,7 @@ public class Turret extends SubsystemBase {
     private final AprilTagFieldLayout m_field_layout;
 
     // Logic State
+    private Pose2d m_turretPose;
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
 
     // AdvantageScope Data
@@ -85,6 +85,8 @@ public class Turret extends SubsystemBase {
         lastP = TurretConstants.KPTurret;
         lastD = TurretConstants.KDTurret;
         lastS = TurretConstants.KSTurret;
+
+        m_turretPose = new Pose2d();
 
         // --- Put Data on the Dashboard ---
         SmartDashboard.putNumber("Turret kP", lastP);
@@ -213,7 +215,7 @@ public class Turret extends SubsystemBase {
      * Uses the target angle to tell the motor where to turn depending on it's current position.
      * This makes sure that the turret keeps within it's physical limits.
      * @param targetAngle for the turret to turn to.
-     * @return motor rotations. 
+     * @return motor rotations.
      */
     public double calculateSmartWrap(Rotation2d targetAngle) {
         double currentMotorRotations = m_motor.getPosition().getValueAsDouble();
@@ -237,9 +239,96 @@ public class Turret extends SubsystemBase {
         return (closestTarget / 360.0) * TurretConstants.gearRatio;
     }
 
+    public void trackVirtualTarget() {
+        var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+        int targetTagID = (alliance == Alliance.Blue) ? VisionConstants.centerHubBlueTag : VisionConstants.centerHubRedTag;
+
+        var hubPose = m_field_layout.getTagPose(targetTagID);
+        if (!hubPose.isEmpty()) {
+            Translation2d hubCenter = hubPose.get().toPose2d().getTranslation();
+
+            double centerOffsetMeters = 0.6;
+            double xOffset = (alliance == Alliance.Blue) ? centerOffsetMeters : -centerOffsetMeters;
+
+            Translation2d hubCenterLocation = new Translation2d(
+                hubCenter.getX() + xOffset,
+                hubCenter.getY()
+            );
+
+            Translation2d virtualHubLocation = calculateVirtualTarget(hubCenterLocation);
+
+            Pose2d robotPose = m_drivetrain.getState().Pose;
+
+            Transform2d robotToTurret = new Transform2d(
+                new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
+                new Rotation2d()
+            );
+
+            m_turretPose = robotPose.transformBy(robotToTurret);
+
+            Rotation2d fieldAngleFromTurret = virtualHubLocation.minus(m_turretPose.getTranslation()).getAngle();
+            Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
+
+            double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
+            m_motor.setControl(m_motionMagicRequest.withPosition(finalMotorSetpoint));
+        }
+    }
+
+    /**
+    * Calculates a virtual target to shoot at while the robot is moving.
+    * Compensates for the robot's lateral and linear velocity.
+    * * @param realHubLocation The static translation of the hub on the field.
+    * @return A new Translation2d representing the "virtual" hub target.
+    */
+    public Translation2d calculateVirtualTarget(Translation2d realHubLocation) {
+        var state = m_drivetrain.getState();
+        var robotPose = state.Pose;
+        var robotRotation = robotPose.getRotation();
+        
+        // Convert Robot-Relative Speeds to Field-Relative Speeds
+        double fieldVx = state.Speeds.vxMetersPerSecond * robotRotation.getCos() - state.Speeds.vyMetersPerSecond * robotRotation.getSin();
+        double fieldVy = state.Speeds.vxMetersPerSecond * robotRotation.getSin() + state.Speeds.vyMetersPerSecond * robotRotation.getCos();
+
+        Translation2d robotToTurret = new Translation2d(
+            TurretConstants.robotCenterToTurretForward, 
+            -TurretConstants.robotCenterToTurretRight 
+        );
+
+        Translation2d turretFieldPos = robotPose.getTranslation().plus(
+            robotToTurret.rotateBy(robotRotation)
+        );
+
+        // Tangential velocity (velocity from the robot spinning)
+        double omega = state.Speeds.omegaRadiansPerSecond;
+        double tangentialVx = omega * robotToTurret.getY(); 
+        double tangentialVy = -omega * robotToTurret.getX();
+
+        Translation2d tangentialVelocityField = new Translation2d(tangentialVx, tangentialVy)
+                                                .rotateBy(robotRotation);
+
+        // Combine both into a true Field-Relative velocity vector
+        double totalVx = fieldVx + tangentialVelocityField.getX();
+        double totalVy = fieldVy + tangentialVelocityField.getY();
+
+        // Iterative Solver
+        Translation2d virtualTarget = realHubLocation;
+        for (int i = 0; i < 3; i++) {
+            double distanceToVirtualTarget = turretFieldPos.getDistance(virtualTarget);
+            double timeOfFlight = distanceToVirtualTarget / ShooterConstants.kAverageBallVelocityMps;
+
+            // The virtual target is the hub position MINUS the distance the robot travels during flight
+            virtualTarget = new Translation2d(
+                realHubLocation.getX() - (totalVx * timeOfFlight),
+                realHubLocation.getY() - (totalVy * timeOfFlight)
+            );
+        }
+
+        return virtualTarget;
+    }
+
     /*
-     * Calculates where the turret should aim using odometry. 
-     * This calculates the turret's position relative to the robot and finds the error angle to the hub. 
+     * Calculates where the turret should aim using odometry.
+     * This calculates the turret's position relative to the robot and finds the error angle to the hub.
      * Uses the error as the target angle and uses clamping to make sure it will move within physical limits.
      * Updates the position of the turret on the field by subtracting the current position (relative to the robot) by the hub position.
      */
@@ -252,7 +341,7 @@ public class Turret extends SubsystemBase {
         var hubPose = m_field_layout.getTagPose(targetTagID);
         if (!hubPose.isEmpty()) {
             Translation2d hubCenter = hubPose.get().toPose2d().getTranslation();
-            
+
             double centerOffsetMeters = 0.6; // Adjust this based on your specific goal depth
             double xOffset = (alliance == Alliance.Blue) ? centerOffsetMeters : -centerOffsetMeters;
 
@@ -286,7 +375,6 @@ public class Turret extends SubsystemBase {
             double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
 
             // Send command to the motor using the Motion Magic profile defined in constants
-            //TODO: Test motion magic vs position voltage;
             m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
             // m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
 
@@ -307,9 +395,72 @@ public class Turret extends SubsystemBase {
         }
     }
 
-    // Determines if the turret is lined up to shoot fuel.
-    public boolean isReadyToShoot() {
-	    //TODO: Update me
-        return false;
+    /**
+    * Computes the turret's current position on the field based on the robot pose and turret offset.
+    * Updates m_turretPose as a side effect.
+    */
+    private Pose2d computeTurretFieldPose() {
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+
+        Transform2d robotToTurret = new Transform2d(
+            new Translation2d(TurretConstants.robotCenterToTurretForward, -TurretConstants.robotCenterToTurretRight),
+            new Rotation2d()
+        );
+
+        m_turretPose = robotPose.transformBy(robotToTurret);
+        return m_turretPose;
+    }
+
+    public Translation2d calculateNetSafeAimPoint(Translation2d hubCenter, Translation2d turretPosition, double hubRadius) {
+        Translation2d hubToTurret = turretPosition.minus(hubCenter);
+        double distance = hubToTurret.getNorm();
+
+        if (distance == 0) return hubCenter;
+
+        Translation2d offset = new Translation2d(
+            (hubToTurret.getX() / distance) * hubRadius,
+            (hubToTurret.getY() / distance) * hubRadius
+        );
+
+        return hubCenter.plus(offset);
+    }
+
+    public void trackPassTarget() {
+        var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
+
+        Pose2d robotPose = m_drivetrain.getState().Pose;
+        Pose2d turretPose = computeTurretFieldPose();
+
+        // Pick near corner based on which side of the field the robot is on
+        Translation2d passLocation;
+        if (alliance == Alliance.Blue) {
+            passLocation = (robotPose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.BLUE_PASS_LEFT :
+                VisionConstants.BLUE_PASS_RIGHT;
+        } else {
+            passLocation = (robotPose.getY() >= VisionConstants.fieldCenterY) ?
+                VisionConstants.RED_PASS_LEFT :
+                VisionConstants.RED_PASS_RIGHT;
+        }
+
+        Translation2d safePassTarget = calculateNetSafeAimPoint(
+            passLocation,
+            turretPose.getTranslation(),
+            TurretConstants.hubNetRadius
+        );
+
+        Translation2d virtualPassLocation = calculateVirtualTarget(safePassTarget);
+
+        Rotation2d fieldAngleFromTurret = virtualPassLocation.minus(turretPose.getTranslation()).getAngle();
+        Rotation2d turretTargetRelative = fieldAngleFromTurret.minus(robotPose.getRotation());
+
+        double finalMotorSetpoint = calculateSmartWrap(turretTargetRelative);
+        double safeSetpoint = clampTurretRotations(finalMotorSetpoint);
+        m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
+
+    }
+
+    public Pose2d getTurretPose(){
+        return m_turretPose;
     }
 }

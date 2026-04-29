@@ -43,7 +43,7 @@ public class Shooter extends SubsystemBase {
         shooterConfig.Slot0.kP = ShooterConstants.KPShooter;
         shooterConfig.Slot0.kI = ShooterConstants.KIShooter;
         shooterConfig.Slot0.kD = ShooterConstants.KDShooter;
-        shooterConfig.Slot0.kV = ShooterConstants.KVShooter; 
+        shooterConfig.Slot0.kV = ShooterConstants.KVShooter;
 
         // Mechanical Settings
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
@@ -53,10 +53,6 @@ public class Shooter extends SubsystemBase {
         m_leftMotor.getConfigurator().apply(shooterConfig);
         m_rightMotor.getConfigurator().apply(shooterConfig);
 
-        /* * Set up Follower: Right motor will mimic the Left motor.
-         * If your motors are facing each other, one usually needs to be opposed.
-         * Set 'opposeMasterDirection' to true if they spin against each other.
-         */
         m_rightMotor.setControl(new Follower(m_leftMotor.getDeviceID(), MotorAlignmentValue.Opposed));
     }
 
@@ -89,35 +85,78 @@ public class Shooter extends SubsystemBase {
      */
     public double shootingDistance() {
         double distMeters = m_drivetrain.getOdometryDistanceMeters();
-    
+
         if (distMeters <= 0) return 0;
 
         // Convert to inches for the regression formula
         double distInches = distMeters * TurretConstants.metersToInches;
 
         // Extra inch b/c we are aiming at the target
-        double adjustedInches = distInches - 1.0; 
+        double adjustedInches = distInches - 1.0;
 
-        //TODO replace with real values
-        final int minInches = 30;
-        final int maxInches = 200;
-        double clampedInches = MathUtil.clamp(adjustedInches, 0, 500);
+        final int minInches = 0;
+        final int maxInches = 500;
+        double clampedInches = MathUtil.clamp(adjustedInches, minInches, maxInches);
 
-        // Your Regression Formula
-        double targetRPS = (0.000011 * Math.pow(clampedInches, 3)) - 
-                       (0.003632 * Math.pow(clampedInches, 2)) + 
-                       (0.59999 * clampedInches) + 32.574475;
-                       
+        // Regression Formula inches to RPS
+        double targetRPS = (0.000011 * Math.pow(clampedInches, 3)) -
+                           (0.003632 * Math.pow(clampedInches, 2)) +
+                           (0.59999 * clampedInches) + 32.574475;
+
         return targetRPS;
+    }
+
+    /**
+     * Finds target RPS based on distance AND active robot velocity!
+     * @param distMeters Distance to the virtual target.
+     * @param radialVelocityMps Speed of the robot moving directly toward the target (+ is toward, - is away).
+     */
+    public double shootingDistanceVirtualTarget(double distMeters, double radialVelocityMps) {
+        if (distMeters <= 0) return 0;
+
+        double distInches = distMeters * TurretConstants.metersToInches;
+        double adjustedInches = distInches - 1.0;
+
+        final int minInches = 15;
+        final int maxInches = 220;
+        double clampedInches = MathUtil.clamp(adjustedInches, minInches, maxInches);
+
+        // Get the base RPS from the regression formula
+        double baseRPS = (0.000011 * Math.pow(clampedInches, 3)) -
+                         (0.003632 * Math.pow(clampedInches, 2)) +
+                         (0.59999 * clampedInches) + 32.574475;
+
+                         
+        // Convert radial velocity to a reduction in RPS
+        double velocityCompensationCoefficient = 2;
+        double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
+
+        // Subtract the robot's momentum from the target RPS
+        final double bandaid = 0;
+        return baseRPS - rpsOffset + bandaid;
+    }
+
+    public double getPassRPS(double distMeters, double radialVelocityMps) {
+        if (distMeters <= 0) return 0;
+
+        double basePassRPS = 55.0;
+        double distanceFactor = 3.3; // RPS increase per meter
+
+        double targetRPS = basePassRPS + (distMeters * distanceFactor);
+
+        double velocityCompensationCoefficient = 2.0;
+        double rpsOffset = radialVelocityMps * velocityCompensationCoefficient;
+
+        return MathUtil.clamp(targetRPS - rpsOffset, 0, 108.0);
     }
 
     /**
      * Checks if the motor is within the tolerance of our targetRPS.
      * @param targetRPS
-     * @return wheather or not the motor is at target.
+     * @return whether or not the motor is at target.
      */
     public boolean isAtVelocity(double targetRPS) {
-        double tolerance = 1.5; 
+        double tolerance = 1.5;
         return Math.abs(getCurrentRPS() - targetRPS) < tolerance;
     }
 

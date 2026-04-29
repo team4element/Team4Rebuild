@@ -2,7 +2,7 @@
  * This command manually moves the pivot on the intake between it's limits.
  */
 
-package frc.robot.Commands;
+package frc.robot.Commands.Intake;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.IntakeConstants;
@@ -34,6 +34,10 @@ public class RetractIntake extends Command {
   public void execute() {
     // Gets the current position of the pivot.
     double currentPivotPosition = m_pivot.getPivotPosition();
+
+    if(currentPivotPosition > 17.5 && m_speedPercentagePivot > 0){
+      return;
+    }
 
     // Checks to see if the pivot is within the physical limits.
     boolean inRange = (currentPivotPosition > PivotConstants.upperPivotLimit) && (currentPivotPosition < PivotConstants.lowerPivotLimit);
