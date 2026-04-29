@@ -50,10 +50,6 @@ public class Turret extends SubsystemBase {
     private Pose2d m_turretPose;
     private double lastP, lastD, lastS, lastPS, lastDS, lastVS;
 
-    // AdvantageScope Data
-    private final StructPublisher<Pose2d> turretPosePublisher =
-    NetworkTableInstance.getDefault().getStructTopic("Turret/FieldPose", Pose2d.struct).publish();
-
     public Turret(AprilTagFieldLayout field_layout, CommandSwerveDrivetrain drivetrain) {
         m_motor = new TalonFX(TurretConstants.turretID);
         m_field_layout = field_layout;
@@ -376,22 +372,6 @@ public class Turret extends SubsystemBase {
 
             // Send command to the motor using the Motion Magic profile defined in constants
             m_motor.setControl(m_motionMagicRequest.withPosition(safeSetpoint));
-            // m_motor.setControl(m_positionRequest.withPosition(safeSetpoint));
-
-            //--------------------- ADVANTAGESCOPE TELEMETRY
-
-            // Get the turret's current relative angle using your clean degrees method
-            double currentDegrees = getTurretDegree();
-            Rotation2d currentRelativeAngle = Rotation2d.fromDegrees(currentDegrees);
-
-            // Add the robot's current rotation to get the Turret's GLOBAL rotation on the field
-            Rotation2d globalTurretAngle = robotPose.getRotation().plus(currentRelativeAngle);
-
-            // Construct the final global Pose2d for AdvantageScope
-            Pose2d actualTurretPose = new Pose2d(turretPose.getTranslation(), globalTurretAngle);
-
-            // Publish to NetworkTables
-            turretPosePublisher.set(actualTurretPose);
         }
     }
 

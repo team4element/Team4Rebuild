@@ -89,11 +89,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     StructPublisher<Pose2d> secondPublisher; 
     StructPublisher<Pose2d> limelightPublisher;
 
-    public final SwerveRequest.RobotCentric drive = new SwerveRequest.RobotCentric()
-        .withDeadband(m_deadband).withRotationalDeadband(m_deadband)
-         .withDriveRequestType(DriveRequestType.OpenLoopVoltage
-    );
-
     // Defines the field forward direction
     public final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle = new SwerveRequest.FieldCentricFacingAngle()
         .withDeadband(m_deadband)
@@ -242,11 +237,6 @@ public void setVisionPose() {
                 Utils.fpgaToCurrentTime(mt2.timestampSeconds), 
                 VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev)
             );
-            
-            // NetworkTableInstance.getDefault()
-            //     .getStructTopic(cameraName + "/Pose", Pose2d.struct)
-            //     .publish()
-            //     .set(mt2.pose);
         }
     }
 
@@ -537,62 +527,5 @@ public void setVisionPose() {
                 m_hasAppliedOperatorPerspective = true;
             });
         }     
-    }
-
-    private void startSimThread(){
-        m_lastSimTime = Utils.getCurrentTimeSeconds();
-
-        /* Run simulation at a faster rate so PID gains behave more reasonably */
-        m_simNotifier = new Notifier(() -> {
-            final double currentTime = Utils.getCurrentTimeSeconds();
-            double deltaTime = currentTime - m_lastSimTime;
-            m_lastSimTime = currentTime;
-
-            /* use the measured time delta, get battery voltage from WPILib */
-            updateSimState(deltaTime, RobotController.getBatteryVoltage());
-        });
-        m_simNotifier.startPeriodic(kSimLoopPeriod);
-    }
-
-    /**
-     * Assigns a value to each speed mode for the drivetrain.
-     * @param speed as the drive mode.
-     */
-    public double speedToDouble(SPEED speed){
-        switch (speed) {
-            case SLOW: return .25;
-            case MEDIUM: return .5;
-            case STANDARD: return .75;
-            case MAX: return 1;
-        }
-        return 1;
-    }
-
-    /**
-     * Assigns a speed to the drivetrain specified by the mode.
-     * @param speed as percentage from 0 to 1.
-     */
-    public void setSpeed(int speed){
-        if (m_speed.ordinal() + speed > SPEED.MAX.ordinal()){
-            m_speed = SPEED.SLOW;
-
-        } else if (m_speed.ordinal() + speed < SPEED.SLOW.ordinal()){
-            m_speed = SPEED.MAX;
-
-        } else {
-            m_speed = SPEED.values()[m_speed.ordinal() + speed];
-        }
-        
-        final int percent_multiplyer = 100;
-        System.out.printf("Updated Speed: %s mode with: %.0f%% \r\n", m_speed.toString(), speedToDouble(m_speed) * percent_multiplyer);
-    }
-
-    /**
-     * Runs a command to supply the speed mode to the drivetrain.
-     * @param change +- 1 if the speed should go up or down
-     * @return the command.
-     */
-    public Command c_updateSpeed(int change){
-        return runOnce(() -> setSpeed(change));
     }
 }
