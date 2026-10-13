@@ -51,8 +51,8 @@ public class PositionPivot extends Command {
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    final double lowerTolerance = m_setpoint-0.5;
-    final double upperTolerance = m_setpoint+0.5;
+    final double lowerTolerance = m_setpoint-0.4;
+    final double upperTolerance = m_setpoint+0.4;
 
     final boolean condition = (m_pivot.getPivotPosition() >= lowerTolerance) && (m_pivot.getPivotPosition() <= upperTolerance);
 

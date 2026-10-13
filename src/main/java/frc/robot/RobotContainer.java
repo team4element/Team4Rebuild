@@ -191,11 +191,11 @@ public class RobotContainer {
     ControllerConstants.operatorController.povDown().whileTrue(new FreePivot(m_pivot, m_intake, PivotConstants.pivotSpeed));
     ControllerConstants.operatorController.povUp().whileTrue(new FreePivot(m_pivot, m_intake, -PivotConstants.pivotSpeed));
 
-    ControllerConstants.operatorController.leftBumper().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
-    ControllerConstants.operatorController.rightBumper().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
+    ControllerConstants.operatorController.rightTrigger().whileTrue(new IntakeFuel(m_intake, -IntakeConstants.intakeSpeed)); // Runs the outtake.
+    ControllerConstants.operatorController.leftTrigger().whileTrue(new IntakeFuel(m_intake, IntakeConstants.intakeSpeed)); // Runs the intake.
 
-    ControllerConstants.operatorController.leftTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
-    ControllerConstants.operatorController.rightTrigger().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
+    ControllerConstants.operatorController.rightBumper().whileTrue(new RetractIntake(m_intake, m_pivot, -PivotConstants.pivotSpeed)); // Lowers the pivot of the intake and outakes.
+    ControllerConstants.operatorController.leftBumper().whileTrue(new RetractIntake(m_intake, m_pivot, PivotConstants.pivotSpeed)); // Raises the pivot of the intake and intakes.
   
     // These are used for demoing the robot (shoot at set speed).
     // ControllerConstants.operatorController.b().whileTrue(new ShootingDemo(100, m_shooter, m_conveyor, m_spinster));  // This is a far shot.
