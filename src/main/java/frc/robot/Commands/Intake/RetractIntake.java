@@ -47,7 +47,7 @@ public class RetractIntake extends Command {
 
     double halfIntakeSpeed = IntakeConstants.intakeSpeed/2;
 
-    if(inRange || outsideLowRange){
+    if(inRange || outsideLowRange || outsideHighRange){
       m_pivot.setPivotPercentage(m_speedPercentagePivot);
 
       if(m_speedPercentagePivot < 0){
