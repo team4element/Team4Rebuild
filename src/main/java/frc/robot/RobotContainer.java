@@ -214,7 +214,6 @@ public class RobotContainer {
   public void onEnable(Pose2d startLocation) {
     if (!initialized) {
         LimelightHelpers.SetIMUMode(VisionConstants.kLimelightName, VisionConstants.initialIMUMode);
-
         var allianceEntry = DriverStation.getAlliance();
 
         // If we don't know the alliance yet, we might want to skip one loop
@@ -241,9 +240,7 @@ public class RobotContainer {
         // Apply hardware changes
         m_turret.resetTurret();
         m_pivot.homePivot();
-        m_drivetrain.seedFieldCentric();
         m_drivetrain.resetPose(startPose);
-
         m_drivetrain.setOperatorPerspectiveForward(
           isRed ? Rotation2d.fromDegrees(VisionConstants.rotationRed) : Rotation2d.fromDegrees(VisionConstants.rotationBlue)
         );

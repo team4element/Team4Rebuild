@@ -16,11 +16,11 @@
     },
     {
       "anchor": {
-        "x": 0.81,
+        "x": 0.797,
         "y": 0.65
       },
       "prevControl": {
-        "x": 1.0542467378410445,
+        "x": 1.0412467378410444,
         "y": 0.7151601423487547
       },
       "nextControl": null,
@@ -31,14 +31,6 @@
   "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [
-    {
-      "name": "Extend + Intake",
-      "waypointRelativePos": 0.4496681415929211,
-      "endWaypointRelativePos": null,
-      "command": null
-    }
-  ],
   "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.5,

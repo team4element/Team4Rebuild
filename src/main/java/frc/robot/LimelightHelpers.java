@@ -737,7 +737,7 @@ public class LimelightHelpers {
             this.tagCount = 0;
             this.tagSpan = 0;
             this.avgTagDist = 0;
-            this.avgTagArea = 0;
+            this.avgTagArea = 0; 
             this.rawFiducials = new RawFiducial[]{};
             this.isMegaTag2 = false;
         }
